@@ -40,6 +40,11 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
   by the frontend.
 - Drive OAuth access tokens last ~1 h and Firebase does not refresh them.
   `drive.js` re-pops the Google dialog on a 401 and retries once.
+- Google's consent screen shows the `drive.file` permission as an **optional
+  checkbox** (granular permissions). Clicking through without ticking it =
+  signed in but no Drive scope → uploads 403 "insufficient authentication
+  scopes". `tokenGrantsDrive()` (tokeninfo endpoint) detects this; `authorize()`
+  re-prompts once and the upload path shows a Russian "tick the box" message.
 - No local build was possible on the authoring machine (no Node). The GitHub
   Action is the source of truth for "does it build".
 - The pre-Firebase Base44 source is preserved in the first git commit

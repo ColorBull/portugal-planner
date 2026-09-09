@@ -7,7 +7,7 @@ import {
 } from "firebase/auth";
 import { auth, googleProvider } from "@/api/firebase";
 import { ALLOWED_EMAILS } from "@/config";
-import { setDriveToken, registerReauthorize } from "@/api/drive";
+import { setDriveToken, registerReauthorize, tokenGrantsDrive } from "@/api/drive";
 
 const AuthContext = createContext(null);
 
@@ -27,12 +27,21 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // Pop the Google dialog and capture a fresh Drive access token.
-  const authorize = async () => {
+  // Pop the Google dialog and capture a fresh Drive access token. Google shows
+  // the Drive permission as an optional checkbox; if it's left unticked the
+  // token has no drive.file scope, so re-prompt once before giving up.
+  const authorize = async (allowRetry = true) => {
     const result = await signInWithPopup(auth, googleProvider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const token = credential?.accessToken || null;
     setDriveToken(token);
+    if (token && allowRetry && !(await tokenGrantsDrive(token))) {
+      setError(
+        "Похоже, при входе не был отмечен доступ к Google Drive. " +
+          "Отметьте галочку доступа к файлам Drive в следующем окне."
+      );
+      return authorize(false);
+    }
     return token;
   };
 

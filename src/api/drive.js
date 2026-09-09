@@ -9,6 +9,34 @@
 import { DRIVE_FOLDER_ID } from "@/config";
 
 const TOKEN_KEY = "pp_drive_token";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
+
+// Google shows the Drive permission as an *optional* checkbox on the consent
+// screen (granular permissions). If the user clicks through without ticking it,
+// sign-in still succeeds but the access token carries no drive.file scope and
+// every Drive call returns 403 "insufficient authentication scopes".
+const SCOPE_HELP =
+  "Нет доступа к Google Drive. При входе через Google нужно поставить галочку " +
+  '«…просмотр и изменение файлов Google Drive, открытых в этом приложении». ' +
+  "Выйдите (значок выхода вверху справа) и войдите снова, отметив эту галочку.";
+
+// Ask Google whether a token actually carries the drive.file scope.
+export async function tokenGrantsDrive(t) {
+  if (!t) return false;
+  try {
+    const res = await fetch(
+      `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(t)}`
+    );
+    if (!res.ok) return false;
+    const info = await res.json();
+    return (info.scope || "").split(" ").includes(DRIVE_SCOPE);
+  } catch {
+    return false;
+  }
+}
+
+const isScopeError = (status, body) =>
+  status === 403 && /insufficient (authentication scopes|permission)/i.test(body || "");
 
 let accessToken = null;
 let expiresAt = 0;
@@ -62,10 +90,13 @@ async function driveFetch(url, options = {}, retry = true) {
   });
   if ((res.status === 401 || res.status === 403) && retry && reauthorize) {
     const fresh = await reauthorize();
-    if (fresh) return driveFetch(url, options, false);
+    if (fresh && (res.status === 401 || (await tokenGrantsDrive(fresh)))) {
+      return driveFetch(url, options, false);
+    }
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
+    if (isScopeError(res.status, body)) throw new Error(SCOPE_HELP);
     throw new Error(`Drive ${res.status}: ${body.slice(0, 200)}`);
   }
   return res;
