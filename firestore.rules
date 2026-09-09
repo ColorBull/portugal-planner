@@ -1,0 +1,27 @@
+rules_version = '2';
+
+// One shared itinerary under trips/{tripId}. Only the trip participants —
+// identified by their verified Google e-mail — can read or write anything
+// beneath it. Keep this list identical to ALLOWED_EMAILS in src/config.js.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isParticipant() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'yoffedani@gmail.com',
+          'yoffeleonid@gmail.com',
+          'yoffelena@gmail.com'
+        ];
+    }
+
+    match /trips/{tripId}/{document=**} {
+      allow read, write: if isParticipant();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -29,4 +29,10 @@ dist-ssr
 
 .env
 .vite
-base44/.app.jsonc
+
+# Firebase service-account keys — never commit
+service-account.json
+*serviceAccount*.json
+*-firebase-adminsdk-*.json
+.firebase/
+.firebaserc

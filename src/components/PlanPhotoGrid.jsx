@@ -1,7 +1,13 @@
 import { useRef, useState } from "react";
 import { Plus, Loader2, Trash2, FileText, FileType, File } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { base44 } from "@/api/base44Client";
+import { TripPhoto } from "@/api/entities";
+import {
+  uploadToDrive,
+  deleteFromDrive,
+  driveImageUrl,
+  driveViewUrl,
+} from "@/api/drive";
 import { Image } from "@/components/ui/image";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { openExternal } from "@/lib/openExternal";
@@ -22,9 +28,8 @@ const docIconFor = (name) => {
   return File;
 };
 
-const openDocument = (url) => {
-  const viewer = `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`;
-  openExternal(viewer);
+const openDocument = (record) => {
+  openExternal(driveViewUrl(record.drive_file_id));
 };
 
 export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }) {
@@ -91,8 +96,8 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
   const endPress = (e, record, isImage) => {
     clearPress();
     if (!movedRef.current && !menuTriggeredRef.current) {
-      if (isImage) setLightbox(record.photo_url);
-      else openDocument(record.photo_url);
+      if (isImage) setLightbox(driveImageUrl(record.drive_file_id, 1600));
+      else openDocument(record);
     }
     if (e.preventDefault) e.preventDefault();
   };
@@ -100,17 +105,18 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
   const uploadFile = async (file, kind) => {
     setUploading(true);
     try {
-      const { file_url } = await base44.integrations.Core.UploadFile({ file });
-      await base44.entities.TripPhoto.create({
+      const fileId = await uploadToDrive(file);
+      await TripPhoto.create({
         day_key: dayKey,
         item_id: itemId,
-        photo_url: file_url,
+        drive_file_id: fileId,
         kind,
-        file_name: kind === "document" ? file.name : undefined
+        file_name: kind === "document" ? file.name : undefined,
       });
       onChanged();
     } catch (err) {
       console.error(err);
+      alert("Не удалось загрузить файл. " + (err?.message || ""));
     } finally {
       setUploading(false);
       if (imgInputRef.current) imgInputRef.current.value = "";
@@ -118,10 +124,11 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (record) => {
     setMenuFor(null);
     try {
-      await base44.entities.TripPhoto.delete(id);
+      await TripPhoto.delete(record.id);
+      deleteFromDrive(record.drive_file_id);
       onChanged();
     } catch (err) {
       console.error(err);
@@ -150,7 +157,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                       menuTriggeredRef.current = false;
                       return;
                     }
-                    openDocument(d.photo_url);
+                    openDocument(d);
                   }}
                   className="flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-none"
                 >
@@ -191,13 +198,13 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                       menuTriggeredRef.current = false;
                       return;
                     }
-                    setLightbox(p.photo_url);
+                    setLightbox(driveImageUrl(p.drive_file_id, 1600));
                   }}
                   className="block h-full w-full touch-none"
                   aria-label="Просмотреть фото"
                 >
                   <Image
-                    src={p.photo_url}
+                    src={driveImageUrl(p.drive_file_id, 600)}
                     alt={p.caption || "Место из плана"}
                     className="h-full w-full object-cover pointer-events-none select-none"
                     fittingType="fill"
@@ -274,7 +281,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
               className="w-40 rounded-xl bg-white shadow-2xl ring-1 ring-stone-200 overflow-hidden"
             >
               <button
-                onClick={() => handleDelete(activeRecord.id)}
+                onClick={() => handleDelete(activeRecord)}
                 className="flex w-full items-center gap-2 px-3.5 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
               >
                 <Trash2 className="h-4 w-4 shrink-0" />

@@ -26,7 +26,7 @@ import {
   Sun,
   ExternalLink
 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
 import PlanNoteBox from "@/components/PlanNoteBox";
 import { openMapUrl } from "@/lib/mapsLink";
@@ -109,7 +109,7 @@ export default function DayPlanModal({ plan, dayInfo, onClose }) {
   const loadPhotos = async () => {
     if (!dayInfo) return;
     try {
-      const records = await base44.entities.TripPhoto.filter({ day_key: dayInfo.key });
+      const records = await TripPhoto.filter({ day_key: dayInfo.key });
       const grouped = {};
       records.forEach((r) => {
         if (!grouped[r.item_id]) grouped[r.item_id] = [];

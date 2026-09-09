@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Pencil, Trash2, Link2, X, Loader2 } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { TripNote } from "@/api/entities";
 import { openExternal } from "@/lib/openExternal";
 
 const normalizeLink = (l) => {
@@ -16,7 +16,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
 
   const load = async () => {
     try {
-      const records = await base44.entities.TripNote.filter({
+      const records = await TripNote.filter({
         day_key: dayKey,
         item_id: itemId
       });
@@ -50,9 +50,9 @@ export default function PlanNoteBox({ itemId, dayKey }) {
     setSaving(true);
     try {
       if (note) {
-        await base44.entities.TripNote.update(note.id, { text, link });
+        await TripNote.update(note.id, { text, link });
       } else {
-        await base44.entities.TripNote.create({
+        await TripNote.create({
           day_key: dayKey,
           item_id: itemId,
           text,
@@ -71,7 +71,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
   const remove = async () => {
     if (!note) return;
     try {
-      await base44.entities.TripNote.delete(note.id);
+      await TripNote.delete(note.id);
       setNote(null);
     } catch (err) {
       console.error(err);

@@ -1,62 +1,45 @@
-# Base44 Project
+# Португалия 2026 — Portugal Planner
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+A small private web app for one family trip to Portugal (30 Oct – 6 Nov 2026):
+eight day-cards, each opening a detailed itinerary where every stop can carry a
+**note + link** and a grid of **photos / documents**.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+Rebuilt from a Base44 export to run on a self-owned backend:
 
-## Prerequisites
+| Concern | Before (Base44) | Now |
+|---|---|---|
+| Auth | Base44 accounts | Firebase Auth — Google sign-in, 2-person allow-list |
+| Database | Base44 entities | Cloud Firestore (`trips/portugal-2026/{notes,photos}`) |
+| File uploads | Base44 Core storage | Google Drive (`drive.file` scope → shared folder) |
+| Hosting | Base44 | GitHub Pages (Actions build) |
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
-5. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) — the local Base44 backend runs on it.
+The React UI is unchanged from the export — only the data layer was swapped.
 
-Run `base44 --help` (or see the [CLI reference](https://docs.base44.com/developers/references/cli/commands/introduction)) for the full command surface.
+## First-time setup
 
-## Run Locally
+See **[SETUP.md](SETUP.md)**. Short version: create a free Firebase project,
+enable Google auth + Firestore, enable the Drive API with the `drive.file` scope,
+make one shared Drive folder, fill in `src/config.js` and `firestore.rules`, push
+to GitHub, turn on Pages.
 
-Three commands, from the project root:
+## Develop locally
 
-```bash
-base44 login   # one-time per machine
-base44 link    # one-time per clone
-base44 dev     # local backend + frontend together
-```
-
-Open the frontend URL that `base44 dev` prints (typically `http://localhost:5173`).
-
-Notes:
-
-- **Every fresh clone needs `base44 link`.** It writes `base44/.app.jsonc` (the app-id pointer), which is deliberately gitignored. Your app id is in the Builder URL (`app.base44.com/apps/<id>/...`); `base44 link --help` shows the non-interactive flags.
-- **`base44 dev` runs the frontend for you** (via `site.serveCommand` in this repo's `base44/config.jsonc`) — never run `npm run dev` yourself: alone it serves a UI with no backend behind it (`[base44] Proxy not enabled`, every `/api` call fails), and alongside `base44 dev` the second Vite silently takes the next port and you end up looking at the wrong one.
-- **The app must be published at least once for the UI to load under `base44 dev`.** The frontend boots by fetching app settings from the hosted app; before the first publish that fails and every page redirects to login. The local API works regardless.
-- Entities, functions, and auth run locally — entity data is **in-memory only**, wiped when `base44 dev` restarts. Everything else (Core integrations, OAuth login) is forwarded to your deployed app. Full breakdown: [Local development overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview).
-
-## Frontend Only, Hosted Backend
-
-To work on just the frontend against your app's live hosted backend:
+Requires Node.js 20+.
 
 ```bash
-base44 dev --remote
+npm install
+npm run dev
 ```
 
-⚠️ In this mode writes go to your app's **production data** — plain `base44 dev` keeps everything local.
+## How it works
 
-## Publish Your Changes
+- `src/config.js` holds the Firebase web config, the allowed e-mails, the Drive
+  folder id and the trip id. These are **public by design** — the data is
+  protected by `firestore.rules` and Firebase's authorized-domain list.
+- On sign-in the app also receives a Google OAuth token with `drive.file`
+  access. Uploads go straight to the shared Drive folder; only a file id is
+  stored in Firestore.
+- `src/api/entities.js` reproduces the old `TripNote` / `TripPhoto` API on top of
+  Firestore, so the components barely changed.
 
-After pushing your changes to git, open the Base44 dashboard and publish the app:
-
-```bash
-base44 dashboard open
-```
-
-This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
-
-## Docs & Support
-
-GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
-
-Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
-
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+The original Base44 source is kept as the first commit in git history.
