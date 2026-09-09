@@ -1,8 +1,17 @@
 # Setup — Portugal Planner
 
+> **Status: already done.** The live app is
+> **<https://colorbull.github.io/portugal-planner/>**, backed by the Firebase
+> project `portugal-planner-53a05` and the Drive folder `1DDQbHpWGi7…`.
+> Everything below is kept as a record / for rebuilding from scratch.
+>
+> To change who can use the app, edit `ALLOWED_EMAILS` in `src/config.js` **and**
+> the `email in [...]` list in `firestore.rules` (keep them identical), then push
+> — and re-publish the rules (Firebase Console → Firestore → Rules → Publish).
+
 One-time steps to bring the app online. ~30 minutes. Everything here is free.
 
-You will fill in real values in **two** places and they must match:
+You fill in real values in **two** places and they must match:
 `src/config.js` and `firestore.rules`.
 
 ---
@@ -103,10 +112,23 @@ npm run dev        # http://localhost:5173
 
 ## Checklist
 
-- [ ] `src/config.js` — all six `firebaseConfig` values filled
-- [ ] `src/config.js` + `firestore.rules` — same two e-mails
-- [ ] Firestore rules published
-- [ ] Google Drive API enabled, `drive.file` scope added, test users added
-- [ ] `DRIVE_FOLDER_ID` filled, folder shared with both parents
-- [ ] Repo pushed, Pages source = GitHub Actions, first deploy green
-- [ ] `<user>.github.io` added to Firebase Authorized domains
+- [x] `src/config.js` — all six `firebaseConfig` values filled
+- [x] `src/config.js` + `firestore.rules` — same three e-mails
+      (yoffedani@, yoffeleonid@, yoffelena@)
+- [x] Firestore rules published
+- [x] Google Drive API enabled, `drive.file` scope added (non-sensitive → no
+      verification), consent screen "In production"
+- [x] `DRIVE_FOLDER_ID` = `1DDQbHpWGi7JaFVmIKkzpb7oIUurJMXne` (father's Drive,
+      shared with the others)
+- [x] Repo `ColorBull/portugal-planner` pushed, Pages source = GitHub Actions,
+      deploy green
+- [x] `colorbull.github.io` added to Firebase Authorized domains
+
+## Note on the Google permission screen
+
+The app requests the `drive.file` scope with `prompt: "consent"`, so the **first
+time** each person signs in on a device Google shows a permission screen
+("Portugal Planner wants to … see, edit, create and delete only the specific
+Google Drive files you use with this app"). They must click **Continue / Allow**
+once. After that they stay signed in (the session is remembered) and won't see it
+again unless they sign out or clear the browser.

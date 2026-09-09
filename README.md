@@ -1,5 +1,7 @@
 # Португалия 2026 — Portugal Planner
 
+**Live:** <https://colorbull.github.io/portugal-planner/> · Firebase project `portugal-planner-53a05`
+
 A small private web app for one family trip to Portugal (30 Oct – 6 Nov 2026):
 eight day-cards, each opening a detailed itinerary where every stop can carry a
 **note + link** and a grid of **photos / documents**.
