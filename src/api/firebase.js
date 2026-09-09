@@ -20,4 +20,7 @@ export const db = getFirestore(app);
 // non-sensitive scope: access is limited to files this app creates.
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.addScope("https://www.googleapis.com/auth/drive.file");
-googleProvider.setCustomParameters({ prompt: "select_account" });
+// "consent" (not just "select_account") so Google always returns an access
+// token that actually carries the drive.file grant — without it a returning
+// user is signed in with no Drive scope and uploads fail with 403.
+googleProvider.setCustomParameters({ prompt: "consent" });

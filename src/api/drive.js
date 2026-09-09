@@ -77,15 +77,29 @@ async function driveFetch(url, options = {}, retry = true) {
 export async function uploadToDrive(file, { name } = {}) {
   const metadata = {
     name: name || file.name || `photo-${Date.now()}`,
-    parents: DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? [DRIVE_FOLDER_ID] : undefined,
+    parents:
+      DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? [DRIVE_FOLDER_ID] : undefined,
   };
-  const form = new FormData();
-  form.append("metadata", new Blob([JSON.stringify(metadata)], { type: "application/json" }));
-  form.append("file", file);
+
+  // multipart/related body (the form the Drive v3 multipart upload expects):
+  // part 1 = JSON metadata, part 2 = the raw file bytes.
+  const boundary = `pp${Date.now()}${Math.random().toString(16).slice(2)}`;
+  const head =
+    `--${boundary}\r\n` +
+    `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+    `${JSON.stringify(metadata)}\r\n` +
+    `--${boundary}\r\n` +
+    `Content-Type: ${file.type || "application/octet-stream"}\r\n\r\n`;
+  const tail = `\r\n--${boundary}--`;
+  const body = new Blob([head, file, tail], { type: `multipart/related; boundary=${boundary}` });
 
   const res = await driveFetch(
     "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-    { method: "POST", body: form }
+    {
+      method: "POST",
+      headers: { "Content-Type": `multipart/related; boundary=${boundary}` },
+      body,
+    }
   );
   const { id } = await res.json();
 
