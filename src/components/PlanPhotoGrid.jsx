@@ -7,10 +7,12 @@ import {
   deleteFromDrive,
   driveImageUrl,
   driveViewUrl,
+  hasDriveAccess,
 } from "@/api/drive";
 import { Image } from "@/components/ui/image";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { openExternal } from "@/lib/openExternal";
+import { useAuth } from "@/lib/AuthContext";
 
 const LONG_PRESS_MS = 450;
 
@@ -33,9 +35,11 @@ const openDocument = (record) => {
 };
 
 export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }) {
+  const { ensureDriveAccess } = useAuth();
   const imgInputRef = useRef(null);
   const docInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const [tapAgain, setTapAgain] = useState(false);
   const [lightbox, setLightbox] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
@@ -102,7 +106,20 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     if (e.preventDefault) e.preventDefault();
   };
 
+  // Drive tokens last ~1h. Renew before the file picker opens, while the tap
+  // still counts as a user gesture — afterwards mobile browsers block the
+  // Google dialog and the upload dies with "authorization was cancelled".
+  const pickFile = async (ref) => {
+    if (!hasDriveAccess()) {
+      const ok = await ensureDriveAccess();
+      if (!ok) return;
+      setTapAgain(true);
+    }
+    ref.current?.click();
+  };
+
   const uploadFile = async (file, kind) => {
+    setTapAgain(false);
     setUploading(true);
     try {
       const fileId = await uploadToDrive(file);
@@ -239,7 +256,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
 
       <div className="flex flex-wrap gap-2">
         <button
-          onClick={() => imgInputRef.current?.click()}
+          onClick={() => pickFile(imgInputRef)}
           disabled={uploading}
           className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
         >
@@ -247,7 +264,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
           {images.length > 0 ? "Ещё фото" : "Фото"}
         </button>
         <button
-          onClick={() => docInputRef.current?.click()}
+          onClick={() => pickFile(docInputRef)}
           disabled={uploading}
           className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
         >
@@ -264,6 +281,12 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
           )}
         </button>
       </div>
+
+      {tapAgain && !uploading && (
+        <p className="mt-1.5 text-[11px] text-stone-500">
+          Google Drive подключён — нажмите кнопку ещё раз, чтобы выбрать файл.
+        </p>
+      )}
 
       <AnimatePresence>
         {activeRecord && (

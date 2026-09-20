@@ -78,7 +78,11 @@ async function token() {
   if (accessToken && expiresAt > Date.now()) return accessToken;
   if (!reauthorize) throw new Error("Drive access is not available");
   const fresh = await reauthorize();
-  if (!fresh) throw new Error("Drive authorization was cancelled");
+  if (!fresh) {
+    throw new Error(
+      "Доступ к Google Drive не подтверждён. Нажмите «Фото» или «Документ» ещё раз и разрешите доступ."
+    );
+  }
   return fresh;
 }
 

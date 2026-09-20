@@ -2,17 +2,35 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut as fbSignOut,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/api/firebase";
 import { ALLOWED_EMAILS } from "@/config";
-import { setDriveToken, registerReauthorize, tokenGrantsDrive } from "@/api/drive";
+import {
+  setDriveToken,
+  registerReauthorize,
+  tokenGrantsDrive,
+  hasDriveAccess,
+} from "@/api/drive";
 
 const AuthContext = createContext(null);
 
 const isAllowedEmail = (email) =>
   !!email && ALLOWED_EMAILS.map((e) => e.toLowerCase()).includes(email.toLowerCase());
+
+// Mobile browsers routinely refuse to open the Google popup. Fall back to a
+// full-page redirect, which they always allow.
+const POPUP_UNAVAILABLE = new Set([
+  "auth/popup-blocked",
+  "auth/operation-not-supported-in-this-environment",
+  "auth/web-storage-unsupported",
+]);
+
+const isDismissal = (code) =>
+  code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -31,7 +49,15 @@ export function AuthProvider({ children }) {
   // the Drive permission as an optional checkbox; if it's left unticked the
   // token has no drive.file scope, so re-prompt once before giving up.
   const authorize = async (allowRetry = true) => {
-    const result = await signInWithPopup(auth, googleProvider);
+    let result;
+    try {
+      result = await signInWithPopup(auth, googleProvider);
+    } catch (e) {
+      if (!POPUP_UNAVAILABLE.has(e?.code)) throw e;
+      // Navigates away; the token is picked up by getRedirectResult on return.
+      await signInWithRedirect(auth, googleProvider);
+      return null;
+    }
     const credential = GoogleAuthProvider.credentialFromResult(result);
     const token = credential?.accessToken || null;
     setDriveToken(token);
@@ -45,6 +71,17 @@ export function AuthProvider({ children }) {
     return token;
   };
 
+  // Coming back from the redirect fallback above.
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (!result) return;
+        const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
+        if (token) setDriveToken(token);
+      })
+      .catch(() => {});
+  }, []);
+
   // drive.js calls this when its token is missing or expired.
   useEffect(() => {
     registerReauthorize(async () => {
@@ -56,13 +93,28 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
+  // Call this from a click handler *before* opening a file picker: the Google
+  // dialog only opens while the browser still sees a live user gesture.
+  const ensureDriveAccess = async () => {
+    if (hasDriveAccess()) return true;
+    setError(null);
+    try {
+      return !!(await authorize());
+    } catch (e) {
+      if (!isDismissal(e?.code)) {
+        setError("Не удалось подключить Google Drive. Попробуйте ещё раз.");
+      }
+      return false;
+    }
+  };
+
   const signIn = async () => {
     setSigningIn(true);
     setError(null);
     try {
       await authorize();
     } catch (e) {
-      if (e?.code !== "auth/popup-closed-by-user" && e?.code !== "auth/cancelled-popup-request") {
+      if (!isDismissal(e?.code)) {
         setError(
           e?.code === "auth/unauthorized-domain"
             ? "Этот домен не добавлен в список разрешённых в Firebase."
@@ -87,6 +139,7 @@ export function AuthProvider({ children }) {
     isAllowed: isAllowedEmail(user?.email),
     signIn,
     signOut,
+    ensureDriveAccess,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
