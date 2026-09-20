@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Loader2, Trash2, FileText, FileType, File } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TripPhoto } from "@/api/entities";
@@ -60,15 +60,30 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     }
   };
 
+  // Chrome on Android decides to select text about half a second into a press,
+  // wherever the finger happens to be — by then that is this component's own
+  // menu. Marking the menu unselectable is too late, so selection is switched
+  // off document-wide for as long as the press and its menu last.
+  const lockSelection = () => document.body.classList.add("no-long-press");
+  const unlockSelection = () => document.body.classList.remove("no-long-press");
+
+  useEffect(() => {
+    if (!menuFor) unlockSelection();
+  }, [menuFor]);
+
+  useEffect(() => unlockSelection, []);
+
   const startPress = (e, record) => {
     const t = e.touches ? e.touches[0] : e;
     movedRef.current = false;
     menuTriggeredRef.current = false;
     startRef.current = { x: t.clientX, y: t.clientY };
+    lockSelection();
     clearPress();
     timerRef.current = setTimeout(() => {
       if (!movedRef.current) {
         menuTriggeredRef.current = true;
+        window.getSelection()?.removeAllRanges();
         const w = 168;
         const h = 52;
         const x = Math.min(
@@ -94,6 +109,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     ) {
       movedRef.current = true;
       clearPress();
+      unlockSelection();
     }
   };
 
@@ -103,6 +119,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
       if (isImage) setLightbox(driveImageUrl(record.drive_file_id, 1600));
       else openDocument(record);
     }
+    if (!menuTriggeredRef.current) unlockSelection();
     if (e.preventDefault) e.preventDefault();
   };
 
