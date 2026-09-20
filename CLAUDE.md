@@ -17,7 +17,7 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
   with `days/*` (the editable itinerary), `notes/*` and `photos/*`
   sub-collections. `src/api/entities.js` keeps the old `TripNote` / `TripPhoto`
   `.filter/.create/.update/.delete` surface and writes under whichever trip is
-  open (`setActiveTripId`). `trips/__meta__` is bookkeeping, never a trip.
+  open (`setActiveTripId`). `trips/_meta` is bookkeeping, never a trip.
 - **Files** — Google Drive. Photos & documents are uploaded (via the `drive.file`
   OAuth scope granted at sign-in) into one shared Drive folder
   (`DRIVE_FOLDER_ID`), link-shared, and rendered through
@@ -65,6 +65,8 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
   block, or listing trips and opening one is denied. Rules are not deployed by
   the GitHub Action; publish them by hand (Console → Firestore → Rules) or with
   `npx firebase-tools deploy --only firestore:rules`.
+- Firestore rejects document ids matching `__.*__` with `invalid-argument`, so
+  the bookkeeping doc is `trips/_meta`, not `trips/__meta__`.
 - Day docs are keyed by date (`days/2026-10-30`), and item ids are preserved
   when seeding, so existing notes & photos (which key off `day_key` +
   `item_id`) still line up with the migrated plans.

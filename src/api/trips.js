@@ -7,7 +7,8 @@
 //   trips/{tripId}/notes/*         (see api/entities.js)
 //   trips/{tripId}/photos/*
 //
-// trips/__meta__ is a bookkeeping doc, never shown as a trip.
+// trips/_meta is a bookkeeping doc, never shown as a trip. (Firestore reserves
+// ids matching __.*__, so it must not be called __meta__.)
 
 import {
   collection,
@@ -24,7 +25,7 @@ import { db, auth } from "@/api/firebase";
 import { TRIP_ID } from "@/config";
 import { tripPlans, tripDays as portugalDays } from "@/data/tripPlans";
 
-const META_ID = "__meta__";
+const META_ID = "_meta";
 
 export const uid = (prefix = "id") =>
   `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
