@@ -5,6 +5,8 @@ import { MapPin, Plane, ChevronLeft } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
+import CountryFlag from "@/components/CountryFlag";
+import { tripCountry } from "@/lib/countries";
 
 export default function Home() {
   const { tripId: routeId } = useParams();
@@ -24,6 +26,8 @@ export default function Home() {
     if (!loading && !trip) navigate("/", { replace: true });
   }, [loading, trip, navigate]);
 
+  const country = useMemo(() => tripCountry(trip), [trip]);
+
   const tripDays = useMemo(
     () => (trip ? buildDays(trip.startDate, trip.endDate) : []),
     [trip]
@@ -36,11 +40,7 @@ export default function Home() {
 
   return (
     <div
-      className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center px-4 pt-20 pb-8 sm:py-8"
-      style={{
-        background:
-          "radial-gradient(120% 120% at 15% 10%, #fdfaf4 0%, #f5ecdd 45%, #ead9c2 100%)",
-      }}
+      className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 pt-20 pb-8 sm:py-8"
     >
       <button
         type="button"
@@ -59,7 +59,10 @@ export default function Home() {
           {trip ? `${trip.city} ${trip.year}` : "Загрузка…"}
         </h1>
         {trip && (
-          <p className="text-center text-stone-500 mb-8">{trip.country}</p>
+          <p className="mb-8 flex items-center justify-center gap-2 text-stone-500">
+            {country && <CountryFlag code={country.code} width={20} />}
+            {trip.country}
+          </p>
         )}
 
         {!ready ? (

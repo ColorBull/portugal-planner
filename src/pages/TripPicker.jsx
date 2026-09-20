@@ -5,6 +5,8 @@ import { Plane, Plus, Pencil, Trash2, MapPin, Loader2 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { tripRangeLabel } from "@/lib/tripDays";
 import TripFormModal from "@/components/TripFormModal";
+import CountryFlag from "@/components/CountryFlag";
+import { tripCountry } from "@/lib/countries";
 
 export default function TripPicker() {
   const navigate = useNavigate();
@@ -32,10 +34,6 @@ export default function TripPicker() {
   return (
     <div
       className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 py-12"
-      style={{
-        background:
-          "radial-gradient(120% 120% at 15% 10%, #fdfaf4 0%, #f5ecdd 45%, #ead9c2 100%)",
-      }}
     >
       <div className="relative z-10 w-full max-w-3xl">
         <div className="text-center mb-10">
@@ -66,6 +64,7 @@ export default function TripPicker() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               {trips.map((trip) => {
+                const country = tripCountry(trip);
                 return (
                   <div
                     key={trip.id}
@@ -76,7 +75,8 @@ export default function TripPicker() {
                       onClick={() => navigate(`/trip/${trip.id}`)}
                       className="block w-full text-left pr-16"
                     >
-                      <div className="text-xs font-semibold uppercase tracking-wider text-stone-400">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400">
+                        {country && <CountryFlag code={country.code} width={18} />}
                         {trip.country}
                       </div>
                       <div

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Loader2, Globe2 } from "lucide-react";
+import CountrySelect from "@/components/CountrySelect";
 
 const field =
   "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 " +
@@ -10,6 +11,7 @@ const label = "block text-xs font-semibold uppercase tracking-wider text-stone-5
 
 const emptyTrip = {
   country: "",
+  countryCode: "",
   city: "",
   year: new Date().getFullYear(),
   startDate: "",
@@ -33,6 +35,10 @@ export default function TripFormModal({ trip, onSave, onClose }) {
     });
   };
 
+  const setCountry = ({ code, name }) => {
+    setForm((prev) => ({ ...prev, country: name, countryCode: code }));
+  };
+
   const submit = async (e) => {
     e.preventDefault();
     const country = form.country.trim();
@@ -50,6 +56,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
     try {
       await onSave({
         country,
+        countryCode: form.countryCode || "",
         city,
         year,
         startDate: form.startDate,
@@ -107,13 +114,11 @@ export default function TripFormModal({ trip, onSave, onClose }) {
         <div className="px-7 py-6 space-y-4">
           <div>
             <label className={label} htmlFor="trip-country">Страна</label>
-            <input
+            <CountrySelect
               id="trip-country"
-              className={field}
-              value={form.country}
-              onChange={set("country")}
-              placeholder="Польша"
-              autoFocus
+              value={form.countryCode}
+              fallbackName={form.country}
+              onChange={setCountry}
             />
           </div>
 

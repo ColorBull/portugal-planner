@@ -10,6 +10,7 @@ import { SignInScreen, AccessRestricted } from "@/pages/SignIn";
 import { TripProvider } from "@/lib/TripContext";
 import Home from "./pages/Home";
 import TripPicker from "./pages/TripPicker";
+import MapBackdrop from "@/components/MapBackdrop";
 
 function SignOutButton() {
   const { signOut } = useAuth();
@@ -41,6 +42,7 @@ function Gate() {
 
   return (
     <TripProvider>
+      <MapBackdrop />
       <SignOutButton />
       <Routes>
         <Route path="/" element={<TripPicker />} />
