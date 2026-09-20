@@ -6,11 +6,6 @@ const MONTHS_SHORT = [
   "июл", "авг", "сен", "окт", "ноя", "дек",
 ];
 
-const MONTHS_LONG = [
-  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
-];
-
 const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
 const MAX_DAYS = 60;
@@ -53,12 +48,6 @@ export function buildDays(startDate, endDate) {
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
   return days;
-}
-
-/** "2026-10" -> "Октябрь 2026", for the month pager on long trips. */
-export function monthLabel(yearMonth) {
-  const m = /^(\d{4})-(\d{2})$/.exec(yearMonth || "");
-  return m ? `${MONTHS_LONG[+m[2] - 1]} ${m[1]}` : "";
 }
 
 export function tripRangeLabel(trip) {
