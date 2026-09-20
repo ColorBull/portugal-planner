@@ -18,8 +18,24 @@ import {
 import { db, auth } from "@/api/firebase";
 import { TRIP_ID } from "@/config";
 
+// Which trip the UI is currently showing. TripProvider sets this as soon as a
+// trip is opened; notes & photos are always written under that trip.
+let activeTripId = TRIP_ID;
+
+export function setActiveTripId(id) {
+  if (id) activeTripId = id;
+}
+
+export function getActiveTripId() {
+  return activeTripId;
+}
+
 function coll(name) {
-  return collection(db, "trips", TRIP_ID, name);
+  return collection(db, "trips", activeTripId, name);
+}
+
+function ref(name, id) {
+  return doc(db, "trips", activeTripId, name, id);
 }
 
 function makeEntity(name) {
@@ -44,14 +60,14 @@ function makeEntity(name) {
       const clean = Object.fromEntries(
         Object.entries(data).filter(([, v]) => v !== undefined)
       );
-      await updateDoc(doc(db, "trips", TRIP_ID, name, id), {
+      await updateDoc(ref(name, id), {
         ...clean,
         updated_date: serverTimestamp(),
       });
       return { id, ...clean };
     },
     async delete(id) {
-      await deleteDoc(doc(db, "trips", TRIP_ID, name, id));
+      await deleteDoc(ref(name, id));
     },
   };
 }

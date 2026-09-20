@@ -1,6 +1,7 @@
 rules_version = '2';
 
-// One shared itinerary under trips/{tripId}. Only the trip participants —
+// Every trip lives under trips/{tripId} (with days/, notes/ and photos/
+// sub-collections). Only the trip participants —
 // identified by their verified Google e-mail — can read or write anything
 // beneath it. Keep this list identical to ALLOWED_EMAILS in src/config.js.
 service cloud.firestore {

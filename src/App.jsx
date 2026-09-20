@@ -7,7 +7,9 @@ import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
 import { SignInScreen, AccessRestricted } from "@/pages/SignIn";
+import { TripProvider } from "@/lib/TripContext";
 import Home from "./pages/Home";
+import TripPicker from "./pages/TripPicker";
 
 function SignOutButton() {
   const { signOut } = useAuth();
@@ -38,13 +40,14 @@ function Gate() {
   if (!isAllowed) return <AccessRestricted />;
 
   return (
-    <>
+    <TripProvider>
       <SignOutButton />
       <Routes>
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<TripPicker />} />
+        <Route path="/trip/:tripId" element={<Home />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
-    </>
+    </TripProvider>
   );
 }
 
