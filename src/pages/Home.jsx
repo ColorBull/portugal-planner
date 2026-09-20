@@ -8,6 +8,15 @@ import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
 
+// Enough columns that a whole trip — up to a month — fits one phone screen
+// without scrolling. Wider screens keep the four big cards.
+function phoneColumns(days) {
+  if (days <= 4) return 2;
+  if (days <= 9) return 3;
+  if (days <= 16) return 4;
+  return 5;
+}
+
 export default function Home() {
   const { tripId: routeId } = useParams();
   const navigate = useNavigate();
@@ -75,7 +84,10 @@ export default function Home() {
             даты вылета и возвращения.
           </p>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div
+            className="grid gap-2 sm:gap-4 grid-cols-[repeat(var(--day-cols),minmax(0,1fr))] sm:grid-cols-4"
+            style={{ "--day-cols": String(phoneColumns(tripDays.length)) }}
+          >
             {tripDays.map((day, i) => {
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
@@ -85,28 +97,41 @@ export default function Home() {
                   onClick={() => setSelectedKey(day.key)}
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, type: "spring", stiffness: 260, damping: 22 }}
+                  transition={{
+                    // A month of days would otherwise take two seconds to land.
+                    delay: Math.min(i * 0.04, 0.45),
+                    type: "spring",
+                    stiffness: 260,
+                    damping: 22,
+                  }}
                   whileHover={{ y: -5, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="relative aspect-[3/4] rounded-3xl p-4 text-left shadow-lg overflow-hidden group flex flex-col"
+                  className="relative aspect-square sm:aspect-[3/4] rounded-2xl sm:rounded-3xl p-2 sm:p-4 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col"
                   style={{
                     background:
                       "linear-gradient(150deg, #1d3b5c 0%, #2c5f8a 60%, #3a7ca5 100%)",
                   }}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-display text-3xl sm:text-4xl font-semibold text-white">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-display text-xl sm:text-4xl font-semibold leading-none text-white">
                       {day.label.split(" ")[0]}
                     </span>
-                    <span className="text-xs font-semibold uppercase tracking-wider text-white/60">
+                    <span className="text-[9px] sm:text-xs font-semibold uppercase tracking-wider text-white/60">
                       {day.weekday}
                     </span>
                   </div>
-                  <div className="text-white/70 text-xs sm:text-sm mt-0.5">
+                  <div className="text-white/70 text-[10px] sm:text-sm mt-0.5 leading-tight">
                     {day.label.split(" ")[1]}
                   </div>
 
-                  <div className="mt-auto pt-6">
+                  {/* A dot is all there is room for once the tiles are this small. */}
+                  <span
+                    className={`mt-auto h-1.5 w-1.5 rounded-full sm:hidden ${
+                      filled ? "bg-[#e0a06f]" : "bg-white/25"
+                    }`}
+                  />
+
+                  <div className="mt-auto pt-6 hidden sm:block">
                     <div className="text-white/90 text-sm sm:text-base font-medium leading-tight">
                       {plan?.city || trip.city}
                     </div>

@@ -77,7 +77,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0 bg-stone-950/55 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-stone-950/60" onClick={onClose} />
 
       <motion.form
         onSubmit={submit}

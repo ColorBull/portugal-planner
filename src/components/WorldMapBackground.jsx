@@ -23,7 +23,13 @@ const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo
 function viewFor(continent, width, height, at) {
   const box = MAP_WINDOWS[continent];
   if (!box) {
-    const k = Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
+    // The world is twice as wide as it is tall, so fitting it whole onto a
+    // portrait phone leaves a thin strip. There, fill the width and half the
+    // height instead and let the far edges crop. Landscape is unaffected.
+    const k =
+      width < height
+        ? Math.max(width / MAP_WIDTH, (height * 0.5) / MAP_HEIGHT)
+        : Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
     return { k, x: (width - MAP_WIDTH * k) / 2, y: (height - MAP_HEIGHT * k) / 2 };
   }
   const [x0, y0, x1, y1] = box;
@@ -33,17 +39,26 @@ function viewFor(continent, width, height, at) {
   return { k, x: width / 2 - k * cx, y: height / 2 - k * cy };
 }
 
+/**
+ * The size to draw at. Mobile browsers grow and shrink the viewport as the
+ * address bar hides on scroll; re-fitting the map on every one of those would
+ * make it drift under the page. So the tallest height seen for a given width
+ * wins, and the bar just covers a sliver of the map when it comes back.
+ */
 function useSize(ref) {
   const [size, setSize] = useState({ width: 0, height: 0 });
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    const observer = new ResizeObserver(([entry]) =>
-      setSize({
-        width: Math.round(entry.contentRect.width),
-        height: Math.round(entry.contentRect.height),
-      })
-    );
+    const observer = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry.contentRect.width);
+      const height = Math.round(entry.contentRect.height);
+      setSize((prev) => {
+        if (prev.width === width && height <= prev.height) return prev;
+        // A new width means a rotation or a resized window: start over.
+        return { width, height: prev.width === width ? Math.max(prev.height, height) : height };
+      });
+    });
     observer.observe(el);
     return () => observer.disconnect();
   }, [ref]);

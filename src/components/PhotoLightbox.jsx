@@ -82,7 +82,7 @@ export default function PhotoLightbox({ src, onClose }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 backdrop-blur-sm overflow-hidden"
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

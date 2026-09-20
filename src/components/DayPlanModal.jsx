@@ -72,8 +72,11 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
   }, [dayInfo?.key]);
 
   // Hold the page still behind the modal. Only `overflow` is touched: pinning
-  // the body with `position: fixed` also re-rasterises the blurred backdrop,
-  // which Chrome renders as a black frame as the modal opens.
+  // the body with `position: fixed` forces a full repaint, which Chrome has
+  // been seen to flash as a black frame while the modal opens. The scrims are
+  // plain translucent black for the same reason — a backdrop-filter gets
+  // re-rasterised whenever the page behind it repaints, and Chrome paints that
+  // gap black. Whether you saw it depended on which trip was open.
   useEffect(() => {
     const { body } = document;
     const previous = body.style.overflow;
@@ -122,7 +125,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
       exit={{ opacity: 0 }}
     >
       <div
-        className="absolute inset-0 bg-stone-950/55 backdrop-blur-sm"
+        className="absolute inset-0 bg-stone-950/60"
         onClick={editing ? undefined : onClose}
       />
 
