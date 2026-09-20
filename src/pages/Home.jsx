@@ -49,7 +49,7 @@ export default function Home() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 pt-20 pb-8 sm:py-8"
+      className="relative min-h-screen w-full flex flex-col items-center px-4 pt-16 pb-8 sm:pt-20"
     >
       <button
         type="button"
@@ -61,18 +61,21 @@ export default function Home() {
       </button>
 
       <div className="relative z-10 w-full max-w-3xl">
-        <h1
-          className="font-display text-4xl sm:text-6xl font-semibold tracking-tight text-center mb-2"
-          style={{ color: "#1d3b5c" }}
-        >
-          {trip ? `${trip.city} ${trip.year}` : "Загрузка…"}
-        </h1>
-        {trip && (
-          <p className="mb-8 flex items-center justify-center gap-2 text-stone-500">
-            {country && <CountryFlag code={country.code} width={20} />}
-            {trip.country}
-          </p>
-        )}
+        {/* Sat on a plate: the map behind it is too busy to read text off. */}
+        <div className="mx-auto mb-7 w-fit rounded-2xl bg-white/85 px-6 py-3.5 text-center shadow-sm ring-1 ring-black/5">
+          <h1
+            className="font-display text-3xl sm:text-5xl font-semibold tracking-tight"
+            style={{ color: "#1d3b5c" }}
+          >
+            {trip ? `${trip.city} ${trip.year}` : "Загрузка…"}
+          </h1>
+          {trip && (
+            <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">
+              {country && <CountryFlag code={country.code} width={20} />}
+              {trip.country}
+            </p>
+          )}
+        </div>
 
         {!ready ? (
           <div className="flex justify-center py-16">

@@ -120,12 +120,12 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
   return (
     <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
-      initial={{ opacity: 0 }}
+      initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
       <div
-        className="absolute inset-0 bg-stone-950/60"
+        className="absolute inset-0 bg-stone-950/60 animate-in fade-in duration-200"
         onClick={editing ? undefined : onClose}
       />
 

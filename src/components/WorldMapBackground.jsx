@@ -23,19 +23,19 @@ const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo
 function viewFor(continent, width, height, at) {
   const box = MAP_WINDOWS[continent];
   if (!box) {
-    // The world is twice as wide as it is tall, so fitting it whole onto a
-    // portrait phone leaves a thin strip. There, fill the width and half the
-    // height instead and let the far edges crop. Landscape is unaffected.
-    const k =
-      width < height
-        ? Math.max(width / MAP_WIDTH, (height * 0.5) / MAP_HEIGHT)
-        : Math.min(width / MAP_WIDTH, height / MAP_HEIGHT);
+    // The world is twice as wide as it is tall, so fitting it whole leaves
+    // empty bands — worst of all on a phone, where it shrinks to a strip.
+    // Fill the screen instead and let the far edges crop.
+    const k = Math.max(width / MAP_WIDTH, height / MAP_HEIGHT);
     return { k, x: (width - MAP_WIDTH * k) / 2, y: (height - MAP_HEIGHT * k) / 2 };
   }
   const [x0, y0, x1, y1] = box;
   const k = Math.max(width / (x1 - x0), height / (y1 - y0));
+  // Sideways, keep the country on screen but stay inside the continent.
   const cx = at ? clamp(at[0], x0 + width / (2 * k), x1 - width / (2 * k)) : (x0 + x1) / 2;
-  const cy = at ? clamp(at[1], y0 + height / (2 * k), y1 - height / (2 * k)) : (y0 + y1) / 2;
+  // Vertically, sit it below the header and the day cards instead of under
+  // them — otherwise the highlight is hidden by the very page it belongs to.
+  const cy = at ? at[1] - (height * 0.18) / k : (y0 + y1) / 2;
   return { k, x: width / 2 - k * cx, y: height / 2 - k * cy };
 }
 
