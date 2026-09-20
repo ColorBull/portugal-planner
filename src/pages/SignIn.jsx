@@ -33,7 +33,7 @@ export function SignInScreen() {
         className="font-display text-4xl sm:text-5xl font-semibold tracking-tight mb-2"
         style={{ color: "#1d3b5c" }}
       >
-        Португалия 2026
+        Trip Planner
       </h1>
       <p className="text-stone-500 mb-8">Войдите, чтобы открыть план поездки</p>
 

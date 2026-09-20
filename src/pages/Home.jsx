@@ -36,7 +36,7 @@ export default function Home() {
 
   return (
     <div
-      className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center px-4 py-8"
+      className="relative min-h-screen w-full overflow-hidden flex flex-col items-center justify-center px-4 pt-20 pb-8 sm:py-8"
       style={{
         background:
           "radial-gradient(120% 120% at 15% 10%, #fdfaf4 0%, #f5ecdd 45%, #ead9c2 100%)",

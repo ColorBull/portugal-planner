@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plane, Plus, Pencil, Trash2, ArrowRight, MapPin, Loader2 } from "lucide-react";
+import { Plane, Plus, Pencil, Trash2, MapPin, Loader2 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { tripRangeLabel } from "@/lib/tripDays";
 import TripFormModal from "@/components/TripFormModal";
@@ -10,18 +10,8 @@ export default function TripPicker() {
   const navigate = useNavigate();
   const { trips, loading, error, addTrip, editTrip, removeTrip } = useTrips();
 
-  const [selectedId, setSelectedId] = useState(null);
   const [formFor, setFormFor] = useState(null); // { trip } | { trip: null }
   const [busyId, setBusyId] = useState(null);
-
-  // Keep the selection valid when the list changes.
-  useEffect(() => {
-    if (selectedId && !trips.some((t) => t.id === selectedId)) setSelectedId(null);
-  }, [trips, selectedId]);
-
-  const confirm = () => {
-    if (selectedId) navigate(`/trip/${selectedId}`);
-  };
 
   const handleDelete = async (trip) => {
     const ok = window.confirm(
@@ -61,9 +51,7 @@ export default function TripPicker() {
           >
             Куда летим?
           </h1>
-          <p className="text-stone-500 mt-2">
-            Выберите поездку и нажмите «Продолжить»
-          </p>
+          <p className="text-stone-500 mt-2">Выберите поездку</p>
         </div>
 
         {loading ? (
@@ -78,21 +66,17 @@ export default function TripPicker() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               {trips.map((trip, i) => {
-                const active = trip.id === selectedId;
                 return (
                   <motion.div
                     key={trip.id}
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05, type: "spring", stiffness: 260, damping: 24 }}
-                    className={`relative rounded-2xl p-5 text-left shadow-sm transition ring-2 ${
-                      active ? "ring-[#c4623a] bg-white" : "ring-transparent bg-white/70"
-                    }`}
+                    className="relative rounded-2xl p-5 text-left shadow-sm transition ring-2 ring-transparent bg-white/70 hover:ring-[#c4623a] hover:bg-white"
                   >
                     <button
                       type="button"
-                      onClick={() => setSelectedId(trip.id)}
-                      onDoubleClick={() => navigate(`/trip/${trip.id}`)}
+                      onClick={() => navigate(`/trip/${trip.id}`)}
                       className="block w-full text-left pr-16"
                     >
                       <div className="text-xs font-semibold uppercase tracking-wider text-stone-400">
@@ -152,19 +136,6 @@ export default function TripPicker() {
                 <span className="font-medium">Добавить поездку</span>
               </button>
             </div>
-
-            <div className="mt-8 flex justify-center">
-              <button
-                type="button"
-                onClick={confirm}
-                disabled={!selectedId}
-                className="inline-flex items-center gap-2 rounded-2xl px-7 py-3.5 font-semibold text-white shadow-lg transition disabled:opacity-40 disabled:shadow-none"
-                style={{ backgroundColor: "#1d3b5c" }}
-              >
-                Продолжить
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            </div>
           </>
         )}
       </div>
@@ -176,10 +147,7 @@ export default function TripPicker() {
             onClose={() => setFormFor(null)}
             onSave={async (data) => {
               if (formFor.trip) await editTrip(formFor.trip.id, data);
-              else {
-                const created = await addTrip(data);
-                setSelectedId(created.id);
-              }
+              else await addTrip(data);
             }}
           />
         )}
