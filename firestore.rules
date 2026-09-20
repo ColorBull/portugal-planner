@@ -17,8 +17,16 @@ service cloud.firestore {
         ];
     }
 
-    match /trips/{tripId}/{document=**} {
+    // NOTE: under rules_version 2 a recursive wildcard matches ONE or more
+    // segments, so {document=**} alone does NOT cover the trips/{tripId}
+    // document itself. The trip docs need their own match block — without it
+    // listing trips and opening one is denied.
+    match /trips/{tripId} {
       allow read, write: if isParticipant();
+
+      match /{document=**} {
+        allow read, write: if isParticipant();
+      }
     }
 
     match /{document=**} {

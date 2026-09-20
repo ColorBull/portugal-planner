@@ -58,6 +58,13 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
   signed in but no Drive scope → uploads 403 "insufficient authentication
   scopes". `tokenGrantsDrive()` (tokeninfo endpoint) detects this; `authorize()`
   re-prompts once and the upload path shows a Russian "tick the box" message.
+- `firestore.rules` uses `rules_version = '2'`, where a recursive wildcard
+  matches **one or more** segments (v1 matched zero or more). So
+  `match /trips/{tripId}/{document=**}` covers the sub-collections but **not**
+  the `trips/{tripId}` document itself — trip docs need their own `match`
+  block, or listing trips and opening one is denied. Rules are not deployed by
+  the GitHub Action; publish them by hand (Console → Firestore → Rules) or with
+  `npx firebase-tools deploy --only firestore:rules`.
 - Day docs are keyed by date (`days/2026-10-30`), and item ids are preserved
   when seeding, so existing notes & photos (which key off `day_key` +
   `item_id`) still line up with the migrated plans.

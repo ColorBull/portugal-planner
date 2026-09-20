@@ -113,9 +113,9 @@ export async function ensureSeeded() {
   const meta = await getDoc(metaRef);
   if (meta.exists() && meta.data()?.seeded) return;
 
-  const existing = await getDoc(doc(db, "trips", TRIP_ID));
-  if (!existing.exists()) {
-    await setDoc(doc(db, "trips", TRIP_ID), {
+  const tripRef = doc(db, "trips", TRIP_ID);
+  if (!(await getDoc(tripRef)).exists()) {
+    await setDoc(tripRef, {
       country: "Португалия",
       city: "Порту и Лиссабон",
       year: 2026,
@@ -124,7 +124,13 @@ export async function ensureSeeded() {
       created_by: auth.currentUser?.email || null,
       created_date: serverTimestamp(),
     });
+  }
 
+  // Seed the days whenever they are still missing — not just when the trip doc
+  // was created above. An earlier run that created the trip and then failed
+  // half way through the days would otherwise leave the itinerary empty.
+  const days = await getDocs(collection(db, "trips", TRIP_ID, "days"));
+  if (days.empty) {
     await Promise.all(
       Object.entries(tripPlans).map(([dateKey, plan]) =>
         setDoc(doc(db, "trips", TRIP_ID, "days", dateKey), {

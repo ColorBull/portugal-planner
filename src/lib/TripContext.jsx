@@ -29,7 +29,15 @@ export function TripProvider({ children }) {
       setTrips(await listTrips());
     } catch (e) {
       console.error(e);
-      setError("Не удалось загрузить поездки.");
+      // A denied read almost always means the Firestore rules on the server
+      // are older than firestore.rules in this repo — say so instead of
+      // leaving a dead end.
+      setError(
+        e?.code === "permission-denied"
+          ? "Нет доступа к базе. Опубликуйте правила Firestore из firestore.rules " +
+            "(Firebase Console → Firestore → Rules → Publish)."
+          : `Не удалось загрузить поездки. ${e?.code || e?.message || ""}`.trim()
+      );
     } finally {
       setLoading(false);
     }
