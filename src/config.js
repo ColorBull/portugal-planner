@@ -28,7 +28,8 @@ export const firebaseConfig = {
 // With it set, the Drive token renews silently in the background and the
 // Google dialog stops appearing on every upload. Left as REPLACE_ME, the app
 // keeps asking exactly as before.
-export const GOOGLE_OAUTH_CLIENT_ID = "REPLACE_ME";
+export const GOOGLE_OAUTH_CLIENT_ID =
+  "771186568675-qokof623ibb1ccm8beiojgu4vpuctp54.apps.googleusercontent.com";
 
 // Google accounts allowed to open the planner. Lower-case.
 // Keep this identical to the list inside firestore.rules.
