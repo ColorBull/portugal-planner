@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Plane, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
@@ -56,7 +56,7 @@ export default function Home() {
 
   return (
     <div
-      className="relative min-h-svh w-full flex flex-col items-center px-4 pt-16 pb-8 sm:pt-20"
+      className="relative min-h-svh w-full flex flex-col items-center px-4 pt-16 pb-8 sm:pt-14"
     >
       <button
         type="button"
@@ -69,9 +69,9 @@ export default function Home() {
 
       <div className="relative z-10 w-full max-w-3xl">
         {/* Sat on a plate: the map behind it is too busy to read text off. */}
-        <div className="mx-auto mb-7 w-fit rounded-2xl bg-white/85 px-6 py-3.5 text-center shadow-sm ring-1 ring-black/5">
+        <div className="mx-auto mb-7 sm:mb-5 w-fit rounded-2xl bg-white/85 px-6 py-3.5 sm:py-3 text-center shadow-sm ring-1 ring-black/5">
           <h1
-            className="font-display text-3xl sm:text-5xl font-semibold tracking-tight"
+            className="font-display text-3xl sm:text-4xl font-semibold tracking-tight"
             style={{ color: "#1d3b5c" }}
           >
             {trip ? `${trip.city} ${trip.year}` : "Загрузка…"}
@@ -94,9 +94,14 @@ export default function Home() {
             даты вылета и возвращения.
           </p>
         ) : (
-          // Five across on a phone whatever the trip length, so a tile is
-          // always the same size — and a full page of thirty still fits.
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-4 sm:gap-4">
+          // Same tile everywhere, five across on a phone and six on a desktop,
+          // so a full page of thirty always fits one screen without scrolling.
+          // The width cap is what keeps five rows inside the viewport height:
+          // a square tile is (width - gaps) / 6, so bounding the width bounds
+          // the height too.
+          <div
+            className="mx-auto grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3 sm:[max-width:calc((100svh-15rem)/5*6+5*0.75rem)]"
+          >
             {shownDays.map((day) => {
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
@@ -109,48 +114,36 @@ export default function Home() {
                   initial={false}
                   whileHover={{ y: -5, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="relative aspect-square sm:aspect-[3/4] rounded-2xl sm:rounded-3xl p-2 sm:p-4 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
+                  title={`${day.label} — ${plan?.city || trip.city}${filled ? "" : " (план скоро)"}`}
+                  className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
                   style={{
                     background:
                       "linear-gradient(150deg, rgba(29,59,92,0.66) 0%, rgba(44,95,138,0.58) 60%, rgba(58,124,165,0.52) 100%)",
                   }}
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-display text-xl sm:text-4xl font-semibold leading-none text-white">
+                    <span className="font-display text-xl sm:text-2xl font-semibold leading-none text-white">
                       {day.label.split(" ")[0]}
                     </span>
-                    <span className="text-[9px] sm:text-xs font-semibold uppercase tracking-wider text-white/60">
+                    <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white/60">
                       {day.weekday}
                     </span>
                   </div>
-                  <div className="text-white/70 text-[10px] sm:text-sm mt-0.5 leading-tight">
+                  <div className="text-white/70 text-[10px] sm:text-xs mt-0.5 leading-tight">
                     {day.label.split(" ")[1]}
                   </div>
 
-                  {/* A dot is all there is room for once the tiles are this small. */}
-                  <span
-                    className={`mt-auto h-1.5 w-1.5 rounded-full sm:hidden ${
-                      filled ? "bg-[#e0a06f]" : "bg-white/25"
-                    }`}
-                  />
-
-                  <div className="mt-auto pt-6 hidden sm:block">
-                    <div className="text-white/90 text-sm sm:text-base font-medium leading-tight">
+                  {/* A dot is all there is room for once the tiles are this
+                      small; the city fits beside it from a tablet up. */}
+                  <div className="mt-auto flex items-center gap-1.5 overflow-hidden">
+                    <span
+                      className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                        filled ? "bg-[#e0a06f]" : "bg-white/25"
+                      }`}
+                    />
+                    <span className="hidden sm:block truncate text-[11px] leading-tight text-white/75">
                       {plan?.city || trip.city}
-                    </div>
-                    <div className="flex items-center gap-1 text-white/55 text-xs mt-1">
-                      {filled ? (
-                        <>
-                          <MapPin className="h-3 w-3" />
-                          День {day.dayNumber}
-                        </>
-                      ) : (
-                        <>
-                          <Plane className="h-3 w-3" />
-                          план скоро
-                        </>
-                      )}
-                    </div>
+                    </span>
                   </div>
 
                   <span
