@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { DRIVE_FOLDER_ID } from "@/config";
+import { renewDriveToken } from "@/api/googleToken";
 
 const TOKEN_KEY = "pp_drive_token";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -74,8 +75,25 @@ export function hasDriveAccess() {
   return !!accessToken && expiresAt > Date.now();
 }
 
+// True while the token is gone or close enough to expiry that the next upload
+// would trip over it. AuthContext renews on this, well before it runs out.
+export function driveTokenStale(marginMs = 10 * 60 * 1000) {
+  return !accessToken || expiresAt - marginMs <= Date.now();
+}
+
+// Mint a fresh token in the background. Returns it, or null when Google wants
+// to show the dialog after all.
+export async function renewSilently() {
+  const renewed = await renewDriveToken();
+  if (!renewed?.access_token) return null;
+  setDriveToken(renewed.access_token, renewed.expires_in || 3600);
+  return renewed.access_token;
+}
+
 async function token() {
   if (accessToken && expiresAt > Date.now()) return accessToken;
+  const renewed = await renewSilently();
+  if (renewed) return renewed;
   if (!reauthorize) throw new Error("Drive access is not available");
   const fresh = await reauthorize();
   if (!fresh) {
@@ -92,6 +110,10 @@ async function driveFetch(url, options = {}, retry = true) {
     ...options,
     headers: { ...(options.headers || {}), Authorization: `Bearer ${t}` },
   });
+  if (res.status === 401 && retry) {
+    const quiet = await renewSilently();
+    if (quiet) return driveFetch(url, options, false);
+  }
   if ((res.status === 401 || res.status === 403) && retry && reauthorize) {
     const fresh = await reauthorize();
     if (fresh && (res.status === 401 || (await tokenGrantsDrive(fresh)))) {

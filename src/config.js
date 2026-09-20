@@ -19,6 +19,17 @@ export const firebaseConfig = {
   appId: "1:771186568675:web:a39b51df79763c9b4a44d6",
 };
 
+// OAuth 2.0 *Web* client id of this same Google Cloud project — public by
+// design, like the Firebase key above. Google Cloud Console → APIs & Services
+// → Credentials → OAuth 2.0 Client IDs → "Web client (auto created by Google
+// Service)". Its "Authorized JavaScript origins" must list
+// https://colorbull.github.io.
+//
+// With it set, the Drive token renews silently in the background and the
+// Google dialog stops appearing on every upload. Left as REPLACE_ME, the app
+// keeps asking exactly as before.
+export const GOOGLE_OAUTH_CLIENT_ID = "REPLACE_ME";
+
 // Google accounts allowed to open the planner. Lower-case.
 // Keep this identical to the list inside firestore.rules.
 export const ALLOWED_EMAILS = [

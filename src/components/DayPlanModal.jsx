@@ -71,21 +71,15 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
     loadPhotos();
   }, [dayInfo?.key]);
 
-  // Hold the page still behind the modal. Pinning the body to its current
-  // offset also stops mobile Safari/Chrome from scrolling the page once the
-  // modal's own scroller hits an end.
+  // Hold the page still behind the modal. Only `overflow` is touched: pinning
+  // the body with `position: fixed` also re-rasterises the blurred backdrop,
+  // which Chrome renders as a black frame as the modal opens.
   useEffect(() => {
-    const y = window.scrollY;
     const { body } = document;
-    const previous = body.style.cssText;
-    body.style.position = "fixed";
-    body.style.top = `-${y}px`;
-    body.style.left = "0";
-    body.style.right = "0";
+    const previous = body.style.overflow;
     body.style.overflow = "hidden";
     return () => {
-      body.style.cssText = previous;
-      window.scrollTo(0, y);
+      body.style.overflow = previous;
     };
   }, []);
 
@@ -189,7 +183,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto px-4 sm:px-7 py-6 flex-1">
+        <div className="overflow-y-auto overscroll-contain px-4 sm:px-7 py-6 flex-1">
           {editing ? (
             <DayPlanEditor value={draft} onChange={setDraft} />
           ) : hasPlan ? (

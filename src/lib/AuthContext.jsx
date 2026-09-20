@@ -14,7 +14,10 @@ import {
   registerReauthorize,
   tokenGrantsDrive,
   hasDriveAccess,
+  driveTokenStale,
+  renewSilently,
 } from "@/api/drive";
+import { canRenewSilently } from "@/api/googleToken";
 
 const AuthContext = createContext(null);
 
@@ -81,6 +84,33 @@ export function AuthProvider({ children }) {
       })
       .catch(() => {});
   }, []);
+
+  // Keep the Drive token fresh while the app is open, so an upload never has
+  // to stop and ask. Renewal is silent; the dialog stays as the fallback.
+  useEffect(() => {
+    if (!user || !canRenewSilently()) return;
+
+    let stopped = false;
+    const refresh = () => {
+      if (stopped || !driveTokenStale()) return;
+      renewSilently().catch(() => {});
+    };
+
+    refresh();
+    const timer = setInterval(refresh, 5 * 60 * 1000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [user]);
 
   // drive.js calls this when its token is missing or expired.
   useEffect(() => {
