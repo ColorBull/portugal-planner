@@ -8,16 +8,6 @@ import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
 
-// Enough columns that a whole month fits one phone screen without scrolling.
-// Wider screens keep the four big cards.
-function phoneColumns(days) {
-  if (days <= 4) return 2;
-  if (days <= 9) return 3;
-  if (days <= 16) return 4;
-  if (days <= 25) return 5;
-  return 6;
-}
-
 // A long trip is split into pages, so the grid always fits one screen.
 const PER_PAGE = 30;
 
@@ -104,10 +94,9 @@ export default function Home() {
             даты вылета и возвращения.
           </p>
         ) : (
-          <div
-            className="grid gap-2 sm:gap-4 grid-cols-[repeat(var(--day-cols),minmax(0,1fr))] sm:grid-cols-4"
-            style={{ "--day-cols": String(phoneColumns(shownDays.length)) }}
-          >
+          {/* Five across on a phone whatever the trip length, so a tile is
+              always the same size — and a full page of thirty still fits. */}
+          <div className="grid grid-cols-5 gap-2 sm:grid-cols-4 sm:gap-4">
             {shownDays.map((day) => {
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
@@ -120,10 +109,10 @@ export default function Home() {
                   initial={false}
                   whileHover={{ y: -5, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  className="relative aspect-square sm:aspect-[3/4] rounded-2xl sm:rounded-3xl p-2 sm:p-4 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col"
+                  className="relative aspect-square sm:aspect-[3/4] rounded-2xl sm:rounded-3xl p-2 sm:p-4 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
                   style={{
                     background:
-                      "linear-gradient(150deg, #1d3b5c 0%, #2c5f8a 60%, #3a7ca5 100%)",
+                      "linear-gradient(150deg, rgba(29,59,92,0.66) 0%, rgba(44,95,138,0.58) 60%, rgba(58,124,165,0.52) 100%)",
                   }}
                 >
                   <div className="flex items-center justify-between gap-1">
@@ -174,8 +163,12 @@ export default function Home() {
           </div>
         )}
 
+        {/* Room for the pager, which floats over the foot of the screen. */}
+        {ready && pages.length > 1 && <div className="h-16" aria-hidden="true" />}
+
         {ready && pages.length > 1 && (
-          <div className="mt-5 flex justify-center">
+          // Anchored to the screen, so it stays put however many tiles there are.
+          <div className="fixed inset-x-0 bottom-5 z-30 flex justify-center">
             {/* On its own plate: plain text is unreadable over the map. */}
             <div className="flex items-center gap-1 rounded-full bg-white/85 px-1.5 py-1 shadow-sm ring-1 ring-black/5">
               <button

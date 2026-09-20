@@ -99,4 +99,17 @@
     -webkit-user-select: none;
     user-select: none;
   }
+
+  /* The map layer is sized to the largest viewport, not the current one: a
+     phone's address bar sliding away would otherwise resize it mid-scroll,
+     and the map would drift under the page. */
+  .viewport-tall {
+    height: 100vh;
+  }
+
+  @supports (height: 100lvh) {
+    .viewport-tall {
+      height: 100lvh;
+    }
+  }
 }

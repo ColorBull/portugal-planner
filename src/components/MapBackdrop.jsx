@@ -18,7 +18,10 @@ export default function MapBackdrop() {
   const country = tripCountry(trip);
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden" style={{ background: PAPER }}>
+    <div
+      className="viewport-tall fixed left-0 top-0 z-0 w-full overflow-hidden"
+      style={{ background: PAPER }}
+    >
       <WorldMapBackground
         continent={country?.continent || null}
         highlightCcn3={country?.ccn3 || null}
