@@ -94,8 +94,8 @@ export default function Home() {
             даты вылета и возвращения.
           </p>
         ) : (
-          {/* Five across on a phone whatever the trip length, so a tile is
-              always the same size — and a full page of thirty still fits. */}
+          // Five across on a phone whatever the trip length, so a tile is
+          // always the same size — and a full page of thirty still fits.
           <div className="grid grid-cols-5 gap-2 sm:grid-cols-4 sm:gap-4">
             {shownDays.map((day) => {
               const plan = days[day.key];
