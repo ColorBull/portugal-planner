@@ -24,6 +24,19 @@ jobs:
           node-version: 22
       - run: npm install --no-audit --no-fund
       - run: npm run build
+
+      # The app as it stood before the 2026-09-20 changes, published under
+      # /backup/ so the live app keeps its own URL. The branch is frozen.
+      - uses: actions/checkout@v4
+        with:
+          ref: backup-2026-09-19
+          path: backup-src
+      - run: npm install --no-audit --no-fund
+        working-directory: backup-src
+      - run: npm run build
+        working-directory: backup-src
+      - run: mv backup-src/dist dist/backup
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
