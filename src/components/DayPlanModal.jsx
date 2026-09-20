@@ -132,8 +132,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
       <motion.div
         className="relative w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
         style={{ backgroundColor: "#fbf7f0" }}
-        initial={{ scale: 0.94, y: 24, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
+        initial={false}
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
       >

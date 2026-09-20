@@ -33,7 +33,7 @@ export default function TripPicker() {
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center justify-center px-4 py-12"
+      className="relative min-h-svh w-full flex flex-col items-center justify-center px-4 py-12"
     >
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">

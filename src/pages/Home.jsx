@@ -1,20 +1,34 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Plane, ChevronLeft } from "lucide-react";
+import { MapPin, Plane, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
-import { buildDays } from "@/lib/tripDays";
+import { buildDays, monthLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
 
-// Enough columns that a whole trip — up to a month — fits one phone screen
-// without scrolling. Wider screens keep the four big cards.
+// Enough columns that a whole month fits one phone screen without scrolling.
+// Wider screens keep the four big cards.
 function phoneColumns(days) {
   if (days <= 4) return 2;
   if (days <= 9) return 3;
   if (days <= 16) return 4;
-  return 5;
+  if (days <= 25) return 5;
+  return 6;
+}
+
+// A trip longer than a month is shown a month at a time, so the grid always
+// fits one screen.
+function byMonth(days) {
+  const pages = [];
+  days.forEach((day) => {
+    const month = day.key.slice(0, 7);
+    const last = pages[pages.length - 1];
+    if (last?.month === month) last.days.push(day);
+    else pages.push({ month, days: [day] });
+  });
+  return pages;
 }
 
 export default function Home() {
@@ -44,12 +58,19 @@ export default function Home() {
 
   const ready = trip && tripId === routeId && !daysLoading;
 
+  const months = useMemo(() => byMonth(tripDays), [tripDays]);
+  const [monthIndex, setMonthIndex] = useState(0);
+  useEffect(() => setMonthIndex(0), [routeId]);
+
+  const page = months[Math.min(monthIndex, Math.max(0, months.length - 1))];
+  const shownDays = page?.days || [];
+
   const selectedDay = tripDays.find((d) => d.key === selectedKey) || null;
   const selectedPlan = selectedKey ? days[selectedKey] || null : null;
 
   return (
     <div
-      className="relative min-h-screen w-full flex flex-col items-center px-4 pt-16 pb-8 sm:pt-20"
+      className="relative min-h-svh w-full flex flex-col items-center px-4 pt-16 pb-8 sm:pt-20"
     >
       <button
         type="button"
@@ -89,9 +110,9 @@ export default function Home() {
         ) : (
           <div
             className="grid gap-2 sm:gap-4 grid-cols-[repeat(var(--day-cols),minmax(0,1fr))] sm:grid-cols-4"
-            style={{ "--day-cols": String(phoneColumns(tripDays.length)) }}
+            style={{ "--day-cols": String(phoneColumns(shownDays.length)) }}
           >
-            {tripDays.map((day, i) => {
+            {shownDays.map((day, i) => {
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
               return (
@@ -160,6 +181,32 @@ export default function Home() {
                 </motion.button>
               );
             })}
+          </div>
+        )}
+
+        {ready && months.length > 1 && (
+          <div className="mt-5 flex items-center justify-center gap-4">
+            <button
+              type="button"
+              onClick={() => setMonthIndex((i) => i - 1)}
+              disabled={monthIndex === 0}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/85 text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:text-stone-900 disabled:opacity-35"
+              aria-label="Предыдущий месяц"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="min-w-[9rem] text-center text-sm font-medium text-stone-600">
+              {monthLabel(page?.month)}
+            </span>
+            <button
+              type="button"
+              onClick={() => setMonthIndex((i) => i + 1)}
+              disabled={monthIndex >= months.length - 1}
+              className="grid h-9 w-9 place-items-center rounded-full bg-white/85 text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:text-stone-900 disabled:opacity-35"
+              aria-label="Следующий месяц"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         )}
       </div>

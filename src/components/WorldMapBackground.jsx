@@ -88,7 +88,13 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
 
   return (
     <div ref={hostRef} className="pointer-events-none absolute inset-0 overflow-hidden">
-      <svg viewBox={`0 0 ${width} ${height}`} aria-hidden="true" className="h-full w-full">
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+        className="absolute left-0 top-0"
+      >
         <g style={{ transform: `translate(${x}px, ${y}px) scale(${k})`, transition: EASE }}>
           <path d={LAND_PATH} fill="#1d3b5c" fillOpacity={0.12} />
           {countryPath && (
