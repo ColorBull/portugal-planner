@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { Plane, Plus, Pencil, Trash2, MapPin, Loader2 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { tripRangeLabel } from "@/lib/tripDays";
@@ -65,13 +65,10 @@ export default function TripPicker() {
             )}
 
             <div className="grid gap-3 sm:grid-cols-2">
-              {trips.map((trip, i) => {
+              {trips.map((trip) => {
                 return (
-                  <motion.div
+                  <div
                     key={trip.id}
-                    initial={{ opacity: 0, y: 16 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, type: "spring", stiffness: 260, damping: 24 }}
                     className="relative rounded-2xl p-5 text-left shadow-sm transition ring-2 ring-transparent bg-white/70 hover:ring-[#c4623a] hover:bg-white"
                   >
                     <button
@@ -123,7 +120,7 @@ export default function TripPicker() {
                         )}
                       </button>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
 
