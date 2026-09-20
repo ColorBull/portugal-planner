@@ -1,6 +1,7 @@
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { ICON_OPTIONS, iconFor, styleFor } from "@/data/planStyles";
+import AddressInput from "@/components/AddressInput";
 import { uid } from "@/api/trips";
 
 const input =
@@ -219,11 +220,11 @@ export default function DayPlanEditor({ value, onChange }) {
                                             }
                                             placeholder="Что делаем"
                                           />
-                                          <input
+                                          <AddressInput
                                             className={input}
                                             value={item.address || ""}
-                                            onChange={(e) =>
-                                              patchItem(sIndex, iIndex, { address: e.target.value })
+                                            onChange={(patch) =>
+                                              patchItem(sIndex, iIndex, patch)
                                             }
                                             placeholder="Адрес (необязательно)"
                                           />

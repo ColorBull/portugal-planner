@@ -176,7 +176,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                     }
                     openDocument(d);
                   }}
-                  className="flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-none"
+                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-none"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 shrink-0">
                     <Icon className="h-4 w-4" />
@@ -217,7 +217,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                     }
                     setLightbox(driveImageUrl(p.drive_file_id, 1600));
                   }}
-                  className="block h-full w-full touch-none"
+                  className="no-long-press block h-full w-full touch-none"
                   aria-label="Просмотреть фото"
                 >
                   <Image
@@ -301,11 +301,11 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.14 }}
               style={{ position: "fixed", left: menuPos.x, top: menuPos.y, zIndex: 50 }}
-              className="w-40 rounded-xl bg-white shadow-2xl ring-1 ring-stone-200 overflow-hidden"
+              className="no-long-press w-40 rounded-xl bg-white shadow-2xl ring-1 ring-stone-200 overflow-hidden"
             >
               <button
                 onClick={() => handleDelete(activeRecord)}
-                className="flex w-full items-center gap-2 px-3.5 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                className="no-long-press flex w-full items-center gap-2 px-3.5 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
               >
                 <Trash2 className="h-4 w-4 shrink-0" />
                 Удалить

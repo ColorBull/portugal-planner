@@ -94,7 +94,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
             value={draft.link}
             onChange={(e) => setDraft({ ...draft, link: e.target.value })}
             placeholder="Ссылка (https://…)"
-            className="flex-1 rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2 text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
+            className="min-w-0 flex-1 rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2 text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
           />
         </div>
         <div className="mt-2 flex justify-end gap-2">

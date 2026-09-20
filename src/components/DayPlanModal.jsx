@@ -31,10 +31,10 @@ function MapLink({ item, bar }) {
         e.preventDefault();
         openMapUrl(href);
       }}
-      className="mt-1.5 inline-flex items-start gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
+      className="mt-1.5 flex max-w-full items-start gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
     >
       <MapPin className="h-4 w-4 mt-0.5 shrink-0" style={{ color: bar }} />
-      <span className="underline decoration-dotted underline-offset-2">
+      <span className="min-w-0 break-words underline decoration-dotted underline-offset-2">
         {item.address || "Открыть на карте"}
       </span>
       <ExternalLink className="h-3.5 w-3.5 mt-0.5 shrink-0 opacity-60" />
@@ -70,6 +70,24 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
   useEffect(() => {
     loadPhotos();
   }, [dayInfo?.key]);
+
+  // Hold the page still behind the modal. Pinning the body to its current
+  // offset also stops mobile Safari/Chrome from scrolling the page once the
+  // modal's own scroller hits an end.
+  useEffect(() => {
+    const y = window.scrollY;
+    const { body } = document;
+    const previous = body.style.cssText;
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.left = "0";
+    body.style.right = "0";
+    body.style.overflow = "hidden";
+    return () => {
+      body.style.cssText = previous;
+      window.scrollTo(0, y);
+    };
+  }, []);
 
   const startEditing = (seed = false) => {
     setSaveError(null);
@@ -124,7 +142,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
       >
         {/* Header band */}
         <div
-          className="relative px-7 pt-7 pb-6 shrink-0"
+          className="relative px-5 sm:px-7 pt-7 pb-6 shrink-0"
           style={{
             background:
               "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)",
@@ -171,7 +189,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto px-7 py-6 flex-1">
+        <div className="overflow-y-auto px-4 sm:px-7 py-6 flex-1">
           {editing ? (
             <DayPlanEditor value={draft} onChange={setDraft} />
           ) : hasPlan ? (
@@ -179,7 +197,6 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
               {sections.map((section, i) => {
                 const Icon = iconFor(section.icon);
                 const style = styleFor(section.icon);
-                const isTimeline = section.icon === "Plane";
 
                 return (
                   <motion.div
@@ -224,60 +241,36 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
                       </div>
                     </div>
 
-                    {isTimeline ? (
-                      <ul
-                        className="ml-5 pl-6 border-l-2 space-y-3"
-                        style={{ borderColor: style.bar }}
-                      >
-                        {section.items.map((item) => (
-                          <li key={item.id} className="relative">
-                            {/* centred on the 2px rule, level with the first text line */}
-                            <span
-                              className="absolute h-2.5 w-2.5 rounded-full"
-                              style={{
-                                left: "-30px",
-                                top: "8px",
-                                backgroundColor: style.bar,
-                                boxShadow: `0 0 0 4px ${style.bg}`,
-                              }}
-                            />
-                            <div className="text-stone-700 leading-relaxed">{item.text}</div>
-                            <MapLink item={item} bar={style.bar} />
-                            <PlanPhotoGrid
-                              itemId={item.id}
-                              dayKey={dayInfo.key}
-                              photos={photosByItem[item.id] || []}
-                              onChanged={loadPhotos}
-                            />
-                            <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <ul className="ml-1 space-y-3">
-                        {section.items.map((item) => (
-                          <li key={item.id}>
-                            <div className="flex items-start gap-2.5 text-stone-700 leading-relaxed">
-                              <span
-                                className="h-1.5 w-1.5 rounded-full shrink-0"
-                                style={{ marginTop: "10px", backgroundColor: style.bar }}
-                              />
-                              <span className="flex-1">
-                                {item.text}
-                                <MapLink item={item} bar={style.bar} />
-                              </span>
-                            </div>
-                            <PlanPhotoGrid
-                              itemId={item.id}
-                              dayKey={dayInfo.key}
-                              photos={photosByItem[item.id] || []}
-                              onChanged={loadPhotos}
-                            />
-                            <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <ul
+                      className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-3"
+                      style={{ borderColor: style.bar }}
+                    >
+                      {section.items.map((item) => (
+                        <li key={item.id} className="relative min-w-0">
+                          {/* centred on the 2px rule, level with the first text line */}
+                          <span
+                            className="absolute h-2.5 w-2.5 rounded-full"
+                            style={{
+                              left: "-30px",
+                              top: "8px",
+                              backgroundColor: style.bar,
+                              boxShadow: `0 0 0 4px ${style.bg}`,
+                            }}
+                          />
+                          <div className="text-stone-700 leading-relaxed break-words">
+                            {item.text}
+                          </div>
+                          <MapLink item={item} bar={style.bar} />
+                          <PlanPhotoGrid
+                            itemId={item.id}
+                            dayKey={dayInfo.key}
+                            photos={photosByItem[item.id] || []}
+                            onChanged={loadPhotos}
+                          />
+                          <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
+                        </li>
+                      ))}
+                    </ul>
                   </motion.div>
                 );
               })}
@@ -307,7 +300,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         {/* Footer */}
         {editing ? (
           <div
-            className="shrink-0 px-7 py-4 flex items-center justify-end gap-2 border-t"
+            className="shrink-0 px-4 sm:px-7 py-4 flex items-center justify-end gap-2 border-t"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
             {saveError && (
@@ -337,7 +330,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
           </div>
         ) : (
           <div
-            className="shrink-0 px-7 py-3.5 flex items-center gap-1.5 text-stone-400 text-xs border-t"
+            className="shrink-0 px-4 sm:px-7 py-3.5 flex items-center gap-1.5 text-stone-400 text-xs border-t"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
             <Clock className="h-3.5 w-3.5" />

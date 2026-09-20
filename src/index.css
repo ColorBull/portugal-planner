@@ -90,3 +90,13 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+@layer utilities {
+  /* Chrome on Android answers a long press by selecting text and raising its
+     own callout. These targets use long press for their own menu instead. */
+  .no-long-press {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+}
