@@ -17,6 +17,10 @@ const GIS_SRC = "https://accounts.google.com/gsi/client";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const RENEW_TIMEOUT_MS = 10000;
 
+// Running as the installed app (PWA) rather than in a browser tab.
+export const isInstalledApp = () =>
+  window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
+
 export const canRenewSilently = () =>
   !!GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_ID !== "REPLACE_ME";
 
@@ -64,7 +68,8 @@ async function ensureClient() {
 // Resolves to { access_token, expires_in } or null when Google wants to show
 // something — the caller then falls back to the interactive dialog.
 export async function renewDriveToken() {
-  if (!canRenewSilently() || pending) return null;
+  // Renewal opens a Google window; offline it can only show an error page.
+  if (!canRenewSilently() || pending || navigator.onLine === false) return null;
   try {
     const client = await ensureClient();
     return await new Promise((resolve) => {

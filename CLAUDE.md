@@ -89,6 +89,10 @@ Each device keeps its own copy, so a trip opens with no signal.
   service worker's scope is `/portugal-planner/`, so a browser tab opened at
   `…/portugal-planner` (no trailing slash) is outside it and shows Chrome's
   offline page — the installed app always starts at `./`.
+- The "silent" Drive renewal (`googleToken.js`, GIS token client) opens a Google
+  window. In the installed app that window is a visible Chrome tab over the
+  app (and a dino page offline), so the background renewal loop is skipped
+  when `isInstalledApp()` and never runs offline; uploads renew on demand.
 - Not offline: uploads (blocked with a message), Google sign-in, address search.
   Firebase Auth restores the signed-in user from IndexedDB without a network.
 

@@ -17,7 +17,7 @@ import {
   driveTokenStale,
   renewSilently,
 } from "@/api/drive";
-import { canRenewSilently } from "@/api/googleToken";
+import { canRenewSilently, isInstalledApp } from "@/api/googleToken";
 
 const AuthContext = createContext(null);
 
@@ -88,7 +88,10 @@ export function AuthProvider({ children }) {
   // Keep the Drive token fresh while the app is open, so an upload never has
   // to stop and ask. Renewal is silent; the dialog stays as the fallback.
   useEffect(() => {
-    if (!user || !canRenewSilently()) return;
+    // Not in the installed app: there Google's renewal window opens as a
+    // visible browser tab over the app (a dead one when offline). The app then
+    // renews only when an upload asks for it.
+    if (!user || !canRenewSilently() || isInstalledApp()) return;
 
     let stopped = false;
     const refresh = () => {
