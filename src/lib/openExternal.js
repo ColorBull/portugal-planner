@@ -3,11 +3,9 @@
 //   system, which Android reliably routes to the matching app (geo: → Google
 //   Maps). These are NOT wrapped in intent: — the Base44 Android WebView
 //   blocks intent: URIs, but forwards standard schemes.
-// - http(s) on Android: if a Cordova-style native bridge is present, use
-//   window.open(url, "_system"); otherwise a same-window anchor click goes
-//   via shouldOverrideUrlLoading, which the native shell routes to the
-//   system browser (no target="_blank" — that traps it inside the app).
-// - http(s) on iOS/other: a target="_blank" anchor opens Safari correctly.
+// - http(s) inside a Cordova-style native shell: window.open(url, "_system").
+// - http(s) everywhere else (browser tab, installed PWA): a target="_blank"
+//   anchor, so the app itself stays loaded underneath.
 function clickLink(href, target) {
   const a = document.createElement("a");
   a.href = href;
@@ -33,20 +31,13 @@ export function openExternal(url) {
     return;
   }
 
-  if (isAndroid) {
-    if (isCordova) {
-      // Native shell (e.g. Cordova InAppBrowser) opens the system browser.
-      window.open(url, "_system");
-      return;
-    }
-    // Same-window navigation triggers the WebView's shouldOverrideUrlLoading,
-    // which the native shell routes to the system browser (Chrome / Samsung
-    // Internet). We deliberately avoid target="_blank" — that goes through
-    // onCreateWindow, which loads the page inside the app (stuck).
-    clickLink(url, "");
+  if (isAndroid && isCordova) {
+    // Native shell (e.g. Cordova InAppBrowser) opens the system browser.
+    window.open(url, "_system");
     return;
   }
 
-  // iOS / desktop / fallback
+  // Browser tab or installed PWA: a new tab. Navigating the app's own window
+  // away would reload the whole app on the way back (a visible flash).
   clickLink(url, "_blank");
 }

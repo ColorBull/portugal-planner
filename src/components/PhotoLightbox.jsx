@@ -1,11 +1,26 @@
-import { useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 
-export default function PhotoLightbox({ src, onClose }) {
+// `previewSrc` is the grid thumbnail, already loaded (and cached offline), so
+// something shows the instant the viewer opens; the sharp `src` replaces it
+// once it has downloaded — or never, offline, and the preview stays.
+export default function PhotoLightbox({ src, previewSrc, onClose }) {
+  const [shown, setShown] = useState(previewSrc || src);
+  useEffect(() => {
+    setShown(previewSrc || src);
+    if (!previewSrc || previewSrc === src) return;
+    let alive = true;
+    const img = new window.Image();
+    img.onload = () => alive && setShown(src);
+    img.src = src;
+    return () => {
+      alive = false;
+    };
+  }, [src, previewSrc]);
+
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });
 
@@ -81,11 +96,8 @@ export default function PhotoLightbox({ src, onClose }) {
   };
 
   return (
-    <motion.div
+    <div
       className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
       onClick={onClose}
     >
       <button
@@ -100,7 +112,7 @@ export default function PhotoLightbox({ src, onClose }) {
       </button>
 
       <img
-        src={src}
+        src={shown}
         alt="Просмотр фото"
         draggable={false}
         onPointerDown={onPointerDown}
@@ -122,6 +134,6 @@ export default function PhotoLightbox({ src, onClose }) {
         }}
         className="rounded-lg shadow-2xl pointer-events-auto"
       />
-    </motion.div>
+    </div>
   );
 }

@@ -17,10 +17,6 @@ const GIS_SRC = "https://accounts.google.com/gsi/client";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const RENEW_TIMEOUT_MS = 10000;
 
-// Running as the installed app (PWA) rather than in a browser tab.
-export const isInstalledApp = () =>
-  window.matchMedia?.("(display-mode: standalone)").matches || navigator.standalone === true;
-
 export const canRenewSilently = () =>
   !!GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_ID !== "REPLACE_ME";
 

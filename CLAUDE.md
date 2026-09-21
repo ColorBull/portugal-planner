@@ -23,7 +23,9 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 - **Files** — Google Drive. Photos & documents are uploaded (via the `drive.file`
   OAuth scope granted at sign-in) into one shared Drive folder
   (`DRIVE_FOLDER_ID`), link-shared, and rendered through
-  `https://drive.google.com/thumbnail?id=…`.
+  `https://lh3.googleusercontent.com/d/<id>=w<size>` (not
+  `drive.google.com/thumbnail`: that one refuses CORS, so the service worker
+  could not tell a failed thumbnail from a real one and cached errors).
 - **Map** — no map library and no tiles. Natural Earth outlines are projected
   at build time into `src/data/worldMap.js` as plain SVG path strings; at
   runtime a single `<path>` is panned and scaled. See the gotcha below before
@@ -81,8 +83,9 @@ Each device keeps its own copy, so a trip opens with no signal.
 - **App shell** — `public/sw.js` (production only). `index.html` network-first,
   hashed bundles cache-first; after each load it caches every file listed in
   `dist/asset-manifest.json` (`build.manifest` in `vite.config.js`) and prunes old
-  ones. It ignores `/backup/`. Drive thumbnails and flagcdn flags are
-  cache-first; an uncached thumbnail size falls back to any cached size.
+  ones. It ignores `/backup/`. Drive images (fetched with CORS; only
+  real `image/*` responses are cached) and flagcdn flags are cache-first; an
+  uncached size falls back to any cached size of the same photo.
 - **Installable (PWA)** — `public/manifest.webmanifest` + `icon-192/512.png`,
   `apple-touch-icon.png` (plane on `#1d3b5c`), linked from `index.html` with
   root paths (`/manifest.webmanifest`; Vite adds the base). Install it: the
@@ -90,9 +93,10 @@ Each device keeps its own copy, so a trip opens with no signal.
   `…/portugal-planner` (no trailing slash) is outside it and shows Chrome's
   offline page — the installed app always starts at `./`.
 - The "silent" Drive renewal (`googleToken.js`, GIS token client) opens a Google
-  window. In the installed app that window is a visible Chrome tab over the
-  app (and a dino page offline), so the background renewal loop is skipped
-  when `isInstalledApp()` and never runs offline; uploads renew on demand.
+  window — in the installed app a briefly visible Chrome tab, and offline a
+  dino page — so it never runs offline. It still runs in the background
+  online (the family prefers that to a consent dialog on every upload), and
+  `ensureDriveAccess` tries it before falling back to the interactive dialog.
 - Not offline: uploads (blocked with a message), Google sign-in, address search.
   Firebase Auth restores the signed-in user from IndexedDB without a network.
 
@@ -143,8 +147,12 @@ Each device keeps its own copy, so a trip opens with no signal.
   - CSS: `npx tailwindcss@3.4.17 -c <config without the animate plugin> -i src/index.css -o <tmp>`
   A `{/* … */}` comment in a ternary's expression slot has broken the build
   before; esbuild catches exactly that.
+- `openExternal` opens http(s) links (documents, note links) with
+  `target="_blank"`. The old same-window navigation was for the Base44 Android
+  shell; in a browser or the PWA it unloads the app and reloads it on return.
 - Anything full-screen with `backdrop-filter`, and any opacity or scale
-  animation on a modal as it opens, makes Chrome paint a black frame. Both are
+  animation on a modal as it opens, makes Chrome paint a black frame. The photo lightbox
+  has no fade either. Both are
   gone from the modals: the scrims are plain translucent black and the panels
   appear at once (closing still animates). Don't reintroduce either.
 - The map must never move on its own. Two mobile traps: a phone hides its

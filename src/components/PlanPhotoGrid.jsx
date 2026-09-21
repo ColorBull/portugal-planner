@@ -117,7 +117,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
   const endPress = (e, record, isImage) => {
     clearPress();
     if (!movedRef.current && !menuTriggeredRef.current) {
-      if (isImage) setLightbox(driveImageUrl(record.drive_file_id, 1600));
+      if (isImage) setLightbox(record.drive_file_id);
       else openDocument(record);
     }
     if (!menuTriggeredRef.current) unlockSelection();
@@ -237,7 +237,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                       menuTriggeredRef.current = false;
                       return;
                     }
-                    setLightbox(driveImageUrl(p.drive_file_id, 1600));
+                    setLightbox(p.drive_file_id);
                   }}
                   className="no-long-press block h-full w-full touch-none"
                   aria-label="Просмотреть фото"
@@ -337,11 +337,15 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {lightbox && (
-          <PhotoLightbox src={lightbox} onClose={() => setLightbox(null)} />
-        )}
-      </AnimatePresence>
+      {/* No enter/exit animation: fading a full-screen layer makes Chrome
+          paint a black frame (see CLAUDE.md). */}
+      {lightbox && (
+        <PhotoLightbox
+          src={driveImageUrl(lightbox, 1600)}
+          previewSrc={driveImageUrl(lightbox, 600)}
+          onClose={() => setLightbox(null)}
+        />
+      )}
     </div>
   );
 }

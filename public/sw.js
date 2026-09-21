@@ -7,9 +7,12 @@
 //               load the app asks for the full build list (asset-manifest.json)
 //               to be cached, so lazily-loaded chunks are on the device too,
 //               plus the PWA manifest and icons.
-//   images      Drive thumbnails and flagcdn flags are cache-first. A photo
-//               opened offline at a size never fetched falls back to any
-//               cached size of the same file.
+//   images      Drive images (lh3.googleusercontent.com/d/<id>=w<size>) and
+//               flagcdn flags are cache-first. Drive images are fetched with
+//               CORS so a failure is visible and never cached (a photo asked
+//               for right after upload has no thumbnail yet). A photo opened
+//               offline at a size never fetched falls back to any cached size
+//               of the same file.
 //
 // Firestore, Google sign-in and Drive uploads pass straight through: Firestore
 // has its own offline cache (src/api/firebase.js).
@@ -19,7 +22,8 @@
 // ---------------------------------------------------------------------------
 
 const SHELL = "pp-shell-v1";
-const MEDIA = "pp-media-v1";
+// v1 held opaque drive.google.com/thumbnail responses, errors included.
+const MEDIA = "pp-media-v2";
 
 const scope = new URL(self.registration.scope);
 const INDEX = new URL("./", scope).href;
@@ -99,19 +103,31 @@ async function cacheFirst(cacheName, request, key = request) {
   return res;
 }
 
-const driveFileId = (url) => (url.pathname === "/thumbnail" ? url.searchParams.get("id") : null);
+const driveFileId = (url) => /^\/d\/([^=/]+)/.exec(new URL(url).pathname)?.[1] || null;
 
-async function driveThumbnail(request) {
+async function driveImage(request) {
+  const cache = await caches.open(MEDIA);
+  const hit = await cache.match(request.url);
+  if (hit) return hit;
+
   try {
-    return await cacheFirst(MEDIA, request, request.url);
-  } catch (e) {
-    const id = driveFileId(new URL(request.url));
-    const cache = await caches.open(MEDIA);
-    for (const key of await cache.keys()) {
-      if (driveFileId(new URL(key.url)) === id) return cache.match(key);
+    const res = await fetch(request.url, { mode: "cors", credentials: "omit" });
+    const isImage = (res.headers.get("content-type") || "").startsWith("image/");
+    if (res.ok && isImage) {
+      await cache.put(request.url, res.clone());
+      return res;
     }
-    throw e;
+  } catch {
+    /* offline, or Google refused — try the fallbacks */
   }
+
+  // Offline: any size of the same photo beats a broken image.
+  const id = driveFileId(request.url);
+  for (const key of await cache.keys()) {
+    if (id && driveFileId(key.url) === id) return cache.match(key);
+  }
+  // Last resort: let the browser try on its own, uncached.
+  return fetch(request);
 }
 
 self.addEventListener("fetch", (event) => {
@@ -131,8 +147,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.hostname === "drive.google.com" && url.pathname === "/thumbnail") {
-    event.respondWith(driveThumbnail(request));
+  if (url.hostname === "lh3.googleusercontent.com" && url.pathname.startsWith("/d/")) {
+    event.respondWith(driveImage(request));
     return;
   }
 

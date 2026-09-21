@@ -26,7 +26,11 @@ async function warmImages(photos) {
     if (warmedImages.has(url)) continue;
     warmedImages.add(url);
     if (!isOnline()) return;
-    await fetch(url, { mode: "no-cors" }).catch(() => warmedImages.delete(url));
+    const ok = await fetch(url)
+      .then((res) => res.ok)
+      .catch(() => false);
+    // Not there yet (e.g. Google is still making the thumbnail): retry later.
+    if (!ok) warmedImages.delete(url);
   }
 }
 

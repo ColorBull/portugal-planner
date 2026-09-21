@@ -177,9 +177,12 @@ export async function deleteFromDrive(fileId) {
   }).catch(() => {});
 }
 
-// Public thumbnail endpoint — works in <img> for link-shared files.
+// Public image endpoint for link-shared files (PDFs come back as a rendered
+// first page). Unlike drive.google.com/thumbnail it answers CORS requests, so
+// the service worker can see a failed image and refuse to cache it — a photo
+// fetched straight after upload, before Google has a thumbnail, fails.
 export function driveImageUrl(fileId, size = 1200) {
-  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w${size}`;
+  return `https://lh3.googleusercontent.com/d/${fileId}=w${size}`;
 }
 
 export function driveViewUrl(fileId) {
