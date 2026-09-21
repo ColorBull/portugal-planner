@@ -4,6 +4,7 @@ import {
   createTrip,
   updateTrip,
   deleteTrip,
+  setTripArchived,
   listDays,
   saveDay,
   ensureSeeded,
@@ -142,6 +143,14 @@ export function TripProvider({ children }) {
     [refresh]
   );
 
+  const archiveTrip = useCallback(
+    async (id, archived = true) => {
+      await setTripArchived(id, archived);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const removeTrip = useCallback(
     async (id) => {
       await deleteTrip(id);
@@ -155,7 +164,11 @@ export function TripProvider({ children }) {
   );
 
   const value = {
+    // Every trip, archived included — an archived trip can still be opened.
     trips,
+    activeTrips: trips.filter((t) => !t.archived),
+    archivedTrips: trips.filter((t) => t.archived),
+    archiveTrip,
     loading,
     error,
     refresh,

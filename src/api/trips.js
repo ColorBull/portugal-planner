@@ -68,6 +68,15 @@ export async function updateTrip(id, data) {
   );
 }
 
+// Archiving only flags the trip; its days, notes and photos stay untouched.
+export async function setTripArchived(id, archived) {
+  await updateTrip(id, {
+    archived,
+    archived_date: archived ? new Date().toISOString() : null,
+    archived_by: archived ? auth.currentUser?.email || null : null,
+  });
+}
+
 async function deleteAll(tripId, name) {
   const snap = await readDocs(collection(db, "trips", tripId, name));
   await write(Promise.all(snap.docs.map((d) => deleteDoc(d.ref))));

@@ -65,6 +65,16 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/data/tripPlans.js` | the original Portugal itinerary — **seed data only** |
 | `firestore.rules` | only allow-listed verified e-mails touch `trips/**` |
 
+## Archive
+
+Trips are archived, not deleted: `archived: true` (+ `archived_date`,
+`archived_by`) on `trips/{id}`; days, notes and photos are untouched.
+`TripContext` exposes `trips` (all — an archived trip still opens by URL),
+`activeTrips`, `archivedTrips` and `archiveTrip(id, archived)`. The picker's
+"Архив" view restores trips or deletes them for good behind a passcode
+(`PasscodeDialog.jsx`; only its SHA-256 is in the source). That passcode is a
+guard against accidents, not security — `firestore.rules` is the real gate.
+
 ## Offline
 
 Each device keeps its own copy, so a trip opens with no signal.
