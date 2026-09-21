@@ -2,7 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, WifiOff } from "lucide-react";
+import { useOnline } from "@/lib/useOnline";
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
 import ScrollToTop from "./components/ScrollToTop";
@@ -26,6 +27,22 @@ function SignOutButton() {
   );
 }
 
+// Shown while there is no connection: the app is running on this device's
+// saved copy, and edits are queued until the network comes back.
+function OfflineBadge() {
+  const online = useOnline();
+  if (online) return null;
+  return (
+    <div
+      title="Нет подключения. Показаны сохранённые на устройстве данные; изменения отправятся, когда появится сеть."
+      className="fixed top-3 right-14 z-40 flex h-9 items-center gap-1.5 rounded-full bg-amber-50/90 px-3 text-xs font-medium text-amber-800 shadow-sm ring-1 ring-amber-200"
+    >
+      <WifiOff className="h-3.5 w-3.5" />
+      Офлайн
+    </div>
+  );
+}
+
 function Gate() {
   const { user, loading, isAllowed } = useAuth();
 
@@ -44,6 +61,7 @@ function Gate() {
     <TripProvider>
       <MapBackdrop />
       <SignOutButton />
+      <OfflineBadge />
       <Routes>
         <Route path="/" element={<TripPicker />} />
         <Route path="/trip/:tripId" element={<Home />} />

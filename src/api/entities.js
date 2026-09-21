@@ -8,14 +8,14 @@ import {
   collection,
   query,
   where as fsWhere,
-  getDocs,
-  addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
   serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "@/api/firebase";
+import { readDocs, write } from "@/api/offline";
 import { TRIP_ID } from "@/config";
 
 // Which trip the UI is currently showing. TripProvider sets this as soon as a
@@ -42,32 +42,37 @@ function makeEntity(name) {
   return {
     async filter(criteria = {}) {
       const clauses = Object.entries(criteria).map(([k, v]) => fsWhere(k, "==", v));
-      const snap = await getDocs(query(coll(name), ...clauses));
+      const snap = await readDocs(query(coll(name), ...clauses));
       return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
     },
     async create(data) {
       const clean = Object.fromEntries(
         Object.entries(data).filter(([, v]) => v !== undefined)
       );
-      const ref = await addDoc(coll(name), {
-        ...clean,
-        created_by: auth.currentUser?.email || null,
-        created_date: serverTimestamp(),
-      });
+      const ref = doc(coll(name));
+      await write(
+        setDoc(ref, {
+          ...clean,
+          created_by: auth.currentUser?.email || null,
+          created_date: serverTimestamp(),
+        })
+      );
       return { id: ref.id, ...clean };
     },
     async update(id, data) {
       const clean = Object.fromEntries(
         Object.entries(data).filter(([, v]) => v !== undefined)
       );
-      await updateDoc(ref(name, id), {
-        ...clean,
-        updated_date: serverTimestamp(),
-      });
+      await write(
+        updateDoc(ref(name, id), {
+          ...clean,
+          updated_date: serverTimestamp(),
+        })
+      );
       return { id, ...clean };
     },
     async delete(id) {
-      await deleteDoc(ref(name, id));
+      await write(deleteDoc(ref(name, id)));
     },
   };
 }

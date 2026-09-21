@@ -9,6 +9,7 @@ import {
   driveViewUrl,
   hasDriveAccess,
 } from "@/api/drive";
+import { isOnline } from "@/api/offline";
 import { Image } from "@/components/ui/image";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { openExternal } from "@/lib/openExternal";
@@ -127,6 +128,10 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
   // still counts as a user gesture — afterwards mobile browsers block the
   // Google dialog and the upload dies with "authorization was cancelled".
   const pickFile = async (ref) => {
+    if (!isOnline()) {
+      alert("Нет подключения к интернету. Загрузить файл можно, когда появится сеть.");
+      return;
+    }
     if (!hasDriveAccess()) {
       const ok = await ensureDriveAccess();
       if (!ok) return;

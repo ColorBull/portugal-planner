@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import {
   listTrips,
   createTrip,
@@ -7,8 +7,28 @@ import {
   listDays,
   saveDay,
   ensureSeeded,
+  warmTrip,
 } from "@/api/trips";
 import { setActiveTripId } from "@/api/entities";
+import { isOnline } from "@/api/offline";
+import { driveImageUrl } from "@/api/drive";
+import { useOnline } from "@/lib/useOnline";
+
+// Photo thumbnails already requested this session. Fetching one through the
+// service worker (public/sw.js) is what stores it on the device.
+const warmedImages = new Set();
+
+async function warmImages(photos) {
+  if (!navigator.serviceWorker?.controller) return;
+  for (const p of photos) {
+    if (p.kind === "document" || !p.drive_file_id) continue;
+    const url = driveImageUrl(p.drive_file_id, 600);
+    if (warmedImages.has(url)) continue;
+    warmedImages.add(url);
+    if (!isOnline()) return;
+    await fetch(url, { mode: "no-cors" }).catch(() => warmedImages.delete(url));
+  }
+}
 
 const TripContext = createContext(null);
 
@@ -46,6 +66,34 @@ export function TripProvider({ children }) {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  // Coming back online: pick up whatever changed on the other devices.
+  const online = useOnline();
+  const wasOnline = useRef(online);
+  useEffect(() => {
+    if (online && !wasOnline.current) refresh();
+    wasOnline.current = online;
+  }, [online, refresh]);
+
+  // Save every trip onto this device in the background — plans, notes, photo
+  // records and thumbnails — so any of them opens later without a connection.
+  useEffect(() => {
+    if (loading || !trips.length || !isOnline()) return;
+    let cancelled = false;
+    (async () => {
+      for (const t of trips) {
+        if (cancelled) return;
+        try {
+          await warmImages(await warmTrip(t.id));
+        } catch (e) {
+          console.warn("Could not cache trip", t.id, e);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [trips, loading]);
 
   // Open a trip: notes & photos follow it, and its day plans are fetched.
   const openTrip = useCallback(async (id) => {

@@ -13,15 +13,13 @@
 import {
   collection,
   doc,
-  getDoc,
-  getDocs,
   setDoc,
-  addDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "@/api/firebase";
+import { readDoc, readDocs, write, isOnline } from "@/api/offline";
 import { TRIP_ID } from "@/config";
 import { tripPlans, tripDays as portugalDays } from "@/data/tripPlans";
 
@@ -36,7 +34,7 @@ const stripUndefined = (obj) =>
 // ---------------------------------------------------------------- trips ----
 
 export async function listTrips() {
-  const snap = await getDocs(collection(db, "trips"));
+  const snap = await readDocs(collection(db, "trips"));
   return snap.docs
     .filter((d) => d.id !== META_ID)
     .map((d) => ({ id: d.id, ...d.data() }))
@@ -49,38 +47,53 @@ export async function listTrips() {
 }
 
 export async function createTrip(data) {
-  const ref = await addDoc(collection(db, "trips"), {
-    ...stripUndefined(data),
-    created_by: auth.currentUser?.email || null,
-    created_date: serverTimestamp(),
-  });
+  // The id is minted locally so this also works offline.
+  const ref = doc(collection(db, "trips"));
+  await write(
+    setDoc(ref, {
+      ...stripUndefined(data),
+      created_by: auth.currentUser?.email || null,
+      created_date: serverTimestamp(),
+    })
+  );
   return { id: ref.id, ...data };
 }
 
 export async function updateTrip(id, data) {
-  await updateDoc(doc(db, "trips", id), {
-    ...stripUndefined(data),
-    updated_date: serverTimestamp(),
-  });
+  await write(
+    updateDoc(doc(db, "trips", id), {
+      ...stripUndefined(data),
+      updated_date: serverTimestamp(),
+    })
+  );
 }
 
 async function deleteAll(tripId, name) {
-  const snap = await getDocs(collection(db, "trips", tripId, name));
-  await Promise.all(snap.docs.map((d) => deleteDoc(d.ref)));
+  const snap = await readDocs(collection(db, "trips", tripId, name));
+  await write(Promise.all(snap.docs.map((d) => deleteDoc(d.ref))));
 }
 
 export async function deleteTrip(id) {
   await deleteAll(id, "days");
   await deleteAll(id, "notes");
   await deleteAll(id, "photos");
-  await deleteDoc(doc(db, "trips", id));
+  await write(deleteDoc(doc(db, "trips", id)));
 }
 
 // ----------------------------------------------------------------- days ----
 
+// Pull a trip's days, notes and photo records into the device cache, so the
+// whole trip can be opened offline later. Returns the photo records.
+export async function warmTrip(tripId) {
+  const [, , photos] = await Promise.all(
+    ["days", "notes", "photos"].map((name) => readDocs(collection(db, "trips", tripId, name)))
+  );
+  return photos.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
 // { [dateKey]: { city, sections } }
 export async function listDays(tripId) {
-  const snap = await getDocs(collection(db, "trips", tripId, "days"));
+  const snap = await readDocs(collection(db, "trips", tripId, "days"));
   const out = {};
   snap.docs.forEach((d) => {
     out[d.id] = { id: d.id, ...d.data() };
@@ -89,19 +102,21 @@ export async function listDays(tripId) {
 }
 
 export async function saveDay(tripId, dateKey, data) {
-  await setDoc(
-    doc(db, "trips", tripId, "days", dateKey),
-    {
-      ...stripUndefined(data),
-      updated_by: auth.currentUser?.email || null,
-      updated_date: serverTimestamp(),
-    },
-    { merge: true }
+  await write(
+    setDoc(
+      doc(db, "trips", tripId, "days", dateKey),
+      {
+        ...stripUndefined(data),
+        updated_by: auth.currentUser?.email || null,
+        updated_date: serverTimestamp(),
+      },
+      { merge: true }
+    )
   );
 }
 
 export async function deleteDay(tripId, dateKey) {
-  await deleteDoc(doc(db, "trips", tripId, "days", dateKey));
+  await write(deleteDoc(doc(db, "trips", tripId, "days", dateKey)));
 }
 
 // -------------------------------------------------------------- seeding ----
@@ -110,12 +125,14 @@ export async function deleteDay(tripId, dateKey) {
 // time the app runs against an empty database we copy it into Firestore so the
 // existing notes & photos (which key off day_key + item_id) still line up.
 export async function ensureSeeded() {
+  // Seeding needs the server's answer; offline the cache is all there is.
+  if (!isOnline()) return;
   const metaRef = doc(db, "trips", META_ID);
-  const meta = await getDoc(metaRef);
+  const meta = await readDoc(metaRef);
   if (meta.exists() && meta.data()?.seeded) return;
 
   const tripRef = doc(db, "trips", TRIP_ID);
-  if (!(await getDoc(tripRef)).exists()) {
+  if (!(await readDoc(tripRef)).exists()) {
     await setDoc(tripRef, {
       country: "Португалия",
       city: "Порту и Лиссабон",
@@ -130,7 +147,7 @@ export async function ensureSeeded() {
   // Seed the days whenever they are still missing — not just when the trip doc
   // was created above. An earlier run that created the trip and then failed
   // half way through the days would otherwise leave the itinerary empty.
-  const days = await getDocs(collection(db, "trips", TRIP_ID, "days"));
+  const days = await readDocs(collection(db, "trips", TRIP_ID, "days"));
   if (days.empty) {
     await Promise.all(
       Object.entries(tripPlans).map(([dateKey, plan]) =>

@@ -5,7 +5,11 @@ import {
   setPersistence,
   browserLocalPersistence,
 } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import {
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+} from "firebase/firestore";
 import { firebaseConfig } from "@/config";
 
 const app = initializeApp(firebaseConfig);
@@ -13,7 +17,13 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-export const db = getFirestore(app);
+// Every document the app reads is also kept in IndexedDB on this device, so
+// trips, day plans, notes and photo records stay readable offline. Writes made
+// offline are queued there too and sent when the connection returns. The
+// multi-tab manager lets two open tabs share that one cache.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+});
 
 // Google sign-in that also grants per-file Drive access, so the app can
 // upload trip photos into the shared Drive folder. `drive.file` is a

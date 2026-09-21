@@ -40,6 +40,8 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/config.js` | Firebase config, allow-list, Drive folder id, trip id. **Public by design.** |
 | `src/api/firebase.js` | Firebase app / auth / firestore / Google provider |
 | `src/api/entities.js` | Firestore-backed `TripNote` / `TripPhoto` |
+| `src/api/offline.js` | cache-fallback reads, non-blocking writes (see Offline) |
+| `public/sw.js` | service worker: app shell + Drive thumbnails + flags offline |
 | `src/api/drive.js` | Drive upload / delete / thumbnail URLs + OAuth token cache |
 | `src/lib/AuthContext.jsx` | sign-in, allow-list check, Drive token capture & refresh |
 | `src/App.jsx` | gate: loading → sign-in → access-restricted → app |
@@ -60,6 +62,29 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/data/planStyles.js` | icon map, palette, icon picker options |
 | `src/data/tripPlans.js` | the original Portugal itinerary — **seed data only** |
 | `firestore.rules` | only allow-listed verified e-mails touch `trips/**` |
+
+## Offline
+
+Each device keeps its own copy, so a trip opens with no signal.
+
+- **Data** — Firestore runs with `persistentLocalCache` (IndexedDB). All reads go
+  through `readDocs` / `readDoc` in `src/api/offline.js`: cache when
+  `navigator.onLine` is false or the server takes > 4 s (and the cache has
+  something). All writes go through `write()`, which stops waiting after a few
+  seconds / immediately offline — the change is already in the cache and the
+  queued write syncs later, even across reloads. New docs get client-minted ids
+  (`doc(coll)` + `setDoc`), never `addDoc`. Don't call `getDocs` / `await setDoc`
+  directly in UI paths, or the app hangs offline.
+- **Prefetch** — after the trip list loads, `TripContext` reads every trip's
+  days / notes / photos and fetches each photo's 600px thumbnail, so trips never
+  opened on this device are cached too.
+- **App shell** — `public/sw.js` (production only). `index.html` network-first,
+  hashed bundles cache-first; after each load it caches every file listed in
+  `dist/asset-manifest.json` (`build.manifest` in `vite.config.js`) and prunes old
+  ones. It ignores `/backup/`. Drive thumbnails and flagcdn flags are
+  cache-first; an uncached thumbnail size falls back to any cached size.
+- Not offline: uploads (blocked with a message), Google sign-in, address search.
+  Firebase Auth restores the signed-in user from IndexedDB without a network.
 
 ## Gotchas
 
