@@ -13,7 +13,7 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
-import { tripRangeLabel } from "@/lib/tripDays";
+import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
 import TripFormModal from "@/components/TripFormModal";
 import PasscodeDialog from "@/components/PasscodeDialog";
 import CountryFlag from "@/components/CountryFlag";
@@ -43,7 +43,7 @@ function TripCard({ trip, muted, onOpen, children }) {
         </div>
         <div className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
           <MapPin className="h-3.5 w-3.5" />
-          {trip.year}
+          {tripYearLabel(trip)}
           {tripRangeLabel(trip) && (
             <>
               <span className="text-stone-300">·</span>
@@ -82,7 +82,7 @@ export default function TripPicker() {
 
   const handleArchive = (trip) => {
     const ok = window.confirm(
-      `Перенести поездку «${trip.city}, ${trip.year}» в архив? Все заметки и фотографии сохранятся.`
+      `Перенести поездку «${trip.city}, ${tripYearLabel(trip)}» в архив? Все заметки и фотографии сохранятся.`
     );
     if (ok) run(trip, () => archiveTrip(trip.id, true), "Не удалось перенести поездку в архив.");
   };
@@ -237,7 +237,7 @@ export default function TripPicker() {
       {deleting && (
         <PasscodeDialog
           title="Удалить навсегда"
-          message={`Поездка «${deleting.city}, ${deleting.year}» будет удалена вместе со всеми заметками и фотографиями. Введите код, чтобы подтвердить.`}
+          message={`Поездка «${deleting.city}, ${tripYearLabel(deleting)}» будет удалена вместе со всеми заметками и фотографиями. Введите код, чтобы подтвердить.`}
           onConfirm={() => removeTrip(deleting.id)}
           onClose={() => setDeleting(null)}
         />

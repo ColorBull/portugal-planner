@@ -13,7 +13,6 @@ const emptyTrip = {
   country: "",
   countryCode: "",
   city: "",
-  year: new Date().getFullYear(),
   startDate: "",
   endDate: "",
 };
@@ -25,14 +24,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
 
   const set = (key) => (e) => {
     const value = e.target.value;
-    setForm((prev) => {
-      const next = { ...prev, [key]: value };
-      // Picking a start date settles the year too.
-      if (key === "startDate" && /^\d{4}-/.test(value)) {
-        next.year = Number(value.slice(0, 4));
-      }
-      return next;
-    });
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const setCountry = ({ code, name }) => {
@@ -43,11 +35,13 @@ export default function TripFormModal({ trip, onSave, onClose }) {
     e.preventDefault();
     const country = form.country.trim();
     const city = form.city.trim();
-    const year = Number(form.year);
 
     if (!country || !city) return setError("Укажите страну и город.");
-    if (!year || year < 1900 || year > 2999) return setError("Укажите год поездки.");
     if (!form.startDate || !form.endDate) return setError("Укажите даты поездки.");
+    // The year comes from the dates (the start year; the label shows
+    // "2026-2027" when the trip runs into the next one).
+    const year = Number(form.startDate.slice(0, 4));
+    if (!year || year < 1900 || year > 2999) return setError("Проверьте даты поездки.");
     if (form.endDate < form.startDate)
       return setError("Дата возвращения раньше даты вылета.");
 
@@ -132,19 +126,6 @@ export default function TripFormModal({ trip, onSave, onClose }) {
               value={form.city}
               onChange={set("city")}
               placeholder="Краков"
-            />
-          </div>
-
-          <div>
-            <label className={label} htmlFor="trip-year">Год</label>
-            <input
-              id="trip-year"
-              type="number"
-              className={field}
-              value={form.year}
-              onChange={set("year")}
-              min="1900"
-              max="2999"
             />
           </div>
 

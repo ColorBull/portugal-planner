@@ -84,7 +84,9 @@ export default function AddressInput({ value, onChange, className, placeholder }
       <input
         className={className}
         value={value || ""}
-        onChange={(e) => onChange({ address: e.target.value })}
+        // Typing by hand drops the link of any place picked earlier; the plan
+        // then opens a Google Maps search for the typed address instead.
+        onChange={(e) => onChange({ address: e.target.value, mapUrl: "" })}
         onFocus={() => results.length > 0 && setOpen(true)}
         placeholder={placeholder}
         autoComplete="off"

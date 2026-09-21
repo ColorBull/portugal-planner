@@ -17,6 +17,7 @@ import DayPlanEditor, { emptySection } from "@/components/DayPlanEditor";
 import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
 import { uid } from "@/api/trips";
+import { tripYearLabel } from "@/lib/tripDays";
 
 function MapLink({ item, bar }) {
   if (!item.address && !item.mapUrl) return null;
@@ -331,7 +332,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
             <Clock className="h-3.5 w-3.5" />
-            {trip ? `${trip.city} ${trip.year}` : ""} · {dayInfo?.label}
+            {trip ? `${trip.city} ${tripYearLabel(trip)}` : ""} · {dayInfo?.label}
           </div>
         )}
       </motion.div>

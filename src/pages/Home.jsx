@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
-import { buildDays } from "@/lib/tripDays";
+import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
@@ -74,7 +74,7 @@ export default function Home() {
             className="font-display text-3xl sm:text-4xl font-semibold tracking-tight"
             style={{ color: "#1d3b5c" }}
           >
-            {trip ? `${trip.city} ${trip.year}` : "Загрузка…"}
+            {trip ? `${trip.city} ${tripYearLabel(trip)}` : "Загрузка…"}
           </h1>
           {trip && (
             <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">

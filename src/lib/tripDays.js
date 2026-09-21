@@ -8,7 +8,9 @@ const MONTHS_SHORT = [
 
 const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
 
-const MAX_DAYS = 60;
+// Only a guard against a typo'd year producing an endless list — a real trip
+// of any length (even over a year) is shown in full.
+const MAX_DAYS = 3660;
 
 export function parseKey(key) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(key || "");
@@ -50,7 +52,21 @@ export function buildDays(startDate, endDate) {
   return days;
 }
 
+// "2026", or "2026-2027" for a trip that runs into another year. Taken from
+// the dates; `year` is only the fallback for a trip saved without them.
+export function tripYearLabel(trip) {
+  const start = parseKey(trip?.startDate);
+  const end = parseKey(trip?.endDate);
+  if (!start) return trip?.year ? String(trip.year) : "";
+  const a = start.getUTCFullYear();
+  const b = end ? end.getUTCFullYear() : a;
+  return b > a ? `${a}-${b}` : String(a);
+}
+
 export function tripRangeLabel(trip) {
   if (!trip?.startDate || !trip?.endDate) return "";
-  return `${formatDayLabel(trip.startDate)} — ${formatDayLabel(trip.endDate)}`;
+  // Across a new year the bare "23 дек — 31 дек" would be ambiguous.
+  const crosses = trip.startDate.slice(0, 4) !== trip.endDate.slice(0, 4);
+  const label = (key) => (crosses ? `${formatDayLabel(key)} ${key.slice(0, 4)}` : formatDayLabel(key));
+  return `${label(trip.startDate)} — ${label(trip.endDate)}`;
 }

@@ -154,7 +154,7 @@ export default function DayPlanEditor({ value, onChange }) {
                           </button>
                         </div>
 
-                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="mt-3 sm:max-w-[50%]">
                           <div>
                             <label className={hint}>Иконка</label>
                             <select
@@ -168,15 +168,6 @@ export default function DayPlanEditor({ value, onChange }) {
                                 </option>
                               ))}
                             </select>
-                          </div>
-                          <div>
-                            <label className={hint}>Ссылка на карту (необязательно)</label>
-                            <input
-                              className={input}
-                              value={section.mapUrl || ""}
-                              onChange={(e) => patchSection(sIndex, { mapUrl: e.target.value })}
-                              placeholder="https://maps.app.goo.gl/…"
-                            />
                           </div>
                         </div>
 
@@ -227,14 +218,6 @@ export default function DayPlanEditor({ value, onChange }) {
                                               patchItem(sIndex, iIndex, patch)
                                             }
                                             placeholder="Адрес (необязательно)"
-                                          />
-                                          <input
-                                            className={input}
-                                            value={item.mapUrl || ""}
-                                            onChange={(e) =>
-                                              patchItem(sIndex, iIndex, { mapUrl: e.target.value })
-                                            }
-                                            placeholder="Ссылка на карту (необязательно)"
                                           />
                                         </div>
 
