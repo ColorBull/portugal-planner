@@ -114,6 +114,12 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     }
   };
 
+  // The browser took the touch over for scrolling: it was not a press.
+  const cancelPress = () => {
+    clearPress();
+    if (!menuTriggeredRef.current) unlockSelection();
+  };
+
   const endPress = (e, record, isImage) => {
     clearPress();
     if (!movedRef.current && !menuTriggeredRef.current) {
@@ -187,6 +193,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                   onTouchStart={(e) => startPress(e, d)}
                   onTouchMove={movePress}
                   onTouchEnd={(e) => endPress(e, d, false)}
+                  onTouchCancel={cancelPress}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenuFor(d.id);
@@ -198,7 +205,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                     }
                     openDocument(d);
                   }}
-                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-none"
+                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-pan-y"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 shrink-0">
                     <Icon className="h-4 w-4" />
@@ -228,6 +235,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                   onTouchStart={(e) => startPress(e, p)}
                   onTouchMove={movePress}
                   onTouchEnd={(e) => endPress(e, p, true)}
+                  onTouchCancel={cancelPress}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     setMenuFor(p.id);
@@ -239,7 +247,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
                     }
                     setLightbox(p.drive_file_id);
                   }}
-                  className="no-long-press block h-full w-full touch-none"
+                  className="no-long-press block h-full w-full touch-pan-y"
                   aria-label="Просмотреть фото"
                 >
                   <Image
