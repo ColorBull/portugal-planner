@@ -113,3 +113,13 @@
     }
   }
 }
+
+/* Map borders and labels: opacity only, so nothing slides. */
+@keyframes map-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.map-fade-in {
+  animation: map-fade-in 600ms ease-out both;
+}

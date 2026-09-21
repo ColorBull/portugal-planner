@@ -29,25 +29,91 @@ function bordersOf(continent) {
   return borders[continent];
 }
 
-// Size of each outline in map units, so a label only goes where it fits.
-const boxes = {};
-function boxOf(ccn3) {
-  if (!(ccn3 in boxes)) {
-    const xs = [];
-    const ys = [];
-    for (const [, px, py] of (COUNTRY_PATHS[ccn3] || "").matchAll(/(-?[\d.]+) (-?[\d.]+)/g)) {
-      xs.push(+px);
-      ys.push(+py);
-    }
-    boxes[ccn3] = xs.length
-      ? [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)]
-      : [0, 0];
+// Each outline as rings of [x, y] points, parsed once.
+const rings = {};
+function ringsOf(ccn3) {
+  if (!(ccn3 in rings)) {
+    rings[ccn3] = (COUNTRY_PATHS[ccn3] || "")
+      .split("M")
+      .filter(Boolean)
+      .map((seg) => [...seg.matchAll(/(-?[\d.]+) (-?[\d.]+)/g)].map((m) => [+m[1], +m[2]]));
   }
-  return boxes[ccn3];
+  return rings[ccn3];
+}
+
+// Even-odd point-in-polygon over all rings, so islands and lakes both count.
+function inside(rs, px, py) {
+  let hit = false;
+  for (const r of rs) {
+    for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const [xi, yi] = r[i];
+      const [xj, yj] = r[j];
+      if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) hit = !hit;
+    }
+  }
+  return hit;
+}
+
+// The main ring's centre and long axis: where a label is tried first, and the
+// angle it is tried at when it doesn't fit straight.
+function shapeOf(rs) {
+  const main = rs.reduce((a, b) => (b.length > a.length ? b : a), []);
+  let cx = 0;
+  let cy = 0;
+  main.forEach(([x, y]) => ((cx += x), (cy += y)));
+  cx /= main.length;
+  cy /= main.length;
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  main.forEach(([x, y]) => {
+    sxx += (x - cx) ** 2;
+    syy += (y - cy) ** 2;
+    sxy += (x - cx) * (y - cy);
+  });
+  let angle = (Math.atan2(2 * sxy, sxx - syy) / 2) * (180 / Math.PI);
+  if (angle > 90) angle -= 180;
+  if (angle < -90) angle += 180;
+  return { cx, cy, angle };
+}
+
+// Does a w×h box (map units), centred at c and turned by `deg`, sit wholly
+// inside the country? Checked along its edges, a few points per side.
+function fits(rs, c, w, h, deg) {
+  const t = (deg * Math.PI) / 180;
+  const cos = Math.cos(t);
+  const sin = Math.sin(t);
+  for (let i = 0; i <= 8; i++) {
+    for (let j = 0; j <= 2; j++) {
+      if (i % 8 && j % 2) continue; // edges only
+      const u = (i / 8 - 0.5) * w;
+      const v = (j / 2 - 0.5) * h;
+      if (!inside(rs, c[0] + u * cos - v * sin, c[1] + u * sin + v * cos)) return false;
+    }
+  }
+  return true;
+}
+
+// Where a label of w×h screen pixels fits at zoom k: { x, y, angle } in map
+// units and degrees, or null. Straight first, then along the country.
+function placeLabel(ccn3, point, w, h, k) {
+  const rs = ringsOf(ccn3);
+  if (!rs.length) return null;
+  const { cx, cy, angle } = shapeOf(rs);
+  const mw = (w + 4) / k;
+  const mh = (h + 4) / k;
+  const angles = [0, Math.round(angle), 15, -15, 30, -30, 45, -45, 60, -60, 90];
+  for (const deg of angles) {
+    for (const c of [point, [cx, cy]]) {
+      if (fits(rs, c, mw, mh, deg)) return { x: c[0], y: c[1], angle: deg };
+    }
+  }
+  return null;
 }
 
 // On-screen width of a label: flag (14) + gap (4) + the name at 11px.
 const LABEL_FONT_PX = 11;
+const LABEL_HEIGHT = 12;
 let ctx = null;
 const labelWidths = {};
 function labelWidth(name) {
@@ -143,11 +209,12 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
   const pin = held && !countryPath && MAP_POINTS[held];
   // Name + flag on every country of the continent that can hold one.
   const labels = settled
-    ? COUNTRIES.filter((c) => {
-        if (c.continent !== continent || !MAP_POINTS[c.ccn3]) return false;
-        const [w, h] = boxOf(c.ccn3);
-        return w * k >= labelWidth(c.name) + 6 && h * k >= LABEL_FONT_PX + 8;
-      })
+    ? COUNTRIES.filter((c) => c.continent === continent && MAP_POINTS[c.ccn3])
+        .map((c) => ({
+          c,
+          at: placeLabel(c.ccn3, MAP_POINTS[c.ccn3], labelWidth(c.name), LABEL_HEIGHT, k),
+        }))
+        .filter((l) => l.at)
     : [];
 
   return (
@@ -170,7 +237,7 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
               strokeWidth={1}
               strokeDasharray="4 3"
               vectorEffect="non-scaling-stroke"
-              className="animate-in fade-in duration-500"
+              className="map-fade-in"
             />
           )}
           {countryPath && (
@@ -200,14 +267,16 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
           </g>
         )}
       </svg>
-      {labels.map((c) => (
+      {labels.map(({ c, at }) => (
         <div
           key={c.ccn3}
-          className="absolute left-0 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 whitespace-nowrap font-medium text-[#1d3b5c]/70 animate-in fade-in duration-500"
+          className="map-fade-in absolute left-0 top-0 flex items-center gap-1 whitespace-nowrap font-medium text-[#1d3b5c]/70"
           style={{
-            left: x + k * MAP_POINTS[c.ccn3][0],
-            top: y + k * MAP_POINTS[c.ccn3][1],
+            left: x + k * at.x,
+            top: y + k * at.y,
             fontSize: LABEL_FONT_PX,
+            lineHeight: `${LABEL_HEIGHT}px`,
+            transform: `translate(-50%, -50%) rotate(${at.angle}deg)`,
           }}
         >
           <CountryFlag code={c.code} width={14} />
