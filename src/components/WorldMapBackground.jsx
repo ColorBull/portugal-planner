@@ -7,6 +7,8 @@ import {
   MAP_WIDTH,
   MAP_WINDOWS,
 } from "@/data/worldMap";
+import { COUNTRIES } from "@/data/countries";
+import CountryFlag from "@/components/CountryFlag";
 
 // A flat vector sketch of the world: continent silhouettes, no borders, no
 // labels, no grid. The outlines are projected ahead of time (see
@@ -14,6 +16,19 @@ import {
 // scaled — and CSS animates between the two.
 
 const EASE = "transform 900ms cubic-bezier(0.45, 0, 0.25, 1), opacity 900ms ease";
+
+// Every outline as one path, for the dashed borders of the zoomed-in view.
+const BORDERS = Object.values(COUNTRY_PATHS).join("");
+
+// Width of each outline in map units, to skip labels that wouldn't fit.
+const widths = {};
+function widthOf(ccn3) {
+  if (!(ccn3 in widths)) {
+    const xs = (COUNTRY_PATHS[ccn3] || "").match(/-?[\d.]+(?= )/g)?.map(Number) || [];
+    widths[ccn3] = xs.length ? Math.max(...xs) - Math.min(...xs) : 0;
+  }
+  return widths[ccn3];
+}
 
 const clamp = (v, lo, hi) => (lo > hi ? (lo + hi) / 2 : Math.min(hi, Math.max(lo, v)));
 
@@ -78,6 +93,10 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
   useEffect(() => {
     if (highlightCcn3) setHeld(highlightCcn3);
   }, [highlightCcn3]);
+  const [heldContinent, setHeldContinent] = useState(continent);
+  useEffect(() => {
+    if (continent) setHeldContinent(continent);
+  }, [continent]);
 
   if (!width || !height) return <div ref={hostRef} className="absolute inset-0" />;
 
@@ -85,6 +104,13 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
   const countryPath = held && COUNTRY_PATHS[held];
   // Countries too small to have an outline at this resolution get a pin instead.
   const pin = held && !countryPath && MAP_POINTS[held];
+  // Name + flag on every country of the continent big enough to hold one.
+  const labels = COUNTRIES.filter(
+    (c) =>
+      c.continent === heldContinent &&
+      MAP_POINTS[c.ccn3] &&
+      (c.ccn3 === held || widthOf(c.ccn3) * k >= 70)
+  );
 
   return (
     <div ref={hostRef} className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -97,6 +123,16 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
       >
         <g style={{ transform: `translate(${x}px, ${y}px) scale(${k})`, transition: EASE }}>
           <path d={LAND_PATH} fill="#1d3b5c" fillOpacity={0.12} />
+          <path
+            d={BORDERS}
+            fill="none"
+            stroke="#1d3b5c"
+            strokeOpacity={continent ? 0.35 : 0}
+            strokeWidth={1}
+            strokeDasharray="4 3"
+            vectorEffect="non-scaling-stroke"
+            style={{ transition: EASE }}
+          />
           {countryPath && (
             <path
               d={countryPath}
@@ -124,6 +160,21 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
           </g>
         )}
       </svg>
+      {labels.map((c) => (
+        <div
+          key={c.ccn3}
+          className="absolute left-0 top-0 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 whitespace-nowrap text-[11px] font-medium text-[#1d3b5c]/70"
+          style={{
+            left: x + k * MAP_POINTS[c.ccn3][0],
+            top: y + k * MAP_POINTS[c.ccn3][1],
+            opacity: continent ? 1 : 0,
+            transition: "left 900ms cubic-bezier(0.45, 0, 0.25, 1), top 900ms cubic-bezier(0.45, 0, 0.25, 1), opacity 900ms ease",
+          }}
+        >
+          <CountryFlag code={c.code} width={14} />
+          {c.name}
+        </div>
+      ))}
     </div>
   );
 }

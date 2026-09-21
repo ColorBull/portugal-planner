@@ -16,6 +16,7 @@ import PlanNoteBox from "@/components/PlanNoteBox";
 import DayPlanEditor, { emptySection } from "@/components/DayPlanEditor";
 import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
+import { uid } from "@/api/trips";
 
 function MapLink({ item, bar }) {
   if (!item.address && !item.mapUrl) return null;
@@ -365,14 +366,27 @@ function cleanPlan(draft) {
         icon: s.icon || "MapPin",
         mapUrl: (s.mapUrl || "").trim(),
         items: (s.items || [])
-          .map((it) => ({
-            id: it.id,
-            text: (it.text || "").trim(),
-            address: (it.address || "").trim(),
-            mapUrl: (it.mapUrl || "").trim(),
-          }))
+          .flatMap(splitItem)
           .filter((it) => it.text || it.address || it.mapUrl),
       }))
       .filter((s) => s.title || s.items.length),
   };
+}
+
+// One sentence or line per timeline dot: "Вылет в 05:40. Полёт 3 часа." becomes
+// two items. The first keeps the id (so its photos and notes stay put) and the
+// address; the rest are new. A dot only splits before a capital letter and not
+// after a short abbreviation, so "ул. Ленина" and "3.5 км" stay whole.
+function splitItem(it) {
+  const parts = (it.text || "")
+    .split(/\n+|(?<=[.!?…])(?<!(?:^|\s)[а-яёa-z]{1,3}\.)\s+(?=[A-ZА-ЯЁ«"])/)
+    .map((t) => t.trim())
+    .filter(Boolean);
+  const first = {
+    id: it.id,
+    text: parts[0] || "",
+    address: (it.address || "").trim(),
+    mapUrl: (it.mapUrl || "").trim(),
+  };
+  return [first, ...parts.slice(1).map((text) => ({ id: uid("item"), text, address: "", mapUrl: "" }))];
 }
