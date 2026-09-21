@@ -5,7 +5,8 @@
 //               there is a connection) with the cached copy as the fallback;
 //               the hashed JS/CSS bundles are cache-first. After every page
 //               load the app asks for the full build list (asset-manifest.json)
-//               to be cached, so lazily-loaded chunks are on the device too.
+//               to be cached, so lazily-loaded chunks are on the device too,
+//               plus the PWA manifest and icons.
 //   images      Drive thumbnails and flagcdn flags are cache-first. A photo
 //               opened offline at a size never fetched falls back to any
 //               cached size of the same file.
@@ -23,6 +24,8 @@ const MEDIA = "pp-media-v1";
 const scope = new URL(self.registration.scope);
 const INDEX = new URL("./", scope).href;
 const MANIFEST = new URL("asset-manifest.json", scope).href;
+// Files from public/ that the build manifest does not list.
+const STATIC = ["manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
 // The frozen /backup/ build lives under this scope but is not this app.
 const BACKUP = new URL("backup/", scope).href;
 
@@ -52,7 +55,7 @@ async function precache() {
   const res = await fetch(MANIFEST, { cache: "no-store" });
   if (!res.ok) return;
   const manifest = await res.json();
-  const files = new Set();
+  const files = new Set(STATIC.map((f) => new URL(f, scope).href));
   for (const entry of Object.values(manifest)) {
     [entry.file, ...(entry.css || []), ...(entry.assets || [])]
       .filter(Boolean)

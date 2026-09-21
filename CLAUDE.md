@@ -83,6 +83,12 @@ Each device keeps its own copy, so a trip opens with no signal.
   `dist/asset-manifest.json` (`build.manifest` in `vite.config.js`) and prunes old
   ones. It ignores `/backup/`. Drive thumbnails and flagcdn flags are
   cache-first; an uncached thumbnail size falls back to any cached size.
+- **Installable (PWA)** — `public/manifest.webmanifest` + `icon-192/512.png`,
+  `apple-touch-icon.png` (plane on `#1d3b5c`), linked from `index.html` with
+  root paths (`/manifest.webmanifest`; Vite adds the base). Install it: the
+  service worker's scope is `/portugal-planner/`, so a browser tab opened at
+  `…/portugal-planner` (no trailing slash) is outside it and shows Chrome's
+  offline page — the installed app always starts at `./`.
 - Not offline: uploads (blocked with a message), Google sign-in, address search.
   Firebase Auth restores the signed-in user from IndexedDB without a network.
 
