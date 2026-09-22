@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, Link2, X, Loader2 } from "lucide-react";
 import { TripNote } from "@/api/entities";
 import { openExternal } from "@/lib/openExternal";
@@ -7,6 +7,46 @@ const normalizeLink = (l) => {
   if (!l) return "";
   return /^https?:\/\//i.test(l) ? l : `https://${l}`;
 };
+
+// Clamps a long note to three lines with a "Читать далее…" / "Свернуть" toggle.
+function NoteText({ text }) {
+  const ref = useRef(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+
+  // Measure only while clamped: the clamped box is shorter than its content
+  // exactly when the text runs past three lines.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || expanded) return;
+    const measure = () => setOverflows(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [text, expanded]);
+
+  return (
+    <>
+      <p
+        ref={ref}
+        className={`text-sm text-stone-700 whitespace-pre-wrap leading-relaxed ${
+          expanded ? "" : "line-clamp-3"
+        }`}
+      >
+        {text}
+      </p>
+      {(overflows || expanded) && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1 text-xs font-medium text-blue-700 hover:text-blue-900 transition"
+        >
+          {expanded ? "Свернуть" : "Читать далее…"}
+        </button>
+      )}
+    </>
+  );
+}
 
 export default function PlanNoteBox({ itemId, dayKey }) {
   const [note, setNote] = useState(null);
@@ -136,11 +176,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
 
   return (
     <div className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
-      {note.text && (
-        <p className="text-sm text-stone-700 whitespace-pre-wrap leading-relaxed">
-          {note.text}
-        </p>
-      )}
+      {note.text && <NoteText text={note.text} />}
       {note.link && (
         <a
           href={normalizeLink(note.link)}
