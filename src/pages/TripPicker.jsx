@@ -241,7 +241,10 @@ export default function TripPicker() {
       {deleting && (
         <PasscodeDialog
           title="Удалить навсегда"
-          message={`Поездка «${deleting.city}, ${tripYearLabel(deleting)}» будет удалена вместе со всеми заметками и фотографиями. Введите код, чтобы подтвердить.`}
+          trip={deleting}
+          message={`Поездка «${deleting.city}, ${tripYearLabel(deleting)}» будет удалена вместе со всеми заметками и фотографиями. ${
+            deleting.pin_hash ? "Введите PIN-код поездки" : "Введите код"
+          }, чтобы подтвердить.`}
           onConfirm={() => removeTrip(deleting.id)}
           onClose={() => setDeleting(null)}
         />

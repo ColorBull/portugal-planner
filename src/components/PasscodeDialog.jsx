@@ -1,22 +1,28 @@
 import { useState } from "react";
 import { Loader2, Lock } from "lucide-react";
-import { sha256 } from "@/lib/tripLock";
+import { sha256, hashPin, isTripLocked } from "@/lib/tripLock";
 
 // SHA-256 of the passcode for deleting an archived trip. Only the hash is in
 // the (public) source; the passcode itself lives with the family.
 const PASSCODE_SHA256 = "d9e828652367af311ad485eeb36e0406b6fa40285e7650a002c0afbdea5ff1ab";
 
-// Asks for the passcode, then runs `onConfirm`. No open animation: a fading
+// Asks for the passcode, then runs `onConfirm`. For a PIN-locked `trip` the
+// trip's own PIN is asked instead, so the lock can't be bypassed this way. No open animation: a fading
 // full-screen layer makes Chrome paint a black frame (see CLAUDE.md).
-export default function PasscodeDialog({ title, message, onConfirm, onClose }) {
+export default function PasscodeDialog({ title, message, trip, onConfirm, onClose }) {
+  const locked = isTripLocked(trip);
   const [code, setCode] = useState("");
   const [error, setError] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
-    if ((await sha256(code.trim())) !== PASSCODE_SHA256) {
-      setError("Неверный код.");
+    const entered = code.trim();
+    const ok = locked
+      ? (await hashPin(trip.id, entered)) === trip.pin_hash
+      : (await sha256(entered)) === PASSCODE_SHA256;
+    if (!ok) {
+      setError(locked ? "Неверный PIN-код поездки." : "Неверный код.");
       setCode("");
       return;
     }
@@ -56,7 +62,7 @@ export default function PasscodeDialog({ title, message, onConfirm, onClose }) {
             setCode(e.target.value);
             setError(null);
           }}
-          placeholder="Код"
+          placeholder={locked ? "PIN-код поездки" : "Код"}
           className="mt-4 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 outline-none transition focus:border-[#a8451f] focus:ring-2 focus:ring-[#a8451f]/20"
         />
         {error && <p className="mt-2 text-sm text-[#a8451f]">{error}</p>}

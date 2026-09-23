@@ -60,10 +60,19 @@ function Gate() {
   return (
     <TripProvider>
       <MapBackdrop />
-      <SignOutButton />
       <OfflineBadge />
       <Routes>
-        <Route path="/" element={<TripPicker />} />
+        {/* Sign-out lives on the trip list only; inside a trip that corner
+            belongs to the PIN-lock button. */}
+        <Route
+          path="/"
+          element={
+            <>
+              <SignOutButton />
+              <TripPicker />
+            </>
+          }
+        />
         <Route path="/trip/:tripId" element={<Home />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
