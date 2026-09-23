@@ -9,6 +9,9 @@ import {
   Pencil,
   Loader2,
   Check,
+  Wallet,
+  ShieldCheck,
+  Smartphone,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -18,6 +21,19 @@ import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
 import { uid } from "@/api/trips";
 import { tripYearLabel } from "@/lib/tripDays";
+import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
+
+const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
+
+function CostBadge({ cost, currency }) {
+  const amount = parseCost(cost);
+  if (amount === null) return null;
+  return (
+    <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-stone-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-stone-600">
+      {formatMoney(amount, currency)}
+    </span>
+  );
+}
 
 function MapLink({ item, bar }) {
   if (!item.address && !item.mapUrl) return null;
@@ -47,6 +63,10 @@ function MapLink({ item, bar }) {
 export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
   const sections = useMemo(() => plan?.sections || [], [plan]);
   const hasPlan = sections.length > 0;
+  // The first day also carries the trip's insurance and SIM card.
+  const firstDay = dayInfo?.dayNumber === 1;
+  const currency = tripCurrency(trip);
+  const total = dayTotal(plan);
 
   const [photosByItem, setPhotosByItem] = useState({});
   const [editing, setEditing] = useState(false);
@@ -93,6 +113,9 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
     setDraft({
       city: plan?.city || trip?.city || "",
       sections: seed && !hasPlan ? [emptySection()] : sections.map(cloneSection),
+      ...(firstDay
+        ? Object.fromEntries(EXTRAS.map(({ key }) => [key, cloneExtra(plan?.[key])]))
+        : {}),
     });
     setEditing(true);
   };
@@ -106,7 +129,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
     setSaving(true);
     setSaveError(null);
     try {
-      await onSave(cleanPlan(draft));
+      await onSave(cleanPlan(draft, firstDay));
       setEditing(false);
       setDraft(null);
     } catch (err) {
@@ -189,109 +212,184 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         {/* Body */}
         <div className="overflow-y-auto overscroll-contain px-4 sm:px-7 py-6 flex-1">
           {editing ? (
-            <DayPlanEditor value={draft} onChange={setDraft} />
-          ) : hasPlan ? (
-            <div className="space-y-7">
-              {sections.map((section, i) => {
-                const Icon = iconFor(section.icon);
-                const style = styleFor(section.icon);
-
-                return (
-                  <motion.div
-                    key={section.id || section.title || i}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.08 + i * 0.07 }}
-                  >
-                    <div className="flex items-center gap-3 mb-3.5">
-                      <span
-                        className="grid h-10 w-10 place-items-center rounded-xl shrink-0"
-                        style={{ backgroundColor: style.bg, color: style.fg }}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </span>
-                      <div className="min-w-0">
-                        <h3 className="font-heading text-lg font-semibold text-stone-800 leading-tight">
-                          {section.title}
-                        </h3>
-                        <span
-                          className="block h-0.5 w-10 rounded-full mt-1"
-                          style={{ backgroundColor: style.bar }}
-                        />
-                        {section.mapUrl && (
-                          <a
-                            href={section.mapUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              openMapUrl(section.mapUrl);
-                            }}
-                            className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
-                          >
-                            <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
-                            <span className="underline decoration-dotted underline-offset-2">
-                              Открыть на карте
-                            </span>
-                            <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <ul
-                      className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-3"
-                      style={{ borderColor: style.bar }}
-                    >
-                      {section.items.map((item) => (
-                        <li key={item.id} className="relative min-w-0">
-                          {/* centred on the 2px rule, level with the first text line */}
-                          <span
-                            className="absolute h-2.5 w-2.5 rounded-full"
-                            style={{
-                              left: "-30px",
-                              top: "8px",
-                              backgroundColor: style.bar,
-                              boxShadow: `0 0 0 4px ${style.bg}`,
-                            }}
-                          />
-                          <div className="text-stone-700 leading-relaxed break-words">
-                            {item.text}
-                          </div>
-                          <MapLink item={item} bar={style.bar} />
-                          <PlanPhotoGrid
-                            itemId={item.id}
-                            dayKey={dayInfo.key}
-                            photos={photosByItem[item.id] || []}
-                            onChanged={loadPhotos}
-                          />
-                          <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
-                        </li>
-                      ))}
-                    </ul>
-                  </motion.div>
-                );
-              })}
-            </div>
+            <DayPlanEditor
+              value={draft}
+              onChange={setDraft}
+              currency={currency}
+              firstDay={firstDay}
+            />
           ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <span
-                className="grid h-14 w-14 place-items-center rounded-2xl mb-4"
-                style={{ backgroundColor: "#e8ddd0", color: "#1d3b5c" }}
-              >
-                <CalendarDays className="h-7 w-7" />
-              </span>
-              <p className="text-stone-600 font-medium">План на этот день ещё не составлен</p>
-              <button
-                type="button"
-                onClick={() => startEditing(true)}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition"
-                style={{ backgroundColor: "#1d3b5c" }}
-              >
-                <Pencil className="h-4 w-4" />
-                Составить план
-              </button>
-            </div>
+            <>
+              {firstDay && (
+                <div className="mb-7 grid gap-3 sm:grid-cols-2">
+                  {EXTRAS.map(({ key, title }) => {
+                    const Icon = EXTRA_ICONS[key];
+                    const extra = plan?.[key] || {};
+                    return (
+                      <div
+                        key={key}
+                        className="min-w-0 rounded-2xl border bg-white/70 p-4"
+                        style={{ borderColor: "#ece3d4" }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+                            style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+                          >
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+                            {title}
+                          </span>
+                          <span className="ml-auto">
+                            <CostBadge cost={extra.cost} currency={currency} />
+                          </span>
+                        </div>
+                        <div className="mt-2 break-words font-medium text-stone-700">
+                          {extra.company || (
+                            <button
+                              type="button"
+                              onClick={() => startEditing(false)}
+                              className="text-sm font-normal text-stone-400 underline decoration-dotted underline-offset-2 hover:text-stone-700"
+                            >
+                              Не указано — добавить
+                            </button>
+                          )}
+                        </div>
+                        <PlanPhotoGrid
+                          itemId={key}
+                          dayKey={dayInfo.key}
+                          photos={photosByItem[key] || []}
+                          onChanged={loadPhotos}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {hasPlan ? (
+                <div className="space-y-7">
+                  {sections.map((section, i) => {
+                    const Icon = iconFor(section.icon);
+                    const style = styleFor(section.icon);
+
+                    return (
+                      <motion.div
+                        key={section.id || section.title || i}
+                        initial={{ opacity: 0, y: 14 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.08 + i * 0.07 }}
+                      >
+                        <div className="flex items-center gap-3 mb-3.5">
+                          <span
+                            className="grid h-10 w-10 place-items-center rounded-xl shrink-0"
+                            style={{ backgroundColor: style.bg, color: style.fg }}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-heading text-lg font-semibold text-stone-800 leading-tight">
+                              {section.title}
+                            </h3>
+                            <span
+                              className="block h-0.5 w-10 rounded-full mt-1"
+                              style={{ backgroundColor: style.bar }}
+                            />
+                            {section.mapUrl && (
+                              <a
+                                href={section.mapUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openMapUrl(section.mapUrl);
+                                }}
+                                className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
+                              >
+                                <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
+                                <span className="underline decoration-dotted underline-offset-2">
+                                  Открыть на карте
+                                </span>
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+
+                        <ul
+                          className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-3"
+                          style={{ borderColor: style.bar }}
+                        >
+                          {section.items.map((item) => (
+                            <li key={item.id} className="relative min-w-0">
+                              {/* centred on the 2px rule, level with the first text line */}
+                              <span
+                                className="absolute h-2.5 w-2.5 rounded-full"
+                                style={{
+                                  left: "-30px",
+                                  top: "8px",
+                                  backgroundColor: style.bar,
+                                  boxShadow: `0 0 0 4px ${style.bg}`,
+                                }}
+                              />
+                              <div className="flex items-start justify-between gap-1">
+                                <div className="min-w-0 text-stone-700 leading-relaxed break-words">
+                                  {item.text}
+                                </div>
+                                <span className="mt-0.5">
+                                  <CostBadge cost={item.cost} currency={currency} />
+                                </span>
+                              </div>
+                              <MapLink item={item} bar={style.bar} />
+                              <PlanPhotoGrid
+                                itemId={item.id}
+                                dayKey={dayInfo.key}
+                                photos={photosByItem[item.id] || []}
+                                onChanged={loadPhotos}
+                              />
+                              <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
+                            </li>
+                          ))}
+                        </ul>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <span
+                    className="grid h-14 w-14 place-items-center rounded-2xl mb-4"
+                    style={{ backgroundColor: "#e8ddd0", color: "#1d3b5c" }}
+                  >
+                    <CalendarDays className="h-7 w-7" />
+                  </span>
+                  <p className="text-stone-600 font-medium">План на этот день ещё не составлен</p>
+                  <button
+                    type="button"
+                    onClick={() => startEditing(true)}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition"
+                    style={{ backgroundColor: "#1d3b5c" }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                    Составить план
+                  </button>
+                </div>
+              )}
+              {total > 0 && (
+                <div
+                  className="mt-8 flex items-center justify-between rounded-2xl px-4 py-3"
+                  style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+                >
+                  <span className="inline-flex items-center gap-2 font-semibold">
+                    <Wallet className="h-5 w-5" />
+                    Итого за день
+                  </span>
+                  <span className="font-display text-xl font-semibold tabular-nums">
+                    {formatMoney(total, currency)}
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -352,13 +450,27 @@ function cloneSection(section) {
       text: it.text || "",
       address: it.address || "",
       mapUrl: it.mapUrl || "",
+      cost: parseCost(it.cost) ?? "",
     })),
   };
 }
 
+function cloneExtra(extra) {
+  return { company: extra?.company || "", cost: parseCost(extra?.cost) ?? "" };
+}
+
 // Drops blank rows so a half-filled form doesn't leave empty bullets behind.
-function cleanPlan(draft) {
+function cleanPlan(draft, firstDay) {
+  const extras = firstDay
+    ? Object.fromEntries(
+        EXTRAS.map(({ key }) => [
+          key,
+          { company: (draft[key]?.company || "").trim(), cost: parseCost(draft[key]?.cost) },
+        ])
+      )
+    : {};
   return {
+    ...extras,
     city: (draft.city || "").trim(),
     sections: (draft.sections || [])
       .map((s) => ({
@@ -368,7 +480,7 @@ function cleanPlan(draft) {
         mapUrl: (s.mapUrl || "").trim(),
         items: (s.items || [])
           .flatMap(splitItem)
-          .filter((it) => it.text || it.address || it.mapUrl),
+          .filter((it) => it.text || it.address || it.mapUrl || it.cost !== null),
       }))
       .filter((s) => s.title || s.items.length),
   };
@@ -388,6 +500,10 @@ function splitItem(it) {
     text: parts[0] || "",
     address: (it.address || "").trim(),
     mapUrl: (it.mapUrl || "").trim(),
+    cost: parseCost(it.cost),
   };
-  return [first, ...parts.slice(1).map((text) => ({ id: uid("item"), text, address: "", mapUrl: "" }))];
+  const rest = parts
+    .slice(1)
+    .map((text) => ({ id: uid("item"), text, address: "", mapUrl: "", cost: null }));
+  return [first, ...rest];
 }

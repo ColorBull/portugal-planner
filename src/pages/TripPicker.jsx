@@ -11,6 +11,7 @@ import {
   Archive,
   ArchiveRestore,
   ArrowLeft,
+  Lock,
 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
@@ -34,6 +35,9 @@ function TripCard({ trip, muted, onOpen, children }) {
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400">
           {country && <CountryFlag code={country.code} width={18} />}
           {trip.country}
+          {trip.pin_hash && (
+            <Lock className="h-3.5 w-3.5 text-[#1d3b5c]" aria-label="Закрыта PIN-кодом" />
+          )}
         </div>
         <div
           className="font-display text-2xl font-semibold mt-0.5"

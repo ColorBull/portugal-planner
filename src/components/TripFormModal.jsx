@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, Loader2, Globe2 } from "lucide-react";
 import CountrySelect from "@/components/CountrySelect";
+import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/money";
 
 const field =
   "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 " +
@@ -15,6 +16,7 @@ const emptyTrip = {
   city: "",
   startDate: "",
   endDate: "",
+  currency: DEFAULT_CURRENCY,
 };
 
 export default function TripFormModal({ trip, onSave, onClose }) {
@@ -55,6 +57,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
         year,
         startDate: form.startDate,
         endDate: form.endDate,
+        currency: form.currency || DEFAULT_CURRENCY,
       });
       onClose();
     } catch (err) {
@@ -150,6 +153,22 @@ export default function TripFormModal({ trip, onSave, onClose }) {
                 onChange={set("endDate")}
               />
             </div>
+          </div>
+
+          <div>
+            <label className={label} htmlFor="trip-currency">Валюта расходов</label>
+            <select
+              id="trip-currency"
+              className={field}
+              value={form.currency || DEFAULT_CURRENCY}
+              onChange={set("currency")}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </div>
 
           {error && <p className="text-sm text-[#a8451f]">{error}</p>}

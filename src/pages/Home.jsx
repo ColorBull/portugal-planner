@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
+import { useAuth } from "@/lib/AuthContext";
+import { isTripLocked, isTripOwner, isRemembered } from "@/lib/tripLock";
+import TripLockDialog from "@/components/TripLockDialog";
 
 // A long trip is split into pages, so the grid always fits one screen.
 const PER_PAGE = 30;
@@ -20,7 +23,9 @@ function paginate(days) {
 export default function Home() {
   const { tripId: routeId } = useParams();
   const navigate = useNavigate();
-  const { trips, loading, openTrip, tripId, days, daysLoading, saveDayPlan } = useTrips();
+  const { trips, loading, openTrip, tripId, days, daysLoading, saveDayPlan, setTripLock } =
+    useTrips();
+  const { user } = useAuth();
 
   const [selectedKey, setSelectedKey] = useState(null);
 
@@ -37,12 +42,20 @@ export default function Home() {
 
   const country = useMemo(() => tripCountry(trip), [trip]);
 
+  // PIN lock (lib/tripLock.js). Asked on every visit unless this device was
+  // told to remember it; `unlockedId` covers the rest of this visit.
+  const [unlockedId, setUnlockedId] = useState(null);
+  const [lockDialog, setLockDialog] = useState(null); // "setup" | "manage"
+  const owner = isTripOwner(trip, user?.email);
+  const lockedOut =
+    !!trip && isTripLocked(trip) && unlockedId !== trip.id && !isRemembered(trip);
+
   const tripDays = useMemo(
     () => (trip ? buildDays(trip.startDate, trip.endDate) : []),
     [trip]
   );
 
-  const ready = trip && tripId === routeId && !daysLoading;
+  const ready = trip && tripId === routeId && !daysLoading && !lockedOut;
 
   const pages = useMemo(() => paginate(tripDays), [tripDays]);
   const [pageIndex, setPageIndex] = useState(0);
@@ -67,6 +80,20 @@ export default function Home() {
         Поездки
       </button>
 
+      {owner && !lockedOut && (
+        <button
+          type="button"
+          onClick={() => setLockDialog(isTripLocked(trip) ? "manage" : "setup")}
+          className={`fixed top-3 right-3 z-40 grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
+            isTripLocked(trip) ? "text-[#1d3b5c]" : "text-stone-400"
+          }`}
+          aria-label={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
+          title={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
+        >
+          {isTripLocked(trip) ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+        </button>
+      )}
+
       <div className="relative z-10 w-full max-w-3xl">
         {/* Sat on a plate: the map behind it is too busy to read text off. */}
         <div className="mx-auto mb-7 sm:mb-5 w-fit rounded-2xl bg-white/85 px-6 py-3.5 sm:py-3 text-center shadow-sm ring-1 ring-black/5">
@@ -84,7 +111,11 @@ export default function Home() {
           )}
         </div>
 
-        {!ready ? (
+        {lockedOut ? (
+          <div className="flex justify-center py-16 text-white/80">
+            <Lock className="h-10 w-10 drop-shadow" />
+          </div>
+        ) : !ready ? (
           <div className="flex justify-center py-16">
             <div className="w-8 h-8 border-4 border-stone-200 border-t-[#1d3b5c] rounded-full animate-spin" />
           </div>
@@ -190,8 +221,30 @@ export default function Home() {
         )}
       </div>
 
+      {lockedOut && (
+        <TripLockDialog
+          key={trip.id}
+          mode="unlock"
+          trip={trip}
+          onUnlocked={() => setUnlockedId(trip.id)}
+          onClose={() => navigate("/")}
+        />
+      )}
+
+      {lockDialog && trip && (
+        <TripLockDialog
+          mode={lockDialog}
+          trip={trip}
+          onSetPin={async (hash) => {
+            await setTripLock(trip.id, hash);
+            setUnlockedId(trip.id);
+          }}
+          onClose={() => setLockDialog(null)}
+        />
+      )}
+
       <AnimatePresence>
-        {selectedKey && (
+        {selectedKey && !lockedOut && (
           <DayPlanModal
             plan={selectedPlan}
             dayInfo={selectedDay}

@@ -1,15 +1,10 @@
 import { useState } from "react";
 import { Loader2, Lock } from "lucide-react";
+import { sha256 } from "@/lib/tripLock";
 
 // SHA-256 of the passcode for deleting an archived trip. Only the hash is in
 // the (public) source; the passcode itself lives with the family.
 const PASSCODE_SHA256 = "d9e828652367af311ad485eeb36e0406b6fa40285e7650a002c0afbdea5ff1ab";
-
-async function sha256(text) {
-  const bytes = new TextEncoder().encode(text);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
 
 // Asks for the passcode, then runs `onConfirm`. No open animation: a fading
 // full-screen layer makes Chrome paint a black frame (see CLAUDE.md).

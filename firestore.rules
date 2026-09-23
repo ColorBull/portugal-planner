@@ -21,8 +21,22 @@ service cloud.firestore {
     // segments, so {document=**} alone does NOT cover the trips/{tripId}
     // document itself. The trip docs need their own match block — without it
     // listing trips and opening one is denied.
+    // Only the trip's creator (created_by) may set or remove its PIN lock, and
+    // nobody may rewrite who the creator is. See src/lib/tripLock.js.
+    function ownerOnlyFieldsUntouched() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['pin_hash', 'locked_date', 'created_by']);
+    }
+
+    function isOwner() {
+      return request.auth.token.email == resource.data.get('created_by', '');
+    }
+
     match /trips/{tripId} {
-      allow read, write: if isParticipant();
+      allow read, create, delete: if isParticipant();
+      allow update: if isParticipant()
+        && (ownerOnlyFieldsUntouched()
+            || (isOwner() && request.resource.data.get('created_by', '') == resource.data.get('created_by', '')));
 
       match /{document=**} {
         allow read, write: if isParticipant();

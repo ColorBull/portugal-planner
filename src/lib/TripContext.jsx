@@ -5,6 +5,7 @@ import {
   updateTrip,
   deleteTrip,
   setTripArchived,
+  setTripPin,
   listDays,
   saveDay,
   ensureSeeded,
@@ -151,6 +152,14 @@ export function TripProvider({ children }) {
     [refresh]
   );
 
+  const setTripLock = useCallback(
+    async (id, pinHash) => {
+      await setTripPin(id, pinHash);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const removeTrip = useCallback(
     async (id) => {
       await deleteTrip(id);
@@ -169,6 +178,7 @@ export function TripProvider({ children }) {
     activeTrips: trips.filter((t) => !t.archived),
     archivedTrips: trips.filter((t) => t.archived),
     archiveTrip,
+    setTripLock,
     loading,
     error,
     refresh,

@@ -75,6 +75,26 @@ Trips are archived, not deleted: `archived: true` (+ `archived_date`,
 (`PasscodeDialog.jsx`; only its SHA-256 is in the source). That passcode is a
 guard against accidents, not security — `firestore.rules` is the real gate.
 
+## Costs
+
+Every plan item has an optional `cost` (a number, in the trip's `currency`,
+chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
+(`{ company, cost }`) on its day doc; their documents are ordinary uploads with
+`item_id` `"insurance"` / `"sim"`. The day view ends with "Итого за день" —
+`dayTotal()` in `src/lib/money.js`. Moving a trip's start date leaves the
+insurance/SIM on the old first date.
+
+## PIN lock
+
+The trip's creator (`created_by`) can lock it with a 4-digit PIN from the lock
+button in the trip header. Only `pin_hash` = SHA-256(`tripId:pin`) is stored.
+Everyone — owner included — enters the PIN on opening, unless "Запомнить
+пароль" put that hash in this device's `localStorage` (`trip-pin:<id>`);
+changing the PIN invalidates it. It is a privacy screen, not security (the data
+is still readable by any allow-listed account); `firestore.rules` only stops
+non-owners from setting or clearing it. Logic in `src/lib/tripLock.js`, UI in
+`TripLockDialog.jsx`.
+
 ## Offline
 
 Each device keeps its own copy, so a trip opens with no signal.

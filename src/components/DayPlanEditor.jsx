@@ -3,6 +3,7 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { ICON_OPTIONS, iconFor, styleFor } from "@/data/planStyles";
 import AddressInput from "@/components/AddressInput";
 import { uid } from "@/api/trips";
+import { EXTRAS } from "@/lib/money";
 
 const input =
   "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 " +
@@ -18,7 +19,7 @@ export const emptySection = () => ({
   items: [emptyItem()],
 });
 
-export const emptyItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "" });
+export const emptyItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "", cost: "" });
 
 const move = (list, from, to) => {
   const next = [...list];
@@ -27,7 +28,8 @@ const move = (list, from, to) => {
   return next;
 };
 
-export default function DayPlanEditor({ value, onChange }) {
+// `firstDay` adds the insurance and SIM card fields (see lib/money.js).
+export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
   const sections = value.sections || [];
 
   const setSections = (next) => onChange({ ...value, sections: next });
@@ -98,6 +100,40 @@ export default function DayPlanEditor({ value, onChange }) {
           placeholder="Например, Порту"
         />
       </div>
+
+      {firstDay && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {EXTRAS.map(({ key, title, placeholder }) => {
+            const extra = value[key] || {};
+            const patch = (p) => onChange({ ...value, [key]: { ...extra, ...p } });
+            return (
+              <div
+                key={key}
+                className="rounded-2xl border bg-white p-4 shadow-sm space-y-2"
+                style={{ borderColor: "#ece3d4" }}
+              >
+                <label className={hint}>{title}</label>
+                <input
+                  className={input}
+                  value={extra.company || ""}
+                  onChange={(e) => patch({ company: e.target.value })}
+                  placeholder={placeholder}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="flex-1 text-xs text-stone-400">
+                    Документ можно добавить после сохранения
+                  </span>
+                  <CostInput
+                    value={extra.cost}
+                    currency={currency}
+                    onChange={(cost) => patch({ cost })}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <DragDropContext onDragEnd={onDragEnd}>
         <Droppable droppableId="sections" type="section">
@@ -211,14 +247,25 @@ export default function DayPlanEditor({ value, onChange }) {
                                             }
                                             placeholder="Что делаем"
                                           />
-                                          <AddressInput
-                                            className={input}
-                                            value={item.address || ""}
-                                            onChange={(patch) =>
-                                              patchItem(sIndex, iIndex, patch)
-                                            }
-                                            placeholder="Адрес (необязательно)"
-                                          />
+                                          <div className="flex gap-2">
+                                            <div className="min-w-0 flex-1">
+                                              <AddressInput
+                                                className={input}
+                                                value={item.address || ""}
+                                                onChange={(patch) =>
+                                                  patchItem(sIndex, iIndex, patch)
+                                                }
+                                                placeholder="Адрес (необязательно)"
+                                              />
+                                            </div>
+                                            <CostInput
+                                              value={item.cost}
+                                              currency={currency}
+                                              onChange={(cost) =>
+                                                patchItem(sIndex, iIndex, { cost })
+                                              }
+                                            />
+                                          </div>
                                         </div>
 
                                         <button
@@ -266,6 +313,24 @@ export default function DayPlanEditor({ value, onChange }) {
         <Plus className="h-5 w-5" />
         Добавить блок
       </button>
+    </div>
+  );
+}
+
+function CostInput({ value, currency, onChange }) {
+  return (
+    <div className="relative w-28 shrink-0">
+      <input
+        className={`${input} pr-9 text-right tabular-nums`}
+        inputMode="decimal"
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Цена"
+        aria-label="Стоимость"
+      />
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+        {currency}
+      </span>
     </div>
   );
 }

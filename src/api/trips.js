@@ -77,6 +77,14 @@ export async function setTripArchived(id, archived) {
   });
 }
 
+// Lock (pinHash) or unlock (null) a trip. Only the owner may: see firestore.rules.
+export async function setTripPin(id, pinHash) {
+  await updateTrip(id, {
+    pin_hash: pinHash || null,
+    locked_date: pinHash ? new Date().toISOString() : null,
+  });
+}
+
 async function deleteAll(tripId, name) {
   const snap = await readDocs(collection(db, "trips", tripId, name));
   await write(Promise.all(snap.docs.map((d) => deleteDoc(d.ref))));
