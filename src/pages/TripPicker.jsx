@@ -19,12 +19,14 @@ import TripFormModal from "@/components/TripFormModal";
 import PasscodeDialog from "@/components/PasscodeDialog";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
+import { useAuth } from "@/lib/AuthContext";
+import { canSeeTrip, useTripLockChanges, PRIVATE_TRIP_LABEL } from "@/lib/tripLock";
 
 const iconButton =
   "grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition disabled:opacity-50";
 
-function TripCard({ trip, muted, onOpen, children }) {
-  const country = tripCountry(trip);
+function TripCard({ trip, hidden, muted, onOpen, children }) {
+  const country = hidden ? null : tripCountry(trip);
   return (
     <div
       className={`relative rounded-2xl p-5 text-left shadow-sm transition ring-2 ring-transparent hover:ring-[#c4623a] hover:bg-white ${
@@ -34,7 +36,7 @@ function TripCard({ trip, muted, onOpen, children }) {
       <button type="button" onClick={onOpen} className="block w-full text-left pr-16">
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400">
           {country && <CountryFlag code={country.code} width={18} />}
-          {trip.country}
+          {hidden ? "PIN-код" : trip.country}
           {trip.pin_hash && (
             <Lock className="h-3.5 w-3.5 text-[#1d3b5c]" aria-label="Закрыта PIN-кодом" />
           )}
@@ -43,15 +45,21 @@ function TripCard({ trip, muted, onOpen, children }) {
           className="font-display text-2xl font-semibold mt-0.5"
           style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
         >
-          {trip.city}
+          {hidden ? PRIVATE_TRIP_LABEL : trip.city}
         </div>
         <div className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
-          <MapPin className="h-3.5 w-3.5" />
-          {tripYearLabel(trip)}
-          {tripRangeLabel(trip) && (
+          {hidden ? (
+            "Откройте, чтобы ввести PIN-код"
+          ) : (
             <>
-              <span className="text-stone-300">·</span>
-              {tripRangeLabel(trip)}
+              <MapPin className="h-3.5 w-3.5" />
+              {tripYearLabel(trip)}
+              {tripRangeLabel(trip) && (
+                <>
+                  <span className="text-stone-300">·</span>
+                  {tripRangeLabel(trip)}
+                </>
+              )}
             </>
           )}
         </div>
@@ -66,6 +74,12 @@ export default function TripPicker() {
   const navigate = useNavigate();
   const { activeTrips, archivedTrips, loading, error, addTrip, editTrip, archiveTrip, removeTrip } =
     useTrips();
+  const { user } = useAuth();
+  useTripLockChanges();
+  const isHidden = (trip) => !canSeeTrip(trip, user?.email);
+  // Confirmations name the trip only when this viewer may see it.
+  const tripName = (trip) =>
+    isHidden(trip) ? PRIVATE_TRIP_LABEL : `${trip.city}, ${tripYearLabel(trip)}`;
 
   const [formFor, setFormFor] = useState(null); // { trip } | { trip: null }
   const [busyId, setBusyId] = useState(null);
@@ -86,7 +100,7 @@ export default function TripPicker() {
 
   const handleArchive = (trip) => {
     const ok = window.confirm(
-      `Перенести поездку «${trip.city}, ${tripYearLabel(trip)}» в архив? Все заметки и фотографии сохранятся.`
+      `Перенести поездку «${tripName(trip)}» в архив? Все заметки и фотографии сохранятся.`
     );
     if (ok) run(trip, () => archiveTrip(trip.id, true), "Не удалось перенести поездку в архив.");
   };
@@ -142,6 +156,7 @@ export default function TripPicker() {
                   <TripCard
                     key={trip.id}
                     trip={trip}
+                    hidden={isHidden(trip)}
                     muted
                     onOpen={() => navigate(`/trip/${trip.id}`)}
                   >
@@ -176,15 +191,23 @@ export default function TripPicker() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               {activeTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} onOpen={() => navigate(`/trip/${trip.id}`)}>
-                  <button
-                    type="button"
-                    onClick={() => setFormFor({ trip })}
-                    className={`${iconButton} hover:bg-stone-100 hover:text-stone-700`}
-                    aria-label="Изменить поездку"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
+                <TripCard
+                  key={trip.id}
+                  trip={trip}
+                  hidden={isHidden(trip)}
+                  onOpen={() => navigate(`/trip/${trip.id}`)}
+                >
+                  {/* The edit form would show what the lock hides. */}
+                  {!isHidden(trip) && (
+                    <button
+                      type="button"
+                      onClick={() => setFormFor({ trip })}
+                      className={`${iconButton} hover:bg-stone-100 hover:text-stone-700`}
+                      aria-label="Изменить поездку"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => handleArchive(trip)}
@@ -242,7 +265,7 @@ export default function TripPicker() {
         <PasscodeDialog
           title="Удалить навсегда"
           trip={deleting}
-          message={`Поездка «${deleting.city}, ${tripYearLabel(deleting)}» будет удалена вместе со всеми заметками и фотографиями. ${
+          message={`Поездка «${tripName(deleting)}» будет удалена вместе со всеми заметками и фотографиями. ${
             deleting.pin_hash ? "Введите PIN-код поездки" : "Введите код"
           }, чтобы подтвердить.`}
           onConfirm={() => removeTrip(deleting.id)}

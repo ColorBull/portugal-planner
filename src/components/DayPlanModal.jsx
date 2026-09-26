@@ -25,13 +25,69 @@ import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/mo
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
-function CostBadge({ cost, currency }) {
+// A price that can be set or changed right in the day view: tap the badge (or
+// "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
+function InlineCost({ cost, currency, onSave }) {
   const amount = parseCost(cost);
-  if (amount === null) return null;
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const start = () => {
+    setValue(amount === null ? "" : String(amount).replace(".", ","));
+    setEditing(true);
+  };
+
+  const commit = async () => {
+    const next = parseCost(value);
+    if (next === amount) return setEditing(false);
+    setBusy(true);
+    try {
+      await onSave(next);
+      setEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить цену.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-stone-600 ring-1 ring-stone-300">
+        <input
+          autoFocus
+          inputMode="decimal"
+          value={value}
+          disabled={busy}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          placeholder="0"
+          className="w-16 bg-transparent text-right tabular-nums outline-none"
+        />
+        {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : currency}
+      </span>
+    );
+  }
+
   return (
-    <span className="ml-2 inline-flex shrink-0 items-center rounded-full bg-stone-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-stone-600">
-      {formatMoney(amount, currency)}
-    </span>
+    <button
+      type="button"
+      onClick={start}
+      title={amount === null ? "Добавить цену" : "Изменить цену"}
+      className={
+        amount === null
+          ? "ml-2 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium text-stone-400 border border-dashed border-stone-300 transition hover:bg-stone-200/60 hover:text-stone-700"
+          : "ml-2 inline-flex shrink-0 items-center rounded-full bg-stone-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70"
+      }
+    >
+      {amount === null ? "+ цена" : formatMoney(amount, currency)}
+    </button>
   );
 }
 
@@ -124,6 +180,18 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
     setEditing(false);
     setDraft(null);
   };
+
+  // Inline price edits save just the changed field (saveDay merges).
+  const saveItemCost = (itemId, cost) =>
+    onSave({
+      sections: sections.map((s) => ({
+        ...s,
+        items: (s.items || []).map((it) => (it.id === itemId ? { ...it, cost } : it)),
+      })),
+    });
+
+  const saveExtraCost = (key, cost) =>
+    onSave({ [key]: { company: plan?.[key]?.company || "", cost } });
 
   const save = async () => {
     setSaving(true);
@@ -242,7 +310,11 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
                             {title}
                           </span>
                           <span className="ml-auto">
-                            <CostBadge cost={extra.cost} currency={currency} />
+                            <InlineCost
+                              cost={extra.cost}
+                              currency={currency}
+                              onSave={(cost) => saveExtraCost(key, cost)}
+                            />
                           </span>
                         </div>
                         <div className="mt-2 break-words font-medium text-stone-700">
@@ -337,7 +409,11 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
                                   {item.text}
                                 </div>
                                 <span className="mt-0.5">
-                                  <CostBadge cost={item.cost} currency={currency} />
+                                  <InlineCost
+                                    cost={item.cost}
+                                    currency={currency}
+                                    onSave={(cost) => saveItemCost(item.id, cost)}
+                                  />
                                 </span>
                               </div>
                               <MapLink item={item} bar={style.bar} />

@@ -8,7 +8,14 @@ import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry } from "@/lib/countries";
 import { useAuth } from "@/lib/AuthContext";
-import { isTripLocked, isTripOwner, isRemembered } from "@/lib/tripLock";
+import {
+  isTripLocked,
+  isTripOwner,
+  isRemembered,
+  canSeeTrip,
+  useTripLockChanges,
+  PRIVATE_TRIP_LABEL,
+} from "@/lib/tripLock";
 import TripLockDialog from "@/components/TripLockDialog";
 
 // A long trip is split into pages, so the grid always fits one screen.
@@ -49,6 +56,10 @@ export default function Home() {
   const owner = isTripOwner(trip, user?.email);
   const lockedOut =
     !!trip && isTripLocked(trip) && unlockedId !== trip.id && !isRemembered(trip);
+  useTripLockChanges();
+  // Behind the PIN prompt, only the owner (or a device that has had the PIN)
+  // sees which trip this is.
+  const hidden = !!trip && !canSeeTrip(trip, user?.email);
 
   const tripDays = useMemo(
     () => (trip ? buildDays(trip.startDate, trip.endDate) : []),
@@ -101,9 +112,9 @@ export default function Home() {
             className="font-display text-3xl sm:text-4xl font-semibold tracking-tight"
             style={{ color: "#1d3b5c" }}
           >
-            {trip ? `${trip.city} ${tripYearLabel(trip)}` : "Загрузка…"}
+            {!trip ? "Загрузка…" : hidden ? PRIVATE_TRIP_LABEL : `${trip.city} ${tripYearLabel(trip)}`}
           </h1>
-          {trip && (
+          {trip && !hidden && (
             <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">
               {country && <CountryFlag code={country.code} width={20} />}
               {trip.country}
@@ -226,6 +237,7 @@ export default function Home() {
           key={trip.id}
           mode="unlock"
           trip={trip}
+          showName={!hidden}
           onUnlocked={() => setUnlockedId(trip.id)}
           onClose={() => navigate("/")}
         />

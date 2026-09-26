@@ -81,7 +81,9 @@ Every plan item has an optional `cost` (a number, in the trip's `currency`,
 chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 (`{ company, cost }`) on its day doc; their documents are ordinary uploads with
 `item_id` `"insurance"` / `"sim"`. The day view ends with "Итого за день" —
-`dayTotal()` in `src/lib/money.js`. Moving a trip's start date leaves the
+`dayTotal()` in `src/lib/money.js`. Prices can also be set or changed
+straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
+or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.
 
 ## PIN lock
@@ -92,7 +94,11 @@ Everyone — owner included — enters the PIN on opening, unless "Запомн�
 пароль" put that hash in this device's `localStorage` (`trip-pin:<id>`);
 changing the PIN invalidates it. It is a privacy screen, not security (the data
 is still readable by any allow-listed account); `firestore.rules` only stops
-non-owners from setting or clearing it. Logic in `src/lib/tripLock.js`, UI in
+non-owners from setting or clearing it. For everyone but the owner a locked
+trip shows as "Частная поездка" in the list, the trip header and the unlock
+prompt (no city, country, dates, map zoom, edit button) until this device has
+entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
+correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
 
 ## Offline

@@ -2,6 +2,8 @@ import { useMatch } from "react-router-dom";
 import { useTrips } from "@/lib/TripContext";
 import { tripCountry } from "@/lib/countries";
 import WorldMapBackground from "@/components/WorldMapBackground";
+import { useAuth } from "@/lib/AuthContext";
+import { canSeeTrip, useTripLockChanges } from "@/lib/tripLock";
 
 const PAPER =
   "radial-gradient(120% 120% at 15% 10%, #fdfaf4 0%, #f5ecdd 45%, #ead9c2 100%)";
@@ -14,8 +16,11 @@ const PAPER =
 export default function MapBackdrop() {
   const match = useMatch("/trip/:tripId");
   const { trips } = useTrips();
+  const { user } = useAuth();
+  useTripLockChanges();
   const trip = match ? trips.find((t) => t.id === match.params.tripId) : null;
-  const country = tripCountry(trip);
+  // A private trip doesn't give its country away by zooming to it.
+  const country = canSeeTrip(trip, user?.email) ? tripCountry(trip) : null;
 
   return (
     <div

@@ -6,6 +6,7 @@ import {
   hashPin,
   rememberUnlock,
   forgetUnlock,
+  markRevealed,
 } from "@/lib/tripLock";
 
 // Three uses, see lib/tripLock.js:
@@ -60,7 +61,14 @@ function RememberBox({ checked, onChange }) {
   );
 }
 
-export default function TripLockDialog({ mode: initialMode, trip, onUnlocked, onSetPin, onClose }) {
+export default function TripLockDialog({
+  mode: initialMode,
+  trip,
+  showName = true,
+  onUnlocked,
+  onSetPin,
+  onClose,
+}) {
   const [mode, setMode] = useState(initialMode);
   const [pin, setPin] = useState("");
   const [repeat, setRepeat] = useState("");
@@ -82,6 +90,7 @@ export default function TripLockDialog({ mode: initialMode, trip, onUnlocked, on
       return fail("Неверный PIN-код.");
     }
     if (remember) rememberUnlock(trip, hash);
+    markRevealed(trip, hash);
     onUnlocked();
   };
 
@@ -130,7 +139,9 @@ export default function TripLockDialog({ mode: initialMode, trip, onUnlocked, on
 
   const message =
     mode === "unlock"
-      ? `Введите PIN-код, чтобы открыть поездку «${trip.city}».`
+      ? showName
+        ? `Введите PIN-код, чтобы открыть поездку «${trip.city}».`
+        : "Введите PIN-код, чтобы открыть эту поездку."
       : mode === "manage"
       ? "Можно сменить PIN-код или снять блокировку — тогда поездку снова откроют все."
       : `Придумайте PIN-код из ${PIN_LENGTH} цифр. Без него поездку не откроет никто, включая вас.`;
