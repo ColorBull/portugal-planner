@@ -9,6 +9,8 @@ import {
 } from "@/data/worldMap";
 import { COUNTRIES } from "@/data/countries";
 import CountryFlag from "@/components/CountryFlag";
+import { countryName } from "@/lib/countries";
+import { useLang } from "@/lib/i18n";
 
 // A flat vector sketch of the world: continent silhouettes, no borders, no
 // labels, no grid. The outlines are projected ahead of time (see
@@ -182,6 +184,9 @@ function useSize(ref) {
  * zooms to it with `highlightCcn3` painted in accent.
  */
 export default function WorldMapBackground({ continent = null, highlightCcn3 = null }) {
+  // The country names follow the interface language. This layer sits above the
+  // router, so it has to subscribe itself to redraw when the language changes.
+  useLang();
   const hostRef = useRef(null);
   const { width, height } = useSize(hostRef);
 
@@ -212,7 +217,7 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
     ? COUNTRIES.filter((c) => c.continent === continent && MAP_POINTS[c.ccn3])
         .map((c) => ({
           c,
-          at: placeLabel(c.ccn3, MAP_POINTS[c.ccn3], labelWidth(c.name), LABEL_HEIGHT, k),
+          at: placeLabel(c.ccn3, MAP_POINTS[c.ccn3], labelWidth(countryName(c)), LABEL_HEIGHT, k),
         }))
         .filter((l) => l.at)
     : [];
@@ -280,7 +285,7 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
           }}
         >
           <CountryFlag code={c.code} width={14} />
-          {c.name}
+          {countryName(c)}
         </div>
       ))}
     </div>
