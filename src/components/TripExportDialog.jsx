@@ -4,6 +4,7 @@ import { TripNote, TripPhoto } from "@/api/entities";
 import { saveGoogleDoc } from "@/api/drive";
 import { isOnline } from "@/api/offline";
 import { buildTripHtml, tripDocName } from "@/lib/tripExport";
+import { t, localeTag } from "@/lib/i18n";
 
 // Export a trip to one Google Doc in the shared Drive folder, for NotebookLM.
 // The doc is overwritten on every export, so its link never changes and the
@@ -25,10 +26,10 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
 
   const docId = trip.export_doc_id || null;
   const docUrl = docId ? `https://docs.google.com/document/d/${docId}/edit` : "";
-  const when = trip.export_date ? new Date(trip.export_date).toLocaleString("ru-RU") : null;
+  const when = trip.export_date ? new Date(trip.export_date).toLocaleString(localeTag()) : null;
 
   const run = async () => {
-    if (!isOnline()) return setError("Нет подключения к интернету.");
+    if (!isOnline()) return setError(t("Нет подключения к интернету."));
     setBusy(true);
     setError(null);
     try {
@@ -38,7 +39,7 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
       await onSaved(saved.id);
     } catch (err) {
       console.error(err);
-      setError(err?.message || "Не удалось выгрузить поездку.");
+      setError(err?.message || t("Не удалось выгрузить поездку."));
     } finally {
       setBusy(false);
     }
@@ -50,7 +51,7 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      window.prompt("Скопируйте ссылку:", docUrl);
+      window.prompt(t("Скопируйте ссылку:"), docUrl);
     }
   };
 
@@ -63,19 +64,19 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
       >
         <div className="flex items-center gap-2 text-[#1d3b5c]">
           <BookOpen className="h-4 w-4" />
-          <h2 className="font-display text-xl font-semibold">Выгрузка для NotebookLM</h2>
+          <h2 className="font-display text-xl font-semibold">{t("Выгрузка для NotebookLM")}</h2>
         </div>
 
         {!docId ? (
           <p className="mt-2 text-sm text-stone-600">
-            Весь план поездки — дни, цены, заметки и ссылки на документы — будет сохранён одним
-            Google-документом в общей папке Drive.
+            {t("Весь план поездки — дни, цены, заметки и ссылки на документы — будет сохранён одним Google-документом в общей папке Drive.")}
           </p>
         ) : (
           <>
             <p className="mt-2 text-sm text-stone-600">
-              Документ уже создан{when ? ` (обновлён ${when})` : ""}. После изменений в плане
-              нажмите «Обновить» — ссылка останется той же.
+              {t("Документ уже создан{when}. После изменений в плане нажмите «Обновить» — ссылка останется той же.", {
+                when: when ? ` (${t("обновлён {date}", { date: when })})` : "",
+              })}
             </p>
             <div className="mt-3 flex items-center gap-2 rounded-xl bg-white px-3 py-2 ring-1 ring-stone-200">
               <span className="min-w-0 flex-1 truncate text-xs text-stone-500" dir="ltr">
@@ -85,8 +86,8 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
                 type="button"
                 onClick={copy}
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
-                aria-label="Скопировать ссылку"
-                title="Скопировать ссылку"
+                aria-label={t("Скопировать ссылку")}
+                title={t("Скопировать ссылку")}
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
@@ -95,20 +96,18 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
                 target="_blank"
                 rel="noreferrer"
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-500 transition hover:bg-stone-100 hover:text-stone-900"
-                aria-label="Открыть документ"
-                title="Открыть документ"
+                aria-label={t("Открыть документ")}
+                title={t("Открыть документ")}
               >
                 <ExternalLink className="h-4 w-4" />
               </a>
             </div>
             <ol className="mt-3 list-decimal space-y-1 ps-5 text-xs text-stone-500">
               <li>
-                В NotebookLM: «Добавить источник» → «Google Диск» → выберите этот документ
-                (он лежит в общей папке поездок).
+                {t("В NotebookLM: «Добавить источник» → «Google Диск» → выберите этот документ (он лежит в общей папке поездок).")}
               </li>
               <li>
-                Позже, после «Обновить» здесь: в NotebookLM откройте источник и нажмите
-                «Синхронизировать с Google Диском».
+                {t("Позже, после «Обновить» здесь: в NotebookLM откройте источник и нажмите «Синхронизировать с Google Диском».")}
               </li>
             </ol>
           </>
@@ -118,7 +117,7 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
 
         <div className="mt-5 flex flex-wrap justify-end gap-2">
           <button type="button" onClick={onClose} disabled={busy} className={secondary}>
-            Закрыть
+            {t("Закрыть")}
           </button>
           <button type="button" onClick={run} disabled={busy} className={primary}>
             {busy ? (
@@ -128,7 +127,7 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
             ) : (
               <BookOpen className="h-4 w-4" />
             )}
-            {docId ? "Обновить" : "Создать документ"}
+            {docId ? t("Обновить") : t("Создать документ")}
           </button>
         </div>
       </div>

@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Search } from "lucide-react";
-import { findCountry, searchCountries } from "@/lib/countries";
+import { findCountry, searchCountries, countryName } from "@/lib/countries";
 import CountryFlag from "@/components/CountryFlag";
+import { t } from "@/lib/i18n";
 
 /**
  * Type-to-search country picker: typing "п" narrows the list to Польша,
@@ -67,23 +68,23 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
     }
   };
 
-  const label = selected?.name || fallbackName || "";
+  const label = selected ? countryName(selected) : fallbackName || "";
 
   return (
     <div ref={boxRef} className="relative">
       {open ? (
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
           <input
             id={id}
             ref={inputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Начните вводить страну…"
+            placeholder={t("Начните вводить страну…")}
             autoComplete="off"
             autoFocus
-            className="w-full rounded-xl border border-stone-200 bg-white py-2.5 pl-9 pr-3.5 text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+            className="w-full rounded-xl border border-stone-200 bg-white py-2.5 ps-9 pe-3.5 text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
           />
         </div>
       ) : (
@@ -94,15 +95,15 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
             setQuery("");
             setOpen(true);
           }}
-          className="flex w-full items-center gap-2 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-left text-stone-800 outline-none transition hover:border-stone-300 focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+          className="flex w-full items-center gap-2 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-start text-stone-800 outline-none transition hover:border-stone-300 focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
         >
           {selected ? (
             <CountryFlag code={selected.code} width={22} />
           ) : (
             <span className="h-4 w-[22px] rounded-[3px] bg-stone-100 ring-1 ring-stone-200" />
           )}
-          <span className={label ? "" : "text-stone-400"}>{label || "Выберите страну"}</span>
-          <ChevronDown className="ml-auto h-4 w-4 shrink-0 text-stone-400" />
+          <span className={label ? "" : "text-stone-400"}>{label || t("Выберите страну")}</span>
+          <ChevronDown className="ms-auto h-4 w-4 shrink-0 text-stone-400" />
         </button>
       )}
 
@@ -112,7 +113,7 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
           className="absolute z-30 mt-1.5 max-h-64 w-full overflow-y-auto overscroll-contain rounded-xl border border-stone-200 bg-white py-1 shadow-xl"
         >
           {results.length === 0 ? (
-            <p className="px-3.5 py-3 text-sm text-stone-400">Ничего не найдено</p>
+            <p className="px-3.5 py-3 text-sm text-stone-400">{t("Ничего не найдено")}</p>
           ) : (
             results.map((country, i) => (
               <button
@@ -121,12 +122,12 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
                 data-active={i === cursor}
                 onMouseEnter={() => setCursor(i)}
                 onClick={() => pick(country)}
-                className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-sm transition ${
+                className={`flex w-full items-center gap-2.5 px-3.5 py-2 text-start text-sm transition ${
                   i === cursor ? "bg-[#f1e7d8] text-stone-900" : "text-stone-700"
                 }`}
               >
                 <CountryFlag code={country.code} width={22} />
-                <span className="truncate">{country.name}</span>
+                <span className="truncate">{countryName(country)}</span>
               </button>
             ))
           )}

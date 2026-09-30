@@ -1,12 +1,19 @@
 // Turns a trip's start/end date into the day cards shown on the dashboard.
 // Everything is computed in UTC so the cards never shift by a timezone.
 
-const MONTHS_SHORT = [
-  "янв", "фев", "мар", "апр", "мая", "июн",
-  "июл", "авг", "сен", "окт", "ноя", "дек",
-];
+import { getLang } from "@/lib/i18n";
 
-const WEEKDAYS = ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"];
+const MONTHS_SHORT = {
+  ru: ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"],
+  en: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+  he: ["ינו׳", "פבר׳", "מרץ", "אפר׳", "מאי", "יוני", "יולי", "אוג׳", "ספט׳", "אוק׳", "נוב׳", "דצמ׳"],
+};
+
+const WEEKDAYS = {
+  ru: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+  en: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+  he: ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"],
+};
 
 // Only a guard against a typo'd year producing an endless list — a real trip
 // of any length (even over a year) is shown in full.
@@ -28,7 +35,7 @@ export function toKey(date) {
 export function formatDayLabel(key) {
   const date = parseKey(key);
   if (!date) return key || "";
-  return `${date.getUTCDate()} ${MONTHS_SHORT[date.getUTCMonth()]}`;
+  return `${date.getUTCDate()} ${MONTHS_SHORT[getLang()][date.getUTCMonth()]}`;
 }
 
 // [{ key, label, weekday, dayNumber }] — inclusive of both ends.
@@ -44,7 +51,7 @@ export function buildDays(startDate, endDate) {
     days.push({
       key,
       label: formatDayLabel(key),
-      weekday: WEEKDAYS[cursor.getUTCDay()],
+      weekday: WEEKDAYS[getLang()][cursor.getUTCDay()],
       dayNumber: days.length + 1,
     });
     cursor.setUTCDate(cursor.getUTCDate() + 1);

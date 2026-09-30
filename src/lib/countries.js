@@ -1,4 +1,34 @@
 import { COUNTRIES } from "@/data/countries";
+import { getLang } from "@/lib/i18n";
+
+// Country name in the interface language. `name` (Russian) stays the stored,
+// canonical value; Hebrew comes from the browser's own region names.
+const hebrewNames = new Map();
+export function countryName(country) {
+  if (!country) return "";
+  const lang = getLang();
+  if (lang === "en") return country.nameEn || country.name;
+  if (lang === "he") {
+    if (!hebrewNames.has(country.code)) {
+      let name = "";
+      try {
+        name = new Intl.DisplayNames(["he"], { type: "region" }).of(country.code) || "";
+      } catch {
+        /* older browser: fall back below */
+      }
+      hebrewNames.set(country.code, name);
+    }
+    return hebrewNames.get(country.code) || country.nameEn || country.name;
+  }
+  return country.name;
+}
+
+// What to print for a trip's country: the localized name when it is a known
+// country, otherwise whatever free text was saved.
+export function countryLabel(trip) {
+  const c = tripCountry(trip);
+  return c ? countryName(c) : trip?.country || "";
+}
 
 const byCode = new Map(COUNTRIES.map((c) => [c.code, c]));
 
@@ -46,8 +76,9 @@ export function searchCountries(query) {
   COUNTRIES.forEach((c) => {
     const ru = normalise(c.name);
     const en = normalise(c.nameEn);
-    if (ru.startsWith(q) || en.startsWith(q) || normalise(c.code) === q) starts.push(c);
-    else if (ru.includes(q) || en.includes(q)) contains.push(c);
+    const local = normalise(countryName(c));
+    if (ru.startsWith(q) || en.startsWith(q) || local.startsWith(q) || normalise(c.code) === q) starts.push(c);
+    else if (ru.includes(q) || en.includes(q) || local.includes(q)) contains.push(c);
   });
   return [...starts, ...contains];
 }

@@ -8,6 +8,7 @@ import {
   forgetUnlock,
   markRevealed,
 } from "@/lib/tripLock";
+import { t } from "@/lib/i18n";
 
 // Three uses, see lib/tripLock.js:
 //   mode "unlock" — anyone opening a locked trip enters the PIN
@@ -56,7 +57,7 @@ function RememberBox({ checked, onChange }) {
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4 accent-[#1d3b5c]"
       />
-      Запомнить пароль на этом устройстве
+      {t("Запомнить пароль на этом устройстве")}
     </label>
   );
 }
@@ -83,11 +84,11 @@ export default function TripLockDialog({
 
   const unlock = async (e) => {
     e.preventDefault();
-    if (!isValidPin(pin)) return fail(`Введите ${PIN_LENGTH} цифры.`);
+    if (!isValidPin(pin)) return fail(t("Введите {n} цифры.", { n: PIN_LENGTH }));
     const hash = await hashPin(trip.id, pin);
     if (hash !== trip.pin_hash) {
       setPin("");
-      return fail("Неверный PIN-код.");
+      return fail(t("Неверный PIN-код."));
     }
     if (remember) rememberUnlock(trip, hash);
     markRevealed(trip, hash);
@@ -96,10 +97,10 @@ export default function TripLockDialog({
 
   const setup = async (e) => {
     e.preventDefault();
-    if (!isValidPin(pin)) return fail(`PIN-код — это ${PIN_LENGTH} цифры.`);
+    if (!isValidPin(pin)) return fail(t("PIN-код — это {n} цифры.", { n: PIN_LENGTH }));
     if (pin !== repeat) {
       setRepeat("");
-      return fail("PIN-коды не совпадают.");
+      return fail(t("PIN-коды не совпадают."));
     }
     setBusy(true);
     setError(null);
@@ -111,7 +112,7 @@ export default function TripLockDialog({
       onClose();
     } catch (err) {
       console.error(err);
-      fail("Не удалось сохранить PIN-код.");
+      fail(t("Не удалось сохранить PIN-код."));
     }
   };
 
@@ -124,27 +125,27 @@ export default function TripLockDialog({
       onClose();
     } catch (err) {
       console.error(err);
-      fail("Не удалось снять блокировку.");
+      fail(t("Не удалось снять блокировку."));
     }
   };
 
   const title =
     mode === "unlock"
-      ? "Поездка закрыта"
+      ? t("Поездка закрыта")
       : mode === "manage"
-      ? "Поездка закрыта PIN-кодом"
+      ? t("Поездка закрыта PIN-кодом")
       : trip.pin_hash
-      ? "Новый PIN-код"
-      : "Закрыть поездку";
+      ? t("Новый PIN-код")
+      : t("Закрыть поездку");
 
   const message =
     mode === "unlock"
       ? showName
-        ? `Введите PIN-код, чтобы открыть поездку «${trip.city}».`
-        : "Введите PIN-код, чтобы открыть эту поездку."
+        ? t("Введите PIN-код, чтобы открыть поездку «{city}».", { city: trip.city })
+        : t("Введите PIN-код, чтобы открыть эту поездку.")
       : mode === "manage"
-      ? "Можно сменить PIN-код или снять блокировку — тогда поездку снова откроют все."
-      : `Придумайте PIN-код из ${PIN_LENGTH} цифр. Без него поездку не откроет никто, включая вас.`;
+      ? t("Можно сменить PIN-код или снять блокировку — тогда поездку снова откроют все.")
+      : t("Придумайте PIN-код из {n} цифр. Без него поездку не откроет никто, включая вас.", { n: PIN_LENGTH });
 
   const Icon = mode === "unlock" ? Lock : mode === "manage" ? KeyRound : Lock;
 
@@ -166,7 +167,7 @@ export default function TripLockDialog({
           <div className="mt-4">
             <PinInput
               value={pin}
-              label="PIN-код"
+              label={t("PIN-код")}
               autoFocus
               onChange={(v) => {
                 setPin(v);
@@ -181,7 +182,7 @@ export default function TripLockDialog({
           <div className="mt-4 space-y-2">
             <PinInput
               value={pin}
-              label="PIN-код"
+              label={t("PIN-код")}
               autoFocus
               onChange={(v) => {
                 setPin(v);
@@ -190,13 +191,13 @@ export default function TripLockDialog({
             />
             <PinInput
               value={repeat}
-              label="Повторите PIN-код"
+              label={t("Повторите PIN-код")}
               onChange={(v) => {
                 setRepeat(v);
                 setError(null);
               }}
             />
-            <p className="text-xs text-stone-400">Второй раз — для проверки.</p>
+            <p className="text-xs text-stone-400">{t("Второй раз — для проверки.")}</p>
             <RememberBox checked={remember} onChange={setRemember} />
           </div>
         )}
@@ -207,7 +208,7 @@ export default function TripLockDialog({
           {mode === "manage" ? (
             <>
               <button type="button" onClick={onClose} disabled={busy} className={secondary}>
-                Отмена
+                {t("Отмена")}
               </button>
               <button
                 type="button"
@@ -216,17 +217,17 @@ export default function TripLockDialog({
                 className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium text-[#a8451f] ring-1 ring-[#a8451f]/30 transition hover:bg-[#f7e9e3] disabled:opacity-50"
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <LockOpen className="h-4 w-4" />}
-                Снять блокировку
+                {t("Снять блокировку")}
               </button>
               <button type="button" onClick={() => setMode("setup")} disabled={busy} className={primary}>
                 <KeyRound className="h-4 w-4" />
-                Сменить PIN
+                {t("Сменить PIN")}
               </button>
             </>
           ) : (
             <>
               <button type="button" onClick={onClose} disabled={busy} className={secondary}>
-                {mode === "unlock" ? "К поездкам" : "Отмена"}
+                {mode === "unlock" ? t("К поездкам") : t("Отмена")}
               </button>
               <button
                 type="submit"
@@ -234,7 +235,7 @@ export default function TripLockDialog({
                 className={primary}
               >
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : mode === "unlock" ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                {mode === "unlock" ? "Открыть" : trip.pin_hash ? "Сохранить" : "Закрыть поездку"}
+                {mode === "unlock" ? t("Открыть") : trip.pin_hash ? t("Сохранить") : t("Закрыть поездку")}
               </button>
             </>
           )}

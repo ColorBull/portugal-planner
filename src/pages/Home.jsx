@@ -6,7 +6,7 @@ import { useTrips } from "@/lib/TripContext";
 import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
 import CountryFlag from "@/components/CountryFlag";
-import { tripCountry } from "@/lib/countries";
+import { tripCountry, countryLabel } from "@/lib/countries";
 import { useAuth } from "@/lib/AuthContext";
 import {
   isTripLocked,
@@ -18,6 +18,7 @@ import {
 } from "@/lib/tripLock";
 import TripLockDialog from "@/components/TripLockDialog";
 import TripExportDialog from "@/components/TripExportDialog";
+import { t } from "@/lib/i18n";
 
 // A long trip is split into pages, so the grid always fits one screen.
 const PER_PAGE = 30;
@@ -97,14 +98,14 @@ export default function Home() {
       <button
         type="button"
         onClick={() => navigate("/")}
-        className="fixed top-3 left-3 z-40 inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-2 text-sm text-stone-500 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800"
+        className="fixed top-3 start-3 z-40 inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-2 text-sm text-stone-500 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800"
       >
-        <ChevronLeft className="h-4 w-4" />
-        Поездки
+        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        {t("Поездки")}
       </button>
 
       {trip && !lockedOut && (
-        <div className="fixed top-3 right-3 z-40 flex gap-2">
+        <div className="fixed top-3 end-3 z-40 flex gap-2">
           {ready && (
             <button
               type="button"
@@ -112,8 +113,8 @@ export default function Home() {
               className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
                 trip.export_doc_id ? "text-[#1d3b5c]" : "text-stone-400"
               }`}
-              aria-label="Выгрузить поездку в Google Drive для NotebookLM"
-              title="Выгрузить в Google Drive для NotebookLM"
+              aria-label={t("Выгрузить поездку в Google Drive для NotebookLM")}
+              title={t("Выгрузить в Google Drive для NotebookLM")}
             >
               <BookOpen className="h-4 w-4" />
             </button>
@@ -125,8 +126,8 @@ export default function Home() {
               className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
                 isTripLocked(trip) ? "text-[#1d3b5c]" : "text-stone-400"
               }`}
-              aria-label={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
-              title={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
+              aria-label={isTripLocked(trip) ? t("Поездка закрыта PIN-кодом") : t("Закрыть поездку PIN-кодом")}
+              title={isTripLocked(trip) ? t("Поездка закрыта PIN-кодом") : t("Закрыть поездку PIN-кодом")}
             >
               {isTripLocked(trip) ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
             </button>
@@ -141,12 +142,12 @@ export default function Home() {
             className="font-display text-3xl sm:text-4xl font-semibold tracking-tight"
             style={{ color: "#1d3b5c" }}
           >
-            {!trip ? "Загрузка…" : hidden ? PRIVATE_TRIP_LABEL : `${trip.city} ${tripYearLabel(trip)}`}
+            {!trip ? t("Загрузка…") : hidden ? t(PRIVATE_TRIP_LABEL) : `${trip.city} ${tripYearLabel(trip)}`}
           </h1>
           {trip && !hidden && (
             <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">
               {country && <CountryFlag code={country.code} width={20} />}
-              {trip.country}
+              {countryLabel(trip)}
             </p>
           )}
         </div>
@@ -161,8 +162,7 @@ export default function Home() {
           </div>
         ) : tripDays.length === 0 ? (
           <p className="text-center text-stone-500 py-16">
-            У этой поездки не указаны даты. Вернитесь к списку поездок и укажите
-            даты вылета и возвращения.
+            {t("У этой поездки не указаны даты. Вернитесь к списку поездок и укажите даты вылета и возвращения.")}
           </p>
         ) : (
           // Same tile everywhere, five across on a phone and six on a desktop,
@@ -185,8 +185,8 @@ export default function Home() {
                   initial={false}
                   whileHover={{ y: -5, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
-                  title={`${day.label} — ${plan?.city || trip.city}${filled ? "" : " (план скоро)"}`}
-                  className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 text-left shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
+                  title={`${day.label} — ${plan?.city || trip.city}${filled ? "" : ` (${t("план скоро")})`}`}
+                  className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 text-start shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
                   style={{
                     background:
                       "linear-gradient(150deg, rgba(29,59,92,0.66) 0%, rgba(44,95,138,0.58) 60%, rgba(58,124,165,0.52) 100%)",
@@ -218,7 +218,7 @@ export default function Home() {
                   </div>
 
                   <span
-                    className="absolute bottom-0 left-0 h-1 w-0 group-hover:w-full transition-all duration-300"
+                    className="absolute bottom-0 start-0 h-1 w-0 group-hover:w-full transition-all duration-300"
                     style={{ backgroundColor: "#c4623a" }}
                   />
                 </motion.button>
@@ -240,9 +240,9 @@ export default function Home() {
                 onClick={() => setPageIndex(page - 1)}
                 disabled={page === 0}
                 className="grid h-8 w-8 place-items-center rounded-full text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 disabled:opacity-30 disabled:hover:bg-transparent"
-                aria-label="Предыдущая страница"
+                aria-label={t("Предыдущая страница")}
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
               </button>
               <span className="px-1 text-sm font-medium tabular-nums text-stone-600">
                 {page + 1}/{pages.length}
@@ -252,9 +252,9 @@ export default function Home() {
                 onClick={() => setPageIndex(page + 1)}
                 disabled={page >= pages.length - 1}
                 className="grid h-8 w-8 place-items-center rounded-full text-stone-600 transition hover:bg-stone-100 hover:text-stone-900 disabled:opacity-30 disabled:hover:bg-transparent"
-                aria-label="Следующая страница"
+                aria-label={t("Следующая страница")}
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 rtl:rotate-180" />
               </button>
             </div>
           </div>

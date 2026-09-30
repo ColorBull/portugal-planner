@@ -123,7 +123,7 @@ export function useHoldMenu(items) {
               key={item.key}
               type="button"
               onClick={() => choose(item)}
-              className={`no-long-press flex w-full items-center gap-2.5 px-3.5 py-3 text-left text-sm transition hover:bg-stone-100 active:bg-stone-100 ${
+              className={`no-long-press flex w-full items-center gap-2.5 px-3.5 py-3 text-start text-sm transition hover:bg-stone-100 active:bg-stone-100 ${
                 item.danger ? "text-red-600 hover:bg-red-50 active:bg-red-50" : "text-stone-700"
               }`}
             >

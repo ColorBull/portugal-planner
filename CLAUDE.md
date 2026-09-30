@@ -101,6 +101,25 @@ entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
 correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
 
+## Languages
+
+Russian, English and Hebrew (RTL), chosen with the globe button at the top left
+of the trip list / sign-in screen (`LanguageSwitch.jsx`), kept in `localStorage`
+(`pp_lang`). `src/lib/i18n.jsx`: the **Russian text is the key** —
+`t("Сохранить")`, `t("Введите {n} цифры.", { n })` — looked up in
+`src/lib/i18n/en.js` / `he.js`; a missing entry just shows the Russian. Constants
+holding Russian text (`EXTRAS`, `ICON_OPTIONS`, `PRIVATE_TRIP_LABEL`) stay
+Russian and are translated where shown: `t(label)`. A switch remounts the routes
+(`key={lang}` in `App.jsx`) so `t` is re-run. Country names come from `nameEn` /
+`Intl.DisplayNames` (`countryName` in `lib/countries.js`; `trip.country` stays
+the stored Russian name); month / weekday names from `lib/tripDays.js`. What
+the family types (cities, plan items, notes) is data and is never translated.
+Adding a string: wrap it in `t()` and add it to both dictionaries.
+RTL: `<html dir>` flips; use logical classes (`ms-`, `me-`, `ps-`, `pe-`,
+`start-`, `end-`, `text-start`, `border-s`, `rtl:rotate-180` on arrows), never
+`ml-`/`pl-`/`left-`/`text-left`. The map layer is forced `dir="ltr"`, and so is
+the language button. The NotebookLM export follows the language too.
+
 ## Phone layout
 
 The day view is a full-page sheet on every screen size (`h-dvh`; header, body

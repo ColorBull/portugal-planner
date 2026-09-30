@@ -1,6 +1,8 @@
 // Costs on plan items, the first day's insurance / SIM card, and day totals.
 // A cost is stored as a plain number in the trip's currency (trip.currency).
 
+import { localeTag } from "@/lib/i18n";
+
 export const CURRENCIES = ["€", "$", "₪", "£", "₽", "zł", "CHF"];
 export const DEFAULT_CURRENCY = "€";
 
@@ -17,7 +19,7 @@ export function parseCost(value) {
 }
 
 export function formatMoney(amount, currency = DEFAULT_CURRENCY) {
-  const n = new Intl.NumberFormat("ru-RU", {
+  const n = new Intl.NumberFormat(localeTag(), {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount || 0);

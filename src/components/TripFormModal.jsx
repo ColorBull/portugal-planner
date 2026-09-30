@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { X, Loader2, Globe2 } from "lucide-react";
 import CountrySelect from "@/components/CountrySelect";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/money";
+import { t } from "@/lib/i18n";
 
 const field =
   "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 " +
@@ -38,14 +39,14 @@ export default function TripFormModal({ trip, onSave, onClose }) {
     const country = form.country.trim();
     const city = form.city.trim();
 
-    if (!country || !city) return setError("Укажите страну и город.");
-    if (!form.startDate || !form.endDate) return setError("Укажите даты поездки.");
+    if (!country || !city) return setError(t("Укажите страну и город."));
+    if (!form.startDate || !form.endDate) return setError(t("Укажите даты поездки."));
     // The year comes from the dates (the start year; the label shows
     // "2026-2027" when the trip runs into the next one).
     const year = Number(form.startDate.slice(0, 4));
-    if (!year || year < 1900 || year > 2999) return setError("Проверьте даты поездки.");
+    if (!year || year < 1900 || year > 2999) return setError(t("Проверьте даты поездки."));
     if (form.endDate < form.startDate)
-      return setError("Дата возвращения раньше даты вылета.");
+      return setError(t("Дата возвращения раньше даты вылета."));
 
     setSaving(true);
     setError(null);
@@ -62,7 +63,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
       onClose();
     } catch (err) {
       console.error(err);
-      setError("Не удалось сохранить поездку.");
+      setError(t("Не удалось сохранить поездку."));
       setSaving(false);
     }
   };
@@ -96,23 +97,23 @@ export default function TripFormModal({ trip, onSave, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="absolute top-5 right-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
-            aria-label="Закрыть"
+            className="absolute top-5 end-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
+            aria-label={t("Закрыть")}
           >
             <X className="h-5 w-5" />
           </button>
           <div className="flex items-center gap-2 text-white/70 text-xs font-semibold tracking-widest uppercase">
             <Globe2 className="h-4 w-4" />
-            {trip ? "Изменить поездку" : "Новая поездка"}
+            {trip ? t("Изменить поездку") : t("Новая поездка")}
           </div>
           <h2 className="mt-2 font-display text-2xl font-semibold text-white">
-            Куда летим?
+            {t("Куда летим?")}
           </h2>
         </div>
 
         <div className="px-7 py-6 space-y-4">
           <div>
-            <label className={label} htmlFor="trip-country">Страна</label>
+            <label className={label} htmlFor="trip-country">{t("Страна")}</label>
             <CountrySelect
               id="trip-country"
               value={form.countryCode}
@@ -122,19 +123,19 @@ export default function TripFormModal({ trip, onSave, onClose }) {
           </div>
 
           <div>
-            <label className={label} htmlFor="trip-city">Город</label>
+            <label className={label} htmlFor="trip-city">{t("Город")}</label>
             <input
               id="trip-city"
               className={field}
               value={form.city}
               onChange={set("city")}
-              placeholder="Краков"
+              placeholder={t("Краков")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={label} htmlFor="trip-start">Вылет</label>
+              <label className={label} htmlFor="trip-start">{t("Вылет")}</label>
               <input
                 id="trip-start"
                 type="date"
@@ -144,7 +145,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
               />
             </div>
             <div>
-              <label className={label} htmlFor="trip-end">Возвращение</label>
+              <label className={label} htmlFor="trip-end">{t("Возвращение")}</label>
               <input
                 id="trip-end"
                 type="date"
@@ -156,7 +157,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
           </div>
 
           <div>
-            <label className={label} htmlFor="trip-currency">Валюта расходов</label>
+            <label className={label} htmlFor="trip-currency">{t("Валюта расходов")}</label>
             <select
               id="trip-currency"
               className={field}
@@ -183,7 +184,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
             onClick={onClose}
             className="rounded-xl px-4 py-2.5 text-stone-600 font-medium transition hover:bg-stone-200/60"
           >
-            Отмена
+            {t("Отмена")}
           </button>
           <button
             type="submit"
@@ -192,7 +193,7 @@ export default function TripFormModal({ trip, onSave, onClose }) {
             style={{ backgroundColor: "#1d3b5c" }}
           >
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Сохранить
+            {t("Сохранить")}
           </button>
         </div>
       </motion.form>

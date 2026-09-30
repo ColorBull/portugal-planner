@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
+import { t } from "@/lib/i18n";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
@@ -105,15 +106,15 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
           e.stopPropagation();
           onClose();
         }}
-        className="absolute top-4 right-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
-        aria-label="Закрыть"
+        className="absolute top-4 end-4 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
+        aria-label={t("Закрыть")}
       >
         <X className="h-5 w-5" />
       </button>
 
       <img
         src={shown}
-        alt="Просмотр фото"
+        alt={t("Просмотр фото")}
         draggable={false}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}

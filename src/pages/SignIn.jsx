@@ -1,5 +1,7 @@
 import { Plane, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
+import { t } from "@/lib/i18n";
+import LanguageSwitch from "@/components/LanguageSwitch";
 
 const shell =
   "relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-10 text-center";
@@ -23,6 +25,7 @@ export function SignInScreen() {
   const { signIn, signingIn, error } = useAuth();
   return (
     <div className={shell} style={bg}>
+      <LanguageSwitch />
       <span
         className="grid h-16 w-16 place-items-center rounded-2xl mb-6 shadow-lg"
         style={{ background: "linear-gradient(150deg,#1d3b5c,#3a7ca5)" }}
@@ -35,7 +38,7 @@ export function SignInScreen() {
       >
         Trip Planner
       </h1>
-      <p className="text-stone-500 mb-8">Войдите, чтобы открыть план поездки</p>
+      <p className="text-stone-500 mb-8">{t("Войдите, чтобы открыть план поездки")}</p>
 
       <button
         onClick={signIn}
@@ -43,7 +46,7 @@ export function SignInScreen() {
         className="inline-flex items-center gap-3 rounded-full bg-white px-6 py-3 text-sm font-medium text-stone-700 shadow-md ring-1 ring-stone-200 transition hover:shadow-lg disabled:opacity-60"
       >
         <GoogleGlyph className="h-5 w-5" />
-        {signingIn ? "Вход…" : "Войти через Google"}
+        {signingIn ? t("Вход…") : t("Войти через Google")}
       </button>
 
       {error && <p className="mt-4 text-sm text-red-600 max-w-xs">{error}</p>}
@@ -55,19 +58,20 @@ export function AccessRestricted() {
   const { user, signOut } = useAuth();
   return (
     <div className={shell} style={bg}>
+      <LanguageSwitch />
       <h1 className="font-display text-3xl font-semibold mb-3" style={{ color: "#1d3b5c" }}>
-        Нет доступа
+        {t("Нет доступа")}
       </h1>
       <p className="text-stone-600 max-w-sm">
-        Аккаунт <span className="font-medium">{user?.email}</span> не в списке
-        участников поездки. Попросите добавить его или войдите другим аккаунтом.
+        {t("Аккаунт")} <span className="font-medium" dir="ltr">{user?.email}</span>{" "}
+        {t("не в списке участников поездки. Попросите добавить его или войдите другим аккаунтом.")}
       </p>
       <button
         onClick={signOut}
         className="mt-6 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-stone-600 ring-1 ring-stone-300 transition hover:bg-white"
       >
         <LogOut className="h-4 w-4" />
-        Выйти
+        {t("Выйти")}
       </button>
     </div>
   );

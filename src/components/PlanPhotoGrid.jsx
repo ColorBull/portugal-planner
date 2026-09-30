@@ -14,6 +14,7 @@ import { Image } from "@/components/ui/image";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { openExternal } from "@/lib/openExternal";
 import { useAuth } from "@/lib/AuthContext";
+import { t } from "@/lib/i18n";
 
 const LONG_PRESS_MS = 450;
 
@@ -140,7 +141,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   // Google dialog and the upload dies with "authorization was cancelled".
   const pickFile = async (ref) => {
     if (!isOnline()) {
-      alert("Нет подключения к интернету. Загрузить файл можно, когда появится сеть.");
+      alert(t("Нет подключения к интернету. Загрузить файл можно, когда появится сеть."));
       return;
     }
     if (!hasDriveAccess()) {
@@ -171,7 +172,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
       onChanged();
     } catch (err) {
       console.error(err);
-      alert("Не удалось загрузить файл. " + (err?.message || ""));
+      alert(t("Не удалось загрузить файл. ") + (err?.message || ""));
     } finally {
       setUploading(false);
       if (imgInputRef.current) imgInputRef.current.value = "";
@@ -191,7 +192,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   };
 
   return (
-    <div className={docs.length || images.length || uploading || tapAgain ? "mt-3 ml-1" : ""}>
+    <div className={docs.length || images.length || uploading || tapAgain ? "mt-3 ms-1" : ""}>
       {docs.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2.5">
           {docs.map((d) => {
@@ -215,17 +216,17 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                     }
                     openDocument(d);
                   }}
-                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-left touch-pan-y"
+                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-start touch-pan-y"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 shrink-0">
                     <Icon className="h-4 w-4" />
                   </span>
                   <span className="min-w-0">
                     <span className="block text-sm font-medium text-stone-700 truncate">
-                      {d.file_name || "Документ"}
+                      {d.file_name || t("Документ")}
                     </span>
                     <span className="block text-[11px] text-stone-400 uppercase tracking-wide">
-                      {fileExt(d.file_name) || "файл"}
+                      {fileExt(d.file_name) || t("файл")}
                     </span>
                   </span>
                 </button>
@@ -258,11 +259,11 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                     setLightbox(p.drive_file_id);
                   }}
                   className="no-long-press block h-full w-full touch-pan-y"
-                  aria-label="Просмотреть фото"
+                  aria-label={t("Просмотреть фото")}
                 >
                   <Image
                     src={driveImageUrl(p.drive_file_id, 600)}
-                    alt={p.caption || "Место из плана"}
+                    alt={p.caption || t("Место из плана")}
                     className="h-full w-full object-cover pointer-events-none select-none"
                     fittingType="fill"
                   />
@@ -297,13 +298,13 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
       {uploading && (
         <div className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-stone-300 px-3.5 py-2 text-[13px] font-medium text-stone-500 sm:px-3 sm:py-1.5 sm:text-xs">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Загрузка…
+          {t("Загрузка…")}
         </div>
       )}
 
       {tapAgain && !uploading && (
         <p className="mt-1.5 text-[11px] text-stone-500">
-          Google Drive подключён — откройте меню «⋯» и выберите действие ещё раз.
+          {t("Google Drive подключён — откройте меню «⋯» и выберите действие ещё раз.")}
         </p>
       )}
 
@@ -324,10 +325,10 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
             >
               <button
                 onClick={() => handleDelete(activeRecord)}
-                className="no-long-press flex w-full items-center gap-2 px-3.5 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                className="no-long-press flex w-full items-center gap-2 px-3.5 py-3 text-sm text-red-600 hover:bg-red-50 transition text-start"
               >
                 <Trash2 className="h-4 w-4 shrink-0" />
-                Удалить
+                {t("Удалить")}
               </button>
             </motion.div>
           </>

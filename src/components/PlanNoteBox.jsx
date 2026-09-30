@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Link2, X, Loader2 } from "lucide-react";
 import { useHoldMenu } from "@/lib/useHoldMenu";
 import { TripNote } from "@/api/entities";
 import { openExternal } from "@/lib/openExternal";
+import { t } from "@/lib/i18n";
 
 const normalizeLink = (l) => {
   if (!l) return "";
@@ -42,7 +43,7 @@ function NoteText({ text }) {
           onClick={() => setExpanded((v) => !v)}
           className="mt-1 text-xs font-medium text-blue-700 hover:text-blue-900 transition"
         >
-          {expanded ? "Свернуть" : "Читать далее…"}
+          {expanded ? t("Свернуть") : t("Читать далее…")}
         </button>
       )}
     </>
@@ -136,20 +137,20 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
     }
   };
   const { bind, menu } = useHoldMenu([
-    { key: "edit", label: "Изменить", icon: Pencil, run: startEdit },
+    { key: "edit", label: t("Изменить"), icon: Pencil, run: startEdit },
     ...(note?.link && note?.text
-      ? [{ key: "link", label: "Удалить ссылку", icon: Link2, danger: true, run: dropLink }]
+      ? [{ key: "link", label: t("Удалить ссылку"), icon: Link2, danger: true, run: dropLink }]
       : []),
-    { key: "del", label: "Удалить заметку", icon: Trash2, danger: true, run: remove },
+    { key: "del", label: t("Удалить заметку"), icon: Trash2, danger: true, run: remove },
   ]);
 
   if (editing) {
     return (
-      <div className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+      <div className="mt-3 ms-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
         <textarea
           value={draft.text}
           onChange={(e) => setDraft({ ...draft, text: e.target.value })}
-          placeholder="Свободный текст…"
+          placeholder={t("Свободный текст…")}
           rows={2}
           className="w-full resize-none rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2.5 text-base text-stone-700 sm:py-2 sm:text-sm placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
         />
@@ -158,7 +159,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
           <input
             value={draft.link}
             onChange={(e) => setDraft({ ...draft, link: e.target.value })}
-            placeholder="Ссылка (https://…)"
+            placeholder={t("Ссылка (https://…)")}
             className="min-w-0 flex-1 rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2.5 text-base text-stone-700 sm:py-2 sm:text-sm placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
           />
         </div>
@@ -167,7 +168,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
             onClick={() => setEditing(false)}
             className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full text-stone-500 hover:text-stone-700 transition"
           >
-            <X className="h-3.5 w-3.5" /> Отмена
+            <X className="h-3.5 w-3.5" /> {t("Отмена")}
           </button>
           <button
             onClick={save}
@@ -179,7 +180,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
             ) : (
               <Plus className="h-3.5 w-3.5" />
             )}
-            Сохранить
+            {t("Сохранить")}
           </button>
         </div>
       </div>
@@ -189,7 +190,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
   if (!note) return null;
 
   return (
-    <div {...bind} className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+    <div {...bind} className="mt-3 ms-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
       {menu}
       {note.text && <NoteText text={note.text} />}
       {note.link && (
@@ -214,13 +215,13 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
           onClick={startEdit}
           className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition"
         >
-          <Pencil className="h-3.5 w-3.5" /> Изменить
+          <Pencil className="h-3.5 w-3.5" /> {t("Изменить")}
         </button>
         <button
           onClick={remove}
           className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-red-500 hover:bg-red-50 transition"
         >
-          <Trash2 className="h-3.5 w-3.5" /> Удалить
+          <Trash2 className="h-3.5 w-3.5" /> {t("Удалить")}
         </button>
       </div>
     </div>

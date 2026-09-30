@@ -98,7 +98,7 @@ export default function AddressInput({ value, onChange, className, placeholder, 
           autoComplete="off"
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-stone-400" />
+          <Loader2 className="absolute end-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-stone-400" />
         )}
       </div>
 
@@ -112,7 +112,7 @@ export default function AddressInput({ value, onChange, className, placeholder, 
               <button
                 type="button"
                 onClick={() => pick(place)}
-                className="flex w-full items-start gap-2.5 px-3 py-3 text-left text-sm text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2"
+                className="flex w-full items-start gap-2.5 px-3 py-3 text-start text-sm text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2"
               >
                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-400" />
                 <span className="min-w-0 break-words">{place.display_name}</span>

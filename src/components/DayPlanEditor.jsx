@@ -5,6 +5,7 @@ import AddressInput from "@/components/AddressInput";
 import { uid } from "@/api/trips";
 import { EXTRAS } from "@/lib/money";
 import { useIsPhone } from "@/lib/useIsPhone";
+import { t } from "@/lib/i18n";
 
 const input =
   "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm " +
@@ -93,13 +94,13 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
   return (
     <div className="space-y-5">
       <div>
-        <label className={hint} htmlFor="day-city">Город этого дня</label>
+        <label className={hint} htmlFor="day-city">{t("Город этого дня")}</label>
         <input
           id="day-city"
           className={input}
           value={value.city || ""}
           onChange={(e) => onChange({ ...value, city: e.target.value })}
-          placeholder="Например, Порту"
+          placeholder={t("Например, Порту")}
         />
       </div>
 
@@ -114,16 +115,16 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                 className="rounded-2xl border bg-white p-4 shadow-sm space-y-2"
                 style={{ borderColor: "#ece3d4" }}
               >
-                <label className={hint}>{title}</label>
+                <label className={hint}>{t(title)}</label>
                 <input
                   className={input}
                   value={extra.company || ""}
                   onChange={(e) => patch({ company: e.target.value })}
-                  placeholder={placeholder}
+                  placeholder={t(placeholder)}
                 />
                 <div className="flex items-center gap-2">
                   <span className="flex-1 text-xs text-stone-400">
-                    Документ можно добавить после сохранения
+                    {t("Документ можно добавить после сохранения")}
                   </span>
                   <CostInput
                     value={extra.cost}
@@ -163,7 +164,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                           <span
                             {...dragSection.dragHandleProps}
                             className="grid h-11 w-8 shrink-0 cursor-grab place-items-center rounded-lg text-stone-400 hover:bg-stone-100 active:cursor-grabbing sm:h-9 sm:w-7"
-                            aria-label="Переместить блок"
+                            aria-label={t("Переместить блок")}
                           >
                             <GripVertical className="h-5 w-5" />
                           </span>
@@ -179,14 +180,14 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                             className={input}
                             value={section.title}
                             onChange={(e) => patchSection(sIndex, { title: e.target.value })}
-                            placeholder="Название блока — например, «Утро»"
+                            placeholder={t("Название блока — например, «Утро»")}
                           />
 
                           <button
                             type="button"
                             onClick={() => removeSection(sIndex)}
                             className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f] active:bg-[#f7e9e3] sm:h-9 sm:w-9"
-                            aria-label="Удалить блок"
+                            aria-label={t("Удалить блок")}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -194,7 +195,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
 
                         <div className="mt-2.5 sm:mt-3 sm:max-w-[50%]">
                           <div>
-                            <label className={hint}>Иконка</label>
+                            <label className={hint}>{t("Иконка")}</label>
                             <select
                               className={input}
                               value={section.icon}
@@ -202,7 +203,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                             >
                               {ICON_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>
-                                  {o.label}
+                                  {t(o.label)}
                                 </option>
                               ))}
                             </select>
@@ -240,7 +241,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               onChange={(e) =>
                                                 patchItem(sIndex, iIndex, { text: e.target.value })
                                               }
-                                              placeholder="Что делаем"
+                                              placeholder={t("Что делаем")}
                                             />
                                           ),
                                           address: (
@@ -248,7 +249,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               className={input}
                                               value={item.address || ""}
                                               onChange={(patch) => patchItem(sIndex, iIndex, patch)}
-                                              placeholder="Адрес (необязательно)"
+                                              placeholder={t("Адрес (необязательно)")}
                                             />
                                           ),
                                           cost: (
@@ -263,7 +264,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               type="button"
                                               onClick={() => removeItem(sIndex, iIndex)}
                                               className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f] active:bg-[#f7e9e3] sm:mt-1 sm:h-8 sm:w-8 sm:rounded-lg"
-                                              aria-label="Удалить пункт"
+                                              aria-label={t("Удалить пункт")}
                                             >
                                               <Trash2 className="h-4 w-4" />
                                             </button>
@@ -273,7 +274,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                           <span
                                             {...dragItem.dragHandleProps}
                                             className="grid h-11 w-11 shrink-0 cursor-grab place-items-center rounded-xl text-stone-400 hover:bg-stone-200/60 active:cursor-grabbing sm:mt-1 sm:h-8 sm:w-6 sm:rounded-lg"
-                                            aria-label="Переместить пункт"
+                                            aria-label={t("Переместить пункт")}
                                           >
                                             <GripVertical className="h-5 w-5 sm:h-4 sm:w-4" />
                                           </span>
@@ -323,7 +324,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                           className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-800 active:bg-stone-100 sm:rounded-lg sm:px-2.5 sm:py-1.5"
                         >
                           <Plus className="h-4 w-4" />
-                          Добавить пункт
+                          {t("Добавить пункт")}
                         </button>
                       </div>
                     )}
@@ -342,7 +343,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
         className="w-full rounded-2xl border-2 border-dashed border-stone-300 py-4 text-stone-500 sm:py-3 transition hover:border-[#1d3b5c] hover:text-[#1d3b5c] inline-flex items-center justify-center gap-2 font-medium"
       >
         <Plus className="h-5 w-5" />
-        Добавить блок
+        {t("Добавить блок")}
       </button>
     </div>
   );
@@ -352,14 +353,14 @@ function CostInput({ value, currency, onChange }) {
   return (
     <div className="relative min-w-0 flex-1 sm:w-28 sm:flex-none sm:shrink-0">
       <input
-        className={`${input} pr-9 text-right tabular-nums`}
+        className={`${input} pe-9 text-end tabular-nums`}
         inputMode="decimal"
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Цена"
-        aria-label="Стоимость"
+        placeholder={t("Цена")}
+        aria-label={t("Стоимость")}
       />
-      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+      <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
         {currency}
       </span>
     </div>

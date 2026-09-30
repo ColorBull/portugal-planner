@@ -8,6 +8,7 @@
 
 import { DRIVE_FOLDER_ID } from "@/config";
 import { renewDriveToken } from "@/api/googleToken";
+import { t } from "@/lib/i18n";
 
 const TOKEN_KEY = "pp_drive_token";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
@@ -16,10 +17,12 @@ const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 // screen (granular permissions). If the user clicks through without ticking it,
 // sign-in still succeeds but the access token carries no drive.file scope and
 // every Drive call returns 403 "insufficient authentication scopes".
-const SCOPE_HELP =
-  "Нет доступа к Google Drive. При входе через Google нужно поставить галочку " +
-  '«…просмотр и изменение файлов Google Drive, открытых в этом приложении». ' +
-  "Выйдите (значок выхода вверху справа) и войдите снова, отметив эту галочку.";
+const scopeHelp = () =>
+  t(
+    "Нет доступа к Google Drive. При входе через Google нужно поставить галочку " +
+      '«…просмотр и изменение файлов Google Drive, открытых в этом приложении». ' +
+      "Выйдите (значок выхода вверху справа) и войдите снова, отметив эту галочку."
+  );
 
 // Ask Google whether a token actually carries the drive.file scope.
 export async function tokenGrantsDrive(t) {
@@ -126,7 +129,7 @@ async function token() {
   const fresh = await reauthorize();
   if (!fresh) {
     throw new Error(
-      "Доступ к Google Drive не подтверждён. Нажмите «Фото» или «Документ» ещё раз и разрешите доступ."
+      t("Доступ к Google Drive не подтверждён. Нажмите «Фото» или «Документ» ещё раз и разрешите доступ.")
     );
   }
   return fresh;
@@ -150,7 +153,7 @@ async function driveFetch(url, options = {}, retry = true) {
   }
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    if (isScopeError(res.status, body)) throw new Error(SCOPE_HELP);
+    if (isScopeError(res.status, body)) throw new Error(scopeHelp());
     throw new Error(`Drive ${res.status}: ${body.slice(0, 200)}`);
   }
   return res;

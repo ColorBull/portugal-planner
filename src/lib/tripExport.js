@@ -5,6 +5,8 @@
 import { buildDays, tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
 import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
 import { driveViewUrl } from "@/api/drive";
+import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
+import { countryLabel } from "@/lib/countries";
 
 const esc = (s) =>
   String(s ?? "")
@@ -31,15 +33,15 @@ function group(records) {
 }
 
 const noteHtml = (n) =>
-  `<li><i>Заметка:</i> ${esc(n.text)}${n.link ? ` ${link(n.link)}` : ""}</li>`;
+  `<li><i>${t("Заметка")}:</i> ${esc(n.text)}${n.link ? ` ${link(n.link)}` : ""}</li>`;
 
 const fileHtml = (p) =>
   p.kind === "document"
-    ? `<li><i>Документ:</i> ${link(driveViewUrl(p.drive_file_id), p.file_name || "документ")}</li>`
-    : `<li><i>Фото:</i> ${link(driveViewUrl(p.drive_file_id), "открыть фото")}</li>`;
+    ? `<li><i>${t("Документ")}:</i> ${link(driveViewUrl(p.drive_file_id), p.file_name || t("документ"))}</li>`
+    : `<li><i>${t("Фото")}:</i> ${link(driveViewUrl(p.drive_file_id), t("открыть фото"))}</li>`;
 
 export function tripDocName(trip) {
-  return `${trip.city} ${tripYearLabel(trip)} — план поездки`;
+  return `${trip.city} ${tripYearLabel(trip)} — ${t("план поездки")}`;
 }
 
 export function buildTripHtml({ trip, days, notes, photos }) {
@@ -61,17 +63,17 @@ export function buildTripHtml({ trip, days, notes, photos }) {
     if (!sections.length && !hasExtras && !Object.keys(dayNotes).length) return;
 
     body.push(
-      `<h2>День ${day.dayNumber}: ${esc(day.label)} (${esc(day.weekday)}), ${esc(plan?.city || trip.city)} — ${esc(day.key)}</h2>`
+      `<h2>${t("День")} ${day.dayNumber}: ${esc(day.label)} (${esc(day.weekday)}), ${esc(plan?.city || trip.city)} — ${esc(day.key)}</h2>`
     );
 
     if (hasExtras) {
-      body.push("<h3>Страховка и SIM-карта</h3><ul>");
+      body.push(`<h3>${t("Страховка и SIM-карта")}</h3><ul>`);
       EXTRAS.forEach(({ key, title }) => {
         const x = plan?.[key];
         if (!x?.company && !x?.cost) return;
         const cost = parseCost(x.cost);
         body.push(
-          `<li>${esc(title)}: ${esc(x.company || "—")}${cost === null ? "" : `, ${esc(formatMoney(cost, currency))}`}</li>`
+          `<li>${esc(t(title))}: ${esc(x.company || "—")}${cost === null ? "" : `, ${esc(formatMoney(cost, currency))}`}</li>`
         );
         (dayFiles[key] || []).forEach((p) => body.push(`<ul>${fileHtml(p)}</ul>`));
         used.add(key);
@@ -81,7 +83,7 @@ export function buildTripHtml({ trip, days, notes, photos }) {
 
     sections.forEach((s) => {
       body.push(`<h3>${esc(s.title)}</h3>`);
-      const sm = s.mapUrl ? `<p>${link(s.mapUrl, "Маршрут на карте")}</p>` : "";
+      const sm = s.mapUrl ? `<p>${link(s.mapUrl, t("Маршрут на карте"))}</p>` : "";
       body.push(sm, "<ul>");
       (s.items || []).forEach((it) => {
         const cost = parseCost(it.cost);
@@ -107,20 +109,24 @@ export function buildTripHtml({ trip, days, notes, photos }) {
       ...Object.entries(dayNotes).filter(([k]) => !used.has(k)).flatMap(([, v]) => v.map(noteHtml)),
       ...Object.entries(dayFiles).filter(([k]) => !used.has(k)).flatMap(([, v]) => v.map(fileHtml)),
     ];
-    if (loose.length) body.push(`<h3>Прочее</h3><ul>${loose.join("")}</ul>`);
+    if (loose.length) body.push(`<h3>${t("Прочее")}</h3><ul>${loose.join("")}</ul>`);
 
     const total = dayTotal(plan);
     tripTotal += total;
-    if (total) body.push(`<p><b>Итого за день: ${esc(formatMoney(total, currency))}</b></p>`);
+    if (total) body.push(`<p><b>${t("Итого за день")}: ${esc(formatMoney(total, currency))}</b></p>`);
   });
 
   const head = [
-    `<h1>${esc(trip.city)} ${esc(tripYearLabel(trip))} — ${esc(trip.country)}</h1>`,
-    `<p>Даты: ${esc(tripRangeLabel(trip))}. Валюта: ${esc(currency)}.` +
-      (tripTotal ? ` Общая стоимость по плану: <b>${esc(formatMoney(tripTotal, currency))}</b>.` : "") +
+    `<h1>${esc(trip.city)} ${esc(tripYearLabel(trip))} — ${esc(countryLabel(trip))}</h1>`,
+    `<p>${t("Даты")}: ${esc(tripRangeLabel(trip))}. ${t("Валюта")}: ${esc(currency)}.` +
+      (tripTotal ? ` ${t("Общая стоимость по плану")}: <b>${esc(formatMoney(tripTotal, currency))}</b>.` : "") +
       "</p>",
-    `<p><i>Обновлено: ${esc(new Date().toLocaleString("ru-RU"))}. Документ создан автоматически из приложения Portugal Planner — правьте план там, а не здесь.</i></p>`,
+    `<p><i>${esc(
+      t("Обновлено: {date}. Документ создан автоматически из приложения Portugal Planner — правьте план там, а не здесь.", {
+        date: new Date().toLocaleString(localeTag()),
+      })
+    )}</i></p>`,
   ];
 
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(tripDocName(trip))}</title></head><body>${head.join("")}${body.join("")}</body></html>`;
+  return `<!doctype html><html lang="${getLang()}" dir="${isRtl() ? "rtl" : "ltr"}"><head><meta charset="utf-8"><title>${esc(tripDocName(trip))}</title></head><body dir="${isRtl() ? "rtl" : "ltr"}">${head.join("")}${body.join("")}</body></html>`;
 }

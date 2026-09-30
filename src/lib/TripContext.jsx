@@ -16,6 +16,7 @@ import { setActiveTripId } from "@/api/entities";
 import { isOnline } from "@/api/offline";
 import { driveImageUrl } from "@/api/drive";
 import { useOnline } from "@/lib/useOnline";
+import { t } from "@/lib/i18n";
 
 // Photo thumbnails already requested this session. Fetching one through the
 // service worker (public/sw.js) is what stores it on the device.
@@ -61,9 +62,9 @@ export function TripProvider({ children }) {
       // leaving a dead end.
       setError(
         e?.code === "permission-denied"
-          ? "Нет доступа к базе. Опубликуйте правила Firestore из firestore.rules " +
+          ? t("Нет доступа к базе. Опубликуйте правила Firestore из firestore.rules ") +
             "(Firebase Console → Firestore → Rules → Publish)."
-          : `Не удалось загрузить поездки. ${e?.code || e?.message || ""}`.trim()
+          : `${t("Не удалось загрузить поездки.")} ${e?.code || e?.message || ""}`.trim()
       );
     } finally {
       setLoading(false);

@@ -24,6 +24,7 @@ export default function MapBackdrop() {
 
   return (
     <div
+      dir="ltr"
       className="viewport-tall fixed left-0 top-0 z-0 w-full overflow-hidden"
       style={{ background: PAPER }}
     >

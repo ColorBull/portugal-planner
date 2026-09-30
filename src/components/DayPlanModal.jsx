@@ -32,7 +32,9 @@ import { uid } from "@/api/trips";
 import { tripYearLabel } from "@/lib/tripDays";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { useHoldMenu } from "@/lib/useHoldMenu";
+import { countryLabel } from "@/lib/countries";
 import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
+import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
@@ -53,8 +55,8 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
 
   // Hold (or right-click) the badge to change or delete the price.
   const { bind, menu } = useHoldMenu([
-    { key: "edit", label: "Изменить цену", icon: Pencil, run: start },
-    { key: "del", label: "Удалить цену", icon: Trash2, danger: true, run: () => onSave(null) },
+    { key: "edit", label: t("Изменить цену"), icon: Pencil, run: start },
+    { key: "del", label: t("Удалить цену"), icon: Trash2, danger: true, run: () => onSave(null) },
   ]);
 
   const commit = async () => {
@@ -66,7 +68,7 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
       setEditing(false);
     } catch (err) {
       console.error(err);
-      alert("Не удалось сохранить цену.");
+      alert(t("Не удалось сохранить цену."));
     } finally {
       setBusy(false);
     }
@@ -74,7 +76,7 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
 
   if (editing) {
     return (
-      <span className="ml-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs">
+      <span className="ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs">
         <input
           autoFocus
           inputMode="decimal"
@@ -87,7 +89,7 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
             if (e.key === "Escape") setEditing(false);
           }}
           placeholder="0"
-          className="w-16 bg-transparent text-right text-base tabular-nums outline-none sm:text-xs"
+          className="w-16 bg-transparent text-end text-base tabular-nums outline-none sm:text-xs"
         />
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : currency}
       </span>
@@ -102,10 +104,11 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
     {menu}
     <button
       type="button"
+      dir="ltr"
       {...bind}
       onClick={start}
-      title="Изменить цену"
-      className="ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
+      title={t("Изменить цену")}
+      className="ms-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
     >
       {formatMoney(amount, currency)}
     </button>
@@ -131,10 +134,10 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
   useImperativeHandle(ref, () => ({ start }));
 
   const { bind, menu } = useHoldMenu([
-    { key: "edit", label: "Изменить адрес", icon: Pencil, run: start },
+    { key: "edit", label: t("Изменить адрес"), icon: Pencil, run: start },
     {
       key: "del",
-      label: "Удалить адрес",
+      label: t("Удалить адрес"),
       icon: Trash2,
       danger: true,
       run: () => onSave({ address: "", mapUrl: "" }),
@@ -158,7 +161,7 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
       setEditing(false);
     } catch (err) {
       console.error(err);
-      alert("Не удалось сохранить адрес.");
+      alert(t("Не удалось сохранить адрес."));
     } finally {
       setBusy(false);
     }
@@ -175,7 +178,7 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
           autoFocus
           value={draft.address}
           onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
-          placeholder="Адрес или название места"
+          placeholder={t("Адрес или название места")}
           className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm"
         />
         <div className="mt-2 flex justify-end gap-2">
@@ -185,7 +188,7 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
             disabled={busy}
             className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
           >
-            <X className="h-3.5 w-3.5" /> Отмена
+            <X className="h-3.5 w-3.5" /> {t("Отмена")}
           </button>
           <button
             type="button"
@@ -194,7 +197,7 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
             className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-            Сохранить
+            {t("Сохранить")}
           </button>
         </div>
       </div>
@@ -228,7 +231,7 @@ function MapLink({ item, bar }) {
     >
       <MapPin className="h-4 w-4 mt-0.5 shrink-0" style={{ color: bar }} />
       <span className="min-w-0 break-words underline decoration-dotted underline-offset-2">
-        {item.address || "Открыть на карте"}
+        {item.address || t("Открыть на карте")}
       </span>
       <ExternalLink className="h-3.5 w-3.5 mt-0.5 shrink-0 opacity-60" />
     </a>
@@ -301,7 +304,8 @@ export default function DayPlanModal({
     const dx = t.clientX - from.x;
     const dy = t.clientY - from.y;
     if (Math.abs(dx) < 90 || Math.abs(dy) > Math.abs(dx) * 0.5) return;
-    const target = dx < 0 ? nextDay : prevDay;
+    // In Hebrew the next day lies to the left, so the swipe runs the other way.
+    const target = (dx < 0) === (getLang() !== "he") ? nextDay : prevDay;
     if (target) onNavigate(target.key);
   };
 
@@ -366,7 +370,7 @@ export default function DayPlanModal({
       setDraft(null);
     } catch (err) {
       console.error(err);
-      setSaveError("Не удалось сохранить. Попробуйте ещё раз.");
+      setSaveError(t("Не удалось сохранить. Попробуйте ещё раз."));
     } finally {
       setSaving(false);
     }
@@ -402,13 +406,13 @@ export default function DayPlanModal({
           }}
         >
           <div className="relative mx-auto w-full max-w-3xl">
-          <div className="absolute right-0 top-0 flex gap-2">
+          <div className="absolute end-0 top-0 flex gap-2">
             {!editing && (
               <button
                 onClick={() => startEditing(true)}
                 className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
-                aria-label="Редактировать день"
-                title="Редактировать день"
+                aria-label={t("Редактировать день")}
+                title={t("Редактировать день")}
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -416,7 +420,7 @@ export default function DayPlanModal({
             <button
               onClick={editing ? cancelEditing : onClose}
               className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
-              aria-label="Закрыть"
+              aria-label={t("Закрыть")}
             >
               <X className="h-5 w-5" />
             </button>
@@ -424,17 +428,17 @@ export default function DayPlanModal({
 
           <div className="flex items-center gap-2 text-white/70 text-xs font-semibold tracking-widest uppercase">
             <CalendarDays className="h-4 w-4" />
-            День {dayInfo?.dayNumber ?? "—"}
+            {t("День")} {dayInfo?.dayNumber ?? "—"}
           </div>
 
           <h2 className="mt-1.5 max-w-[calc(100%-6.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:max-w-none sm:text-4xl">
-            {editing ? "Редактирование дня" : headerCity || "План скоро появится"}
+            {editing ? t("Редактирование дня") : headerCity || t("План скоро появится")}
           </h2>
           <div className="mt-1.5 flex items-center gap-1.5 text-white/75 text-sm">
             {trip?.country && (
               <>
                 <MapPin className="h-4 w-4" />
-                {trip.country}
+                {countryLabel(trip)}
                 <span className="mx-1.5 text-white/30">·</span>
               </>
             )}
@@ -529,7 +533,7 @@ export default function DayPlanModal({
                               >
                                 <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
                                 <span className="underline decoration-dotted underline-offset-2">
-                                  Открыть на карте
+                                  {t("Открыть на карте")}
                                 </span>
                                 <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
                               </a>
@@ -538,7 +542,7 @@ export default function DayPlanModal({
                         </div>
 
                         <ul
-                          className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-4 sm:space-y-3"
+                          className="ms-2 sm:ms-5 ps-6 border-s-2 space-y-4 sm:space-y-3"
                           style={{ borderColor: style.bar }}
                         >
                           {section.items.map((item) => (
@@ -547,7 +551,7 @@ export default function DayPlanModal({
                               <span
                                 className="absolute h-2.5 w-2.5 rounded-full"
                                 style={{
-                                  left: "-30px",
+                                  insetInlineStart: "-30px",
                                   top: "8px",
                                   backgroundColor: style.bar,
                                   boxShadow: `0 0 0 4px ${style.bg}`,
@@ -578,7 +582,7 @@ export default function DayPlanModal({
                   >
                     <CalendarDays className="h-7 w-7" />
                   </span>
-                  <p className="text-stone-600 font-medium">План на этот день ещё не составлен</p>
+                  <p className="text-stone-600 font-medium">{t("План на этот день ещё не составлен")}</p>
                   <button
                     type="button"
                     onClick={() => startEditing(true)}
@@ -586,7 +590,7 @@ export default function DayPlanModal({
                     style={{ backgroundColor: "#1d3b5c" }}
                   >
                     <Pencil className="h-4 w-4" />
-                    Составить план
+                    {t("Составить план")}
                   </button>
                 </div>
               )}
@@ -597,9 +601,9 @@ export default function DayPlanModal({
                 >
                   <span className="inline-flex items-center gap-2 font-semibold">
                     <Wallet className="h-5 w-5" />
-                    Итого за день
+                    {t("Итого за день")}
                   </span>
-                  <span className="font-display text-xl font-semibold tabular-nums">
+                  <span dir="ltr" className="font-display text-xl font-semibold tabular-nums">
                     {formatMoney(total, currency)}
                   </span>
                 </div>
@@ -617,14 +621,14 @@ export default function DayPlanModal({
           >
             <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-end gap-2">
             {saveError && (
-              <span className="w-full text-sm text-[#a8451f] sm:mr-auto sm:w-auto">{saveError}</span>
+              <span className="w-full text-sm text-[#a8451f] sm:me-auto sm:w-auto">{saveError}</span>
             )}
             <button
               type="button"
               onClick={cancelEditing}
               className="rounded-xl px-5 py-3 text-stone-600 font-medium transition hover:bg-stone-200/60 active:bg-stone-200/60 sm:px-4 sm:py-2.5"
             >
-              Отмена
+              {t("Отмена")}
             </button>
             <button
               type="button"
@@ -638,7 +642,7 @@ export default function DayPlanModal({
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              Сохранить
+              {t("Сохранить")}
             </button>
             </div>
           </div>
@@ -706,8 +710,8 @@ function ActionMenu({ actions }) {
         type="button"
         onClick={toggle}
         className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60"
-        aria-label="Действия"
-        title="Цена, адрес, фото, документ, заметка"
+        aria-label={t("Действия")}
+        title={t("Цена, адрес, фото, документ, заметка")}
       >
         <MoreHorizontal className="h-5 w-5" />
       </button>
@@ -733,7 +737,7 @@ function ActionMenu({ actions }) {
                   key={a.key}
                   type="button"
                   onClick={() => choose(a)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-left text-[15px] text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm"
+                  className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-start text-[15px] text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm"
                 >
                   <a.icon className="h-5 w-5 shrink-0 text-stone-400 sm:h-4 sm:w-4" />
                   {a.label}
@@ -772,19 +776,19 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
       setEditingText(false);
     } catch (err) {
       console.error(err);
-      alert("Не удалось сохранить.");
+      alert(t("Не удалось сохранить."));
     } finally {
       setBusy(false);
     }
   };
 
   const actions = [
-    { key: "text", icon: Pencil, label: "Изменить название", run: startText },
-    { key: "cost", icon: Wallet, label: hasCost ? "Изменить цену" : "Добавить цену", run: () => costRef.current?.start() },
-    { key: "address", icon: MapPin, label: hasAddress ? "Изменить адрес" : "Добавить адрес", run: () => addressRef.current?.start() },
-    { key: "photo", icon: ImagePlus, label: "Добавить фото", run: () => gridRef.current?.pickPhoto() },
-    { key: "doc", icon: FileText, label: "Добавить документ", run: () => gridRef.current?.pickDocument() },
-    { key: "note", icon: StickyNote, label: "Заметка / ссылка", run: () => noteRef.current?.open() },
+    { key: "text", icon: Pencil, label: t("Изменить название"), run: startText },
+    { key: "cost", icon: Wallet, label: hasCost ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
+    { key: "address", icon: MapPin, label: hasAddress ? t("Изменить адрес") : t("Добавить адрес"), run: () => addressRef.current?.start() },
+    { key: "photo", icon: ImagePlus, label: t("Добавить фото"), run: () => gridRef.current?.pickPhoto() },
+    { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
+    { key: "note", icon: StickyNote, label: t("Заметка / ссылка"), run: () => noteRef.current?.open() },
   ];
 
   return (
@@ -821,7 +825,7 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
               disabled={busy}
               className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
             >
-              <X className="h-3.5 w-3.5" /> Отмена
+              <X className="h-3.5 w-3.5" /> {t("Отмена")}
             </button>
             <button
               type="button"
@@ -830,7 +834,7 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
               className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              Сохранить
+              {t("Сохранить")}
             </button>
           </div>
         </div>
@@ -847,9 +851,9 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
   const costRef = useRef(null);
   const gridRef = useRef(null);
   const actions = [
-    { key: "cost", icon: Wallet, label: parseCost(extra.cost) !== null ? "Изменить цену" : "Добавить цену", run: () => costRef.current?.start() },
-    { key: "photo", icon: ImagePlus, label: "Добавить фото", run: () => gridRef.current?.pickPhoto() },
-    { key: "doc", icon: FileText, label: "Добавить документ", run: () => gridRef.current?.pickDocument() },
+    { key: "cost", icon: Wallet, label: parseCost(extra.cost) !== null ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
+    { key: "photo", icon: ImagePlus, label: t("Добавить фото"), run: () => gridRef.current?.pickPhoto() },
+    { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
   ];
   return (
     <>
@@ -860,8 +864,8 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
         >
           <Icon className="h-4 w-4" />
         </span>
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{title}</span>
-        <span className="ml-auto flex items-center">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{t(title)}</span>
+        <span className="ms-auto flex items-center">
           <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} />
           <ActionMenu actions={actions} />
         </span>
@@ -873,7 +877,7 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
             onClick={onEditCompany}
             className="text-sm font-normal text-stone-400 underline decoration-dotted underline-offset-2 hover:text-stone-700"
           >
-            Не указано — добавить
+            {t("Не указано — добавить")}
           </button>
         )}
       </div>
@@ -885,6 +889,7 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
 // Footer button to the neighbouring day; an empty slot keeps the centre label put.
 function DayNavButton({ day, dir, onNavigate }) {
   const Chevron = dir === "prev" ? ChevronLeft : ChevronRight;
+  const flip = "rtl:rotate-180";
   if (!day || !onNavigate) return <span className="w-24 shrink-0" aria-hidden="true" />;
   return (
     <button
@@ -893,11 +898,11 @@ function DayNavButton({ day, dir, onNavigate }) {
       className={`inline-flex min-h-11 w-24 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-medium text-stone-600 transition hover:bg-stone-200/60 active:bg-stone-200/60 ${
         dir === "prev" ? "justify-start" : "justify-end"
       }`}
-      aria-label={dir === "prev" ? "Предыдущий день" : "Следующий день"}
+      aria-label={dir === "prev" ? t("Предыдущий день") : t("Следующий день")}
     >
-      {dir === "prev" && <Chevron className="h-4 w-4 shrink-0" />}
+      {dir === "prev" && <Chevron className={`h-4 w-4 shrink-0 ${flip}`} />}
       <span className="truncate">{day.label}</span>
-      {dir === "next" && <Chevron className="h-4 w-4 shrink-0" />}
+      {dir === "next" && <Chevron className={`h-4 w-4 shrink-0 ${flip}`} />}
     </button>
   );
 }

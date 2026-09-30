@@ -19,6 +19,7 @@ import {
   backgroundRenewalAllowed,
 } from "@/api/drive";
 import { canRenewSilently } from "@/api/googleToken";
+import { t } from "@/lib/i18n";
 
 const AuthContext = createContext(null);
 
@@ -67,8 +68,8 @@ export function AuthProvider({ children }) {
     setDriveToken(token);
     if (token && allowRetry && !(await tokenGrantsDrive(token))) {
       setError(
-        "Похоже, при входе не был отмечен доступ к Google Drive. " +
-          "Отметьте галочку доступа к файлам Drive в следующем окне."
+        t("Похоже, при входе не был отмечен доступ к Google Drive. ") +
+          t("Отметьте галочку доступа к файлам Drive в следующем окне.")
       );
       return authorize(false);
     }
@@ -138,7 +139,7 @@ export function AuthProvider({ children }) {
       return !!(await authorize());
     } catch (e) {
       if (!isDismissal(e?.code)) {
-        setError("Не удалось подключить Google Drive. Попробуйте ещё раз.");
+        setError(t("Не удалось подключить Google Drive. Попробуйте ещё раз."));
       }
       return false;
     }
@@ -153,8 +154,8 @@ export function AuthProvider({ children }) {
       if (!isDismissal(e?.code)) {
         setError(
           e?.code === "auth/unauthorized-domain"
-            ? "Этот домен не добавлен в список разрешённых в Firebase."
-            : "Не удалось войти. Попробуйте ещё раз."
+            ? t("Этот домен не добавлен в список разрешённых в Firebase.")
+            : t("Не удалось войти. Попробуйте ещё раз.")
         );
       }
     } finally {
