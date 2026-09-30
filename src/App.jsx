@@ -12,19 +12,22 @@ import { TripProvider } from "@/lib/TripContext";
 import Home from "./pages/Home";
 import TripPicker from "./pages/TripPicker";
 import MapBackdrop from "@/components/MapBackdrop";
+import PinnedCorner from "@/components/PinnedCorner";
 import { t, LanguageProvider, useLang } from "@/lib/i18n";
 
 function SignOutButton() {
   const { signOut } = useAuth();
   return (
-    <button
-      onClick={signOut}
-      title={t("Выйти")}
-      aria-label={t("Выйти")}
-      className="fixed top-3 right-3 z-40 grid h-9 w-9 place-items-center rounded-full bg-white/70 text-stone-500 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800"
-    >
-      <LogOut className="h-4 w-4" />
-    </button>
+    <PinnedCorner side="right">
+      <button
+        onClick={signOut}
+        title={t("Выйти")}
+        aria-label={t("Выйти")}
+        className="grid h-10 w-10 place-items-center rounded-full bg-white/85 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:text-stone-800"
+      >
+        <LogOut className="h-4 w-4" />
+      </button>
+    </PinnedCorner>
   );
 }
 
@@ -36,7 +39,7 @@ function OfflineBadge() {
   return (
     <div
       title={t("Нет подключения. Показаны сохранённые на устройстве данные; изменения отправятся, когда появится сеть.")}
-      className="fixed top-3 right-14 z-40 flex h-9 items-center gap-1.5 rounded-full bg-amber-50/90 px-3 text-xs font-medium text-amber-800 shadow-sm ring-1 ring-amber-200"
+      className="fixed right-16 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex h-10 items-center gap-1.5 rounded-full bg-amber-50/90 px-3 text-xs font-medium text-amber-800 shadow-sm ring-1 ring-amber-200"
     >
       <WifiOff className="h-3.5 w-3.5" />
       {t("Офлайн")}

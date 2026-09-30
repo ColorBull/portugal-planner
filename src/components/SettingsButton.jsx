@@ -3,6 +3,7 @@ import { CalendarDays, Check, ChevronRight, Monitor, Moon, Settings, Sun, X } fr
 import { LANGUAGES, useLang, t } from "@/lib/i18n";
 import { useTheme } from "@/lib/theme";
 import CalendarSettings from "@/components/CalendarSettings";
+import PinnedCorner from "@/components/PinnedCorner";
 
 // Gear button, top-left of the trip list and the sign-in screen, and its dialog:
 // language, colour theme and — once signed in (`calendar`) — Google Calendar sync.
@@ -54,15 +55,17 @@ export default function SettingsButton({ calendar = false }) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed left-3 top-3 z-40 grid h-10 w-10 place-items-center rounded-full bg-white/70 text-stone-600 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-900"
-        aria-label={t("Настройки")}
-        title={t("Настройки")}
-      >
-        <Settings className="h-4 w-4" />
-      </button>
+      <PinnedCorner side="left">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/85 text-stone-600 shadow-sm ring-1 ring-stone-200 transition hover:text-stone-900"
+          aria-label={t("Настройки")}
+          title={t("Настройки")}
+        >
+          <Settings className="h-4 w-4" />
+        </button>
+      </PinnedCorner>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
