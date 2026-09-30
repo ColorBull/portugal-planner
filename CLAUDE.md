@@ -105,7 +105,9 @@ correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` d
 ## Settings, theme, Google Calendar
 
 The gear at the top left of the trip list / sign-in (`SettingsButton.jsx`) opens
-language, theme and (signed in) Google Calendar sync. **Theme** (`lib/theme.jsx`):
+language, theme and (signed in) Google Calendar sync; its foot shows the build
+time (`__BUILD_TIME__`, `define` in `vite.config.js`, Jerusalem time) — compare it
+with the last push to see whether a device has the latest version. **Theme** (`lib/theme.jsx`):
 system / dark / light in `localStorage` `pp_theme`, applied as `html.dark` (an
 inline script in `index.html` sets it before first paint). The app uses literal
 Tailwind colours and inline hex, so the dark palette is one block at the end of

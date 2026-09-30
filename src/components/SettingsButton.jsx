@@ -137,6 +137,11 @@ export default function SettingsButton({ calendar = false }) {
                 )}
               </div>
             )}
+
+            {/* Which build this is (vite.config.js) — to see whether it is the latest. */}
+            <p dir="ltr" className="mt-6 text-center text-[11px] text-stone-400">
+              {typeof __BUILD_TIME__ === "undefined" ? "dev" : __BUILD_TIME__}
+            </p>
           </div>
         </div>
       )}
