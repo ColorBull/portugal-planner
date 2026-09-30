@@ -16,6 +16,7 @@ import {
   hasDriveAccess,
   driveTokenStale,
   renewSilently,
+  backgroundRenewalAllowed,
 } from "@/api/drive";
 import { canRenewSilently } from "@/api/googleToken";
 
@@ -94,6 +95,8 @@ export function AuthProvider({ children }) {
     const refresh = () => {
       // Offline, Google's renewal window could only show an error page.
       if (stopped || !driveTokenStale() || navigator.onLine === false) return;
+      // Not where it has already failed once: it would open a Google window.
+      if (!backgroundRenewalAllowed()) return;
       renewSilently().catch(() => {});
     };
 

@@ -163,6 +163,11 @@ Each device keeps its own copy, so a trip opens with no signal.
   dino page — so it never runs offline. It still runs in the background
   online (the family prefers that to a consent dialog on every upload), and
   `ensureDriveAccess` tries it before falling back to the interactive dialog.
+  It is only silent where Google has a session to reuse; on a device where it
+  fails once (`pp_silent_renewal` = "failed" in `localStorage`), the on-open /
+  background renewal stops for good, so that device is not greeted by a Google
+  window at every start. Uploads and exports still try it on demand, and a
+  success re-enables it.
 - Not offline: uploads (blocked with a message), Google sign-in, address search.
   Firebase Auth restores the signed-in user from IndexedDB without a network.
 

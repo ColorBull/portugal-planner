@@ -85,9 +85,37 @@ export function driveTokenStale(marginMs = 10 * 60 * 1000) {
 // to show the dialog after all.
 export async function renewSilently() {
   const renewed = await renewDriveToken();
-  if (!renewed?.access_token) return null;
+  if (!renewed?.access_token) {
+    noteSilentRenewal(false);
+    return null;
+  }
+  noteSilentRenewal(true);
   setDriveToken(renewed.access_token, renewed.expires_in || 3600);
   return renewed.access_token;
+}
+
+// Whether "silent" renewal has ever worked on this device. It is not silent
+// everywhere: where Google has no session to reuse (other browser profile,
+// blocked cookies, consent not given yet) it opens a Google window instead.
+// The app tries it in the background on open only until it fails once, so a
+// device where it does not work is never greeted by a Google window on start.
+// Uploads and exports still try it on demand (AuthContext.ensureDriveAccess).
+const SILENT_KEY = "pp_silent_renewal";
+
+function noteSilentRenewal(worked) {
+  try {
+    localStorage.setItem(SILENT_KEY, worked ? "ok" : "failed");
+  } catch {
+    /* ignore */
+  }
+}
+
+export function backgroundRenewalAllowed() {
+  try {
+    return localStorage.getItem(SILENT_KEY) !== "failed";
+  } catch {
+    return true;
+  }
 }
 
 async function token() {
