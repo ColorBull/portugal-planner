@@ -6,7 +6,7 @@ import { getLang } from "@/lib/i18n";
 
 const NAMES = {
   "yoffedani@gmail.com": { ru: "Даниэль", en: "Daniel", he: "דניאל" },
-  "yoffeleonid@gmail.com": { ru: "Леонид", en: "Leon", he: "ליאון" },
+  "yoffeleonid@gmail.com": { ru: "Леонид", en: "Leon", he: "לאוניד" },
   "yoffelena@gmail.com": { ru: "Лена", en: "Lena", he: "לנה" },
 };
 
