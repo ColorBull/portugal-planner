@@ -170,7 +170,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                           </span>
 
                           <span
-                            className="hidden h-9 w-9 shrink-0 place-items-center rounded-xl sm:grid"
+                            className="plan-chip hidden h-9 w-9 shrink-0 place-items-center rounded-xl sm:grid"
                             style={{ backgroundColor: style.bg, color: style.fg }}
                           >
                             <Icon className="h-5 w-5" />

@@ -15,6 +15,14 @@
     <meta name="apple-mobile-web-app-title" content="Trip Planner" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>Trip Planner</title>
+    <script>
+      // Dark theme before the first paint (see src/lib/theme.jsx).
+      try {
+        var m = localStorage.getItem("pp_theme");
+        if (m === "dark" || (m !== "light" && matchMedia("(prefers-color-scheme: dark)").matches))
+          document.documentElement.classList.add("dark");
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

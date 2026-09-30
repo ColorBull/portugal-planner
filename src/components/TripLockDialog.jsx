@@ -9,6 +9,8 @@ import {
   markRevealed,
 } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
+import { ownerName } from "@/lib/family";
+import { tripRangeLabel } from "@/lib/tripDays";
 
 // Three uses, see lib/tripLock.js:
 //   mode "unlock" — anyone opening a locked trip enters the PIN
@@ -142,7 +144,10 @@ export default function TripLockDialog({
     mode === "unlock"
       ? showName
         ? t("Введите PIN-код, чтобы открыть поездку «{city}».", { city: trip.city })
-        : t("Введите PIN-код, чтобы открыть эту поездку.")
+        : t("Введите PIN-код, чтобы открыть поездку от {name} ({dates}).", {
+            name: ownerName(trip),
+            dates: tripRangeLabel(trip),
+          })
       : mode === "manage"
       ? t("Можно сменить PIN-код или снять блокировку — тогда поездку снова откроют все.")
       : t("Придумайте PIN-код из {n} цифр. Без него поездку не откроет никто, включая вас.", { n: PIN_LENGTH });

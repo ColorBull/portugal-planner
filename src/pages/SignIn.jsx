@@ -1,7 +1,7 @@
 import { Plane, LogOut } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { t } from "@/lib/i18n";
-import LanguageSwitch from "@/components/LanguageSwitch";
+import SettingsButton from "@/components/SettingsButton";
 
 const shell =
   "relative min-h-screen w-full flex flex-col items-center justify-center px-6 py-10 text-center";
@@ -25,7 +25,7 @@ export function SignInScreen() {
   const { signIn, signingIn, error } = useAuth();
   return (
     <div className={shell} style={bg}>
-      <LanguageSwitch />
+      <SettingsButton />
       <span
         className="grid h-16 w-16 place-items-center rounded-2xl mb-6 shadow-lg"
         style={{ background: "linear-gradient(150deg,#1d3b5c,#3a7ca5)" }}
@@ -58,7 +58,7 @@ export function AccessRestricted() {
   const { user, signOut } = useAuth();
   return (
     <div className={shell} style={bg}>
-      <LanguageSwitch />
+      <SettingsButton />
       <h1 className="font-display text-3xl font-semibold mb-3" style={{ color: "#1d3b5c" }}>
         {t("Нет доступа")}
       </h1>

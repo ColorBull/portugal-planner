@@ -123,3 +123,197 @@
 .map-fade-in {
   animation: map-fade-in 600ms ease-out both;
 }
+
+/* ------------------------------------------------------------------------
+   Dark theme — `html.dark` (src/lib/theme.jsx). The app is styled with literal
+   Tailwind colours and inline hex values rather than tokens, so the dark
+   palette is applied here: utility classes by name, and inline styles by the
+   rgb() form the browser serialises them to.
+   ------------------------------------------------------------------------ */
+html.dark {
+  color-scheme: dark;
+}
+
+/* page and map */
+html.dark [style*="rgb(253, 250, 244)"] {
+  background: radial-gradient(120% 120% at 15% 10%, #1b2a3d 0%, #121d2c 45%, #0c131d 100%) !important;
+}
+html.dark .map-land {
+  fill: #9fc4e8 !important;
+}
+html.dark .map-border {
+  stroke: #9fc4e8 !important;
+}
+
+/* surfaces */
+html.dark .bg-white,
+html.dark .hover\:bg-white:hover {
+  background-color: #1b2838 !important;
+}
+html.dark .bg-white\/90,
+html.dark .bg-white\/85,
+html.dark .bg-white\/80 {
+  background-color: rgba(24, 36, 51, 0.9) !important;
+}
+html.dark .bg-white\/70,
+html.dark .bg-white\/60,
+html.dark .bg-white\/55 {
+  background-color: rgba(27, 40, 56, 0.72) !important;
+}
+html.dark [style*="background-color: rgb(251, 247, 240)"] {
+  background-color: #141f2d !important;
+}
+html.dark [style*="background-color: rgb(247, 241, 230)"] {
+  background-color: #1a2637 !important;
+}
+html.dark [style*="background-color: rgb(250, 246, 239)"] {
+  background-color: #1d2a3c !important;
+}
+html.dark [style*="background-color: rgb(232, 238, 245)"] {
+  background-color: #1f3148 !important;
+}
+html.dark [style*="background-color: rgb(232, 221, 208)"] {
+  background-color: #2a3a50 !important;
+}
+html.dark [style*="border-color: rgb(236, 227, 212)"] {
+  border-color: #2f4058 !important;
+}
+html.dark .bg-slate-50 {
+  background-color: #101a27 !important;
+}
+html.dark .bg-slate-200,
+html.dark .bg-stone-200,
+html.dark .bg-stone-200\/80,
+html.dark .bg-stone-200\/70 {
+  background-color: #2b3d55 !important;
+}
+html.dark .bg-stone-100,
+html.dark .hover\:bg-stone-100:hover,
+html.dark .active\:bg-stone-100:active,
+html.dark .hover\:bg-slate-50:hover,
+html.dark .bg-\[\#f1e7d8\] {
+  background-color: #243449 !important;
+}
+html.dark .hover\:bg-stone-200\/60:hover,
+html.dark .active\:bg-stone-200\/60:active,
+html.dark .hover\:bg-stone-200\/40:hover {
+  background-color: rgba(75, 100, 135, 0.35) !important;
+}
+html.dark .hover\:bg-stone-300\/70:hover,
+html.dark .active\:bg-stone-300\/70:active {
+  background-color: rgba(75, 100, 135, 0.5) !important;
+}
+html.dark .bg-stone-800 {
+  background-color: #3a7ca5 !important;
+}
+html.dark .hover\:bg-stone-700:hover {
+  background-color: #2c5f8a !important;
+}
+html.dark .bg-\[\#f7e9e3\],
+html.dark .hover\:bg-\[\#f7e9e3\]:hover,
+html.dark .hover\:bg-red-50:hover,
+html.dark .active\:bg-red-50:active,
+html.dark .bg-red-50 {
+  background-color: #3b2b2c !important;
+}
+html.dark .bg-amber-50\/90 {
+  background-color: rgba(70, 52, 20, 0.9) !important;
+}
+html.dark .text-amber-800 {
+  color: #f2c879 !important;
+}
+
+/* brand navy as a fill is too dark to read on dark surfaces */
+html.dark .bg-\[\#1d3b5c\],
+html.dark [style*="background-color: rgb(29, 59, 92)"] {
+  background-color: #2c5f8a !important;
+}
+html.dark .hover\:bg-\[\#16304b\]:hover {
+  background-color: #3a7ca5 !important;
+}
+
+/* text */
+html.dark .text-stone-900,
+html.dark .hover\:text-stone-900:hover,
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+html.dark .text-stone-800,
+html.dark .hover\:text-stone-800:hover,
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+html.dark .text-stone-700,
+html.dark .hover\:text-stone-700:hover {
+  color: #cdd6e2 !important;
+}
+html.dark .text-stone-600 {
+  color: #b4c0cf !important;
+}
+html.dark .text-stone-500 {
+  color: #98a8bb !important;
+}
+html.dark .text-stone-400,
+html.dark .text-slate-300 {
+  color: #7a8ba0 !important;
+}
+html.dark .text-stone-300 {
+  color: #55667c !important;
+}
+html.dark .text-\[\#1d3b5c\],
+html.dark .hover\:text-\[\#1d3b5c\]:hover,
+html.dark .text-\[\#1d3b5c\]\/70,
+html.dark [style^="color: rgb(29, 59, 92)"],
+html.dark [style*="; color: rgb(29, 59, 92)"] {
+  color: #a9cdee !important;
+}
+html.dark .text-\[\#a8451f\],
+html.dark .hover\:text-\[\#a8451f\]:hover,
+html.dark .text-red-600,
+html.dark .text-red-500 {
+  color: #f0a48a !important;
+}
+html.dark .text-blue-700,
+html.dark .hover\:text-blue-900:hover {
+  color: #8ebdf0 !important;
+}
+
+/* lines and rings */
+html.dark .border-stone-200,
+html.dark .border-slate-200,
+html.dark .hover\:border-stone-300:hover {
+  border-color: #2f4058 !important;
+}
+html.dark .border-stone-300 {
+  border-color: #3d516b !important;
+}
+html.dark .ring-stone-200,
+html.dark .ring-stone-300,
+html.dark .ring-stone-400,
+html.dark .hover\:ring-stone-300:hover {
+  --tw-ring-color: #34465e !important;
+}
+html.dark .ring-black\/5,
+html.dark .ring-black\/10 {
+  --tw-ring-color: rgba(255, 255, 255, 0.08) !important;
+}
+html.dark .border-\[\#1d3b5c\],
+html.dark .hover\:border-\[\#1d3b5c\]:hover {
+  border-color: #6fa8d6 !important;
+}
+
+/* pastel icon chips: flip the light tile and its dark glyph together */
+html.dark .plan-chip {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+
+/* form controls */
+html.dark input,
+html.dark textarea,
+html.dark select {
+  color-scheme: dark;
+}
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #6c7d92;
+}

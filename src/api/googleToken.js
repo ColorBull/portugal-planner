@@ -22,7 +22,7 @@ export const canRenewSilently = () =>
 
 let scriptPromise = null;
 
-function loadGis() {
+export function loadGis() {
   if (window.google?.accounts?.oauth2) return Promise.resolve();
   if (!scriptPromise) {
     scriptPromise = new Promise((resolve, reject) => {

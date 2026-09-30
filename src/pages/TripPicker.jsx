@@ -19,7 +19,8 @@ import TripFormModal from "@/components/TripFormModal";
 import PasscodeDialog from "@/components/PasscodeDialog";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
-import LanguageSwitch from "@/components/LanguageSwitch";
+import { ownerName } from "@/lib/family";
+import SettingsButton from "@/components/SettingsButton";
 import { useAuth } from "@/lib/AuthContext";
 import { canSeeTrip, useTripLockChanges, PRIVATE_TRIP_LABEL } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
@@ -49,19 +50,20 @@ function TripCard({ trip, hidden, muted, onOpen, children }) {
         >
           {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
         </div>
+        {/* Behind a PIN the place stays secret, but who made it and when is
+            shown, so two private trips can be told apart. */}
+        {hidden && ownerName(trip) && (
+          <div className="mt-1 text-sm font-medium text-stone-600">
+            {t("От: {name}", { name: ownerName(trip) })}
+          </div>
+        )}
         <div className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
-          {hidden ? (
-            t("Откройте, чтобы ввести PIN-код")
-          ) : (
+          <MapPin className="h-3.5 w-3.5" />
+          {tripYearLabel(trip)}
+          {tripRangeLabel(trip) && (
             <>
-              <MapPin className="h-3.5 w-3.5" />
-              {tripYearLabel(trip)}
-              {tripRangeLabel(trip) && (
-                <>
-                  <span className="text-stone-300">·</span>
-                  {tripRangeLabel(trip)}
-                </>
-              )}
+              <span className="text-stone-300">·</span>
+              {tripRangeLabel(trip)}
             </>
           )}
         </div>
@@ -81,7 +83,9 @@ export default function TripPicker() {
   const isHidden = (trip) => !canSeeTrip(trip, user?.email);
   // Confirmations name the trip only when this viewer may see it.
   const tripName = (trip) =>
-    isHidden(trip) ? t(PRIVATE_TRIP_LABEL) : `${trip.city}, ${tripYearLabel(trip)}`;
+    isHidden(trip)
+      ? [t(PRIVATE_TRIP_LABEL), ownerName(trip), tripRangeLabel(trip)].filter(Boolean).join(", ")
+      : `${trip.city}, ${tripYearLabel(trip)}`;
 
   const [formFor, setFormFor] = useState(null); // { trip } | { trip: null }
   const [busyId, setBusyId] = useState(null);
@@ -114,7 +118,7 @@ export default function TripPicker() {
 
   return (
     <div className="relative min-h-svh w-full flex flex-col items-center justify-center px-4 pb-12 pt-20">
-      <LanguageSwitch />
+      <SettingsButton calendar />
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">
           <span

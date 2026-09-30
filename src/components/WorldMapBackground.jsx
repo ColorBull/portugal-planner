@@ -227,7 +227,7 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
         className="absolute left-0 top-0"
       >
         <g style={{ transform: `translate(${x}px, ${y}px) scale(${k})`, transition: EASE }}>
-          <path d={LAND_PATH} fill="#1d3b5c" fillOpacity={0.12} />
+          <path className="map-land" d={LAND_PATH} fill="#1d3b5c" fillOpacity={0.12} />
           {settled && (
             <path
               d={bordersOf(continent)}
@@ -237,7 +237,7 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
               strokeWidth={1}
               strokeDasharray="4 3"
               vectorEffect="non-scaling-stroke"
-              className="map-fade-in"
+              className="map-fade-in map-border"
             />
           )}
           {countryPath && (

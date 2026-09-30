@@ -91,6 +91,12 @@ export async function setTripExport(id, docId) {
   await updateTrip(id, { export_doc_id: docId, export_date: new Date().toISOString() });
 }
 
+// The Google Calendar of a trip, per account: { [email key]: { id, pushedAt } }.
+// See api/gcal.js.
+export async function setTripGcal(id, gcal) {
+  await updateTrip(id, { gcal });
+}
+
 async function deleteAll(tripId, name) {
   const snap = await readDocs(collection(db, "trips", tripId, name));
   await write(Promise.all(snap.docs.map((d) => deleteDoc(d.ref))));

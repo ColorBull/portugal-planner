@@ -21,7 +21,6 @@ export default {
   "Валюта расходов": "Expense currency",
   "Введите PIN-код поездки": "Enter the trip’s PIN",
   "Введите PIN-код, чтобы открыть поездку «{city}».": "Enter the PIN to open the trip “{city}”.",
-  "Введите PIN-код, чтобы открыть эту поездку.": "Enter the PIN to open this trip.",
   "Введите {n} цифры.": "Enter {n} digits.",
   "Введите код": "Enter the code",
   "Вернуть из архива": "Restore from archive",
@@ -132,7 +131,6 @@ export default {
   "Общая стоимость по плану": "Total cost per plan",
   "Оператор SIM-карты": "SIM card provider",
   "Отель": "Hotel",
-  "Откройте, чтобы ввести PIN-код": "Open it to enter the PIN",
   "Открыть": "Open",
   "Открыть документ": "Open document",
   "Открыть на карте": "Open on the map",
@@ -219,4 +217,74 @@ export default {
   "план поездки": "trip plan",
   "план скоро": "plan coming soon",
   "файл": "file",
+  "Google Calendar API не включён в проекте Google Cloud. Включите его в Google Cloud Console (APIs & Services → Library → Google Calendar API) и повторите.":
+    "The Google Calendar API isn’t enabled in the Google Cloud project. Enable it in Google Cloud Console (APIs & Services → Library → Google Calendar API) and try again.",
+  "Без названия":
+    "Untitled",
+  "Забрать из календаря":
+    "Pull changes from the calendar",
+  "Из календаря":
+    "From the calendar",
+  "Изменений в календаре нет.":
+    "No changes in the calendar.",
+  "Ищу изменения…":
+    "Looking for changes…",
+  "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие на весь день. Время из текста остаётся в названии.":
+    "The calendar “{name}” will appear in your Google Calendar: every plan item is an all-day event. Any time written in the text stays in the title.",
+  "Календарь ещё не создан для этой поездки. Сначала отправьте расписание.":
+    "No calendar has been created for this trip yet. Send the schedule first.",
+  "Назад":
+    "Back",
+  "Найдено изменений: {n}. Снимите галочки с лишних и примените.":
+    "Changes found: {n}. Untick any you don’t want, then apply.",
+  "Настройки":
+    "Settings",
+  "Не удалось подключить Google Calendar. Попробуйте ещё раз.":
+    "Couldn’t connect Google Calendar. Please try again.",
+  "Нет доступных поездок.":
+    "No trips available.",
+  "Новое событие на {day}: «{text}»":
+    "New event on {day}: “{text}”",
+  "Нужен доступ к Google Calendar. Разрешите его в окне Google.":
+    "Google Calendar access is needed. Allow it in the Google window.",
+  "Открыть Google Calendar":
+    "Open Google Calendar",
+  "Отправить в календарь":
+    "Send to the calendar",
+  "Отправлено: создано {created}, обновлено {updated}, удалено {removed}.":
+    "Sent: {created} created, {updated} updated, {removed} removed.",
+  "Отправляю: {done} из {total}":
+    "Sending: {done} of {total}",
+  "Переименовано: «{from}» → «{to}»":
+    "Renamed: “{from}” → “{to}”",
+  "Перенесено на {day}: «{text}»":
+    "Moved to {day}: “{text}”",
+  "Применено: {n}.":
+    "Applied: {n}.",
+  "Применить выбранное":
+    "Apply selected",
+  "Расписание поездки — в календарь, изменения — обратно":
+    "Trip schedule to the calendar, changes back",
+  "Сессия Google Calendar истекла. Нажмите кнопку ещё раз.":
+    "The Google Calendar session expired. Press the button again.",
+  "Синхронизация":
+    "Sync",
+  "Синхронизация с Google Calendar":
+    "Google Calendar sync",
+  "Создано приложением Portugal Planner":
+    "Created by the Portugal Planner app",
+  "Тема":
+    "Theme",
+  "Удалено в календаре: «{text}»":
+    "Deleted in the calendar: “{text}”",
+  "Системная":
+    "System",
+  "Тёмная":
+    "Dark",
+  "Светлая":
+    "Light",
+  "От: {name}":
+    "By: {name}",
+  "Введите PIN-код, чтобы открыть поездку от {name} ({dates}).":
+    "Enter the PIN to open the trip by {name} ({dates}).",
 };

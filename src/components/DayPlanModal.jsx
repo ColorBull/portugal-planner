@@ -507,7 +507,7 @@ export default function DayPlanModal({
                       >
                         <div className="flex items-center gap-3 mb-3.5">
                           <span
-                            className="grid h-10 w-10 place-items-center rounded-xl shrink-0"
+                            className="plan-chip grid h-10 w-10 place-items-center rounded-xl shrink-0"
                             style={{ backgroundColor: style.bg, color: style.fg }}
                           >
                             <Icon className="h-5 w-5" />

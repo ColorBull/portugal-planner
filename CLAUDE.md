@@ -96,10 +96,32 @@ changing the PIN invalidates it. It is a privacy screen, not security (the data
 is still readable by any allow-listed account); `firestore.rules` only stops
 non-owners from setting or clearing it. For everyone but the owner a locked
 trip shows as "Частная поездка" in the list, the trip header and the unlock
-prompt (no city, country, dates, map zoom, edit button) until this device has
+prompt (no city, country, map zoom, edit button; but with who made it —
+`lib/family.js` — and its dates, so two private trips can be told apart) until this device has
 entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
 correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
+
+## Settings, theme, Google Calendar
+
+The gear at the top left of the trip list / sign-in (`SettingsButton.jsx`) opens
+language, theme and (signed in) Google Calendar sync. **Theme** (`lib/theme.jsx`):
+system / dark / light in `localStorage` `pp_theme`, applied as `html.dark` (an
+inline script in `index.html` sets it before first paint). The app uses literal
+Tailwind colours and inline hex, so the dark palette is one block at the end of
+`src/index.css` that remaps those utility classes and the rgb() form of the
+inline styles; a new colour needs a line there. Pastel icon chips carry
+`plan-chip` (inverted), the map `map-land` / `map-border`.
+**Calendar** (`api/gcal.js`, `CalendarSettings.jsx`): per trip, a secondary
+calendar made by the app (scope `calendar.app.created` through the Google
+Identity Services token client, same `GOOGLE_OAUTH_CLIENT_ID`; its id is kept on
+the trip, per account, in `trip.gcal`). Push: every plan item is an all-day event
+(id derived from the item id, the item id also in its private extended
+properties), so re-pushing updates in place and deletes what was removed. Pull:
+events edited since the last push are diffed against the plan (renamed / moved /
+deleted / new) and shown to the user to tick before anything is written.
+Needs the **Google Calendar API enabled** in the Google Cloud project, or every
+call answers 403 accessNotConfigured.
 
 ## Languages
 

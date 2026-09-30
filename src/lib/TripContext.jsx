@@ -7,6 +7,7 @@ import {
   setTripArchived,
   setTripPin,
   setTripExport,
+  setTripGcal,
   listDays,
   saveDay,
   ensureSeeded,
@@ -170,6 +171,14 @@ export function TripProvider({ children }) {
     [refresh]
   );
 
+  const saveTripGcal = useCallback(
+    async (id, gcal) => {
+      await setTripGcal(id, gcal);
+      await refresh();
+    },
+    [refresh]
+  );
+
   const removeTrip = useCallback(
     async (id) => {
       await deleteTrip(id);
@@ -190,6 +199,7 @@ export function TripProvider({ children }) {
     archiveTrip,
     setTripLock,
     saveTripExport,
+    saveTripGcal,
     loading,
     error,
     refresh,
