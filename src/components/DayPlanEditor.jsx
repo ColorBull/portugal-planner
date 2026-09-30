@@ -4,9 +4,10 @@ import { ICON_OPTIONS, iconFor, styleFor } from "@/data/planStyles";
 import AddressInput from "@/components/AddressInput";
 import { uid } from "@/api/trips";
 import { EXTRAS } from "@/lib/money";
+import { useIsPhone } from "@/lib/useIsPhone";
 
 const input =
-  "w-full rounded-lg border border-stone-200 bg-white px-3 py-2 text-sm text-stone-800 " +
+  "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 sm:rounded-lg sm:px-3 sm:py-2 sm:text-sm " +
   "outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20";
 
 const hint = "block text-[11px] font-semibold uppercase tracking-wider text-stone-400 mb-1";
@@ -30,6 +31,7 @@ const move = (list, from, to) => {
 
 // `firstDay` adds the insurance and SIM card fields (see lib/money.js).
 export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
+  const phone = useIsPhone();
   const sections = value.sections || [];
 
   const setSections = (next) => onChange({ ...value, sections: next });
@@ -152,7 +154,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                       <div
                         ref={dragSection.innerRef}
                         {...dragSection.draggableProps}
-                        className={`rounded-2xl border bg-white p-4 ${
+                        className={`rounded-2xl border bg-white p-3 sm:p-4 ${
                           snapshot.isDragging ? "shadow-xl" : "shadow-sm"
                         }`}
                         style={{ borderColor: "#ece3d4", ...dragSection.draggableProps.style }}
@@ -160,14 +162,14 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                         <div className="flex items-center gap-2">
                           <span
                             {...dragSection.dragHandleProps}
-                            className="grid h-9 w-7 shrink-0 cursor-grab place-items-center rounded-lg text-stone-400 hover:bg-stone-100 active:cursor-grabbing"
+                            className="grid h-11 w-8 shrink-0 cursor-grab place-items-center rounded-lg text-stone-400 hover:bg-stone-100 active:cursor-grabbing sm:h-9 sm:w-7"
                             aria-label="Переместить блок"
                           >
                             <GripVertical className="h-5 w-5" />
                           </span>
 
                           <span
-                            className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+                            className="hidden h-9 w-9 shrink-0 place-items-center rounded-xl sm:grid"
                             style={{ backgroundColor: style.bg, color: style.fg }}
                           >
                             <Icon className="h-5 w-5" />
@@ -183,14 +185,14 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                           <button
                             type="button"
                             onClick={() => removeSection(sIndex)}
-                            className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f]"
+                            className="grid h-11 w-11 shrink-0 place-items-center rounded-lg text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f] active:bg-[#f7e9e3] sm:h-9 sm:w-9"
                             aria-label="Удалить блок"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
 
-                        <div className="mt-3 sm:max-w-[50%]">
+                        <div className="mt-2.5 sm:mt-3 sm:max-w-[50%]">
                           <div>
                             <label className={hint}>Иконка</label>
                             <select
@@ -220,7 +222,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                     <div
                                       ref={dragItem.innerRef}
                                       {...dragItem.draggableProps}
-                                      className={`rounded-xl p-2.5 ${
+                                      className={`rounded-xl p-3 sm:p-2.5 ${
                                         itemSnapshot.isDragging ? "shadow-lg" : ""
                                       }`}
                                       style={{
@@ -228,58 +230,84 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                         ...dragItem.draggableProps.style,
                                       }}
                                     >
-                                      <div className="flex items-start gap-2">
-                                        <span
-                                          {...dragItem.dragHandleProps}
-                                          className="mt-1 grid h-8 w-6 shrink-0 cursor-grab place-items-center rounded-lg text-stone-400 hover:bg-stone-200/60 active:cursor-grabbing"
-                                          aria-label="Переместить пункт"
-                                        >
-                                          <GripVertical className="h-4 w-4" />
-                                        </span>
-
-                                        <div className="min-w-0 flex-1 space-y-2">
-                                          <textarea
-                                            rows={2}
-                                            className={input}
-                                            value={item.text}
-                                            onChange={(e) =>
-                                              patchItem(sIndex, iIndex, { text: e.target.value })
-                                            }
-                                            placeholder="Что делаем"
-                                          />
-                                          {/* A phone is too narrow for address and price side
-                                              by side: stack them, so the address gets the
-                                              whole width (and its suggestions with it). */}
-                                          <div className="flex flex-col gap-2 sm:flex-row">
-                                            <div className="min-w-0 sm:flex-1">
-                                              <AddressInput
-                                                className={input}
-                                                value={item.address || ""}
-                                                onChange={(patch) =>
-                                                  patchItem(sIndex, iIndex, patch)
-                                                }
-                                                placeholder="Адрес (необязательно)"
-                                              />
-                                            </div>
+                                      {(() => {
+                                        const fields = {
+                                          text: (
+                                            <textarea
+                                              rows={2}
+                                              className={input}
+                                              value={item.text}
+                                              onChange={(e) =>
+                                                patchItem(sIndex, iIndex, { text: e.target.value })
+                                              }
+                                              placeholder="Что делаем"
+                                            />
+                                          ),
+                                          address: (
+                                            <AddressInput
+                                              className={input}
+                                              value={item.address || ""}
+                                              onChange={(patch) => patchItem(sIndex, iIndex, patch)}
+                                              placeholder="Адрес (необязательно)"
+                                            />
+                                          ),
+                                          cost: (
                                             <CostInput
                                               value={item.cost}
                                               currency={currency}
-                                              onChange={(cost) =>
-                                                patchItem(sIndex, iIndex, { cost })
-                                              }
+                                              onChange={(cost) => patchItem(sIndex, iIndex, { cost })}
                                             />
-                                          </div>
-                                        </div>
+                                          ),
+                                          trash: (
+                                            <button
+                                              type="button"
+                                              onClick={() => removeItem(sIndex, iIndex)}
+                                              className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f] active:bg-[#f7e9e3] sm:mt-1 sm:h-8 sm:w-8 sm:rounded-lg"
+                                              aria-label="Удалить пункт"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </button>
+                                          ),
+                                        };
+                                        const grip = (
+                                          <span
+                                            {...dragItem.dragHandleProps}
+                                            className="grid h-11 w-11 shrink-0 cursor-grab place-items-center rounded-xl text-stone-400 hover:bg-stone-200/60 active:cursor-grabbing sm:mt-1 sm:h-8 sm:w-6 sm:rounded-lg"
+                                            aria-label="Переместить пункт"
+                                          >
+                                            <GripVertical className="h-5 w-5 sm:h-4 sm:w-4" />
+                                          </span>
+                                        );
 
-                                        <button
-                                          type="button"
-                                          onClick={() => removeItem(sIndex, iIndex)}
-                                          className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-stone-400 transition hover:bg-[#f7e9e3] hover:text-[#a8451f]"
-                                          aria-label="Удалить пункт"
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </button>
-                                      </div>
+                                        // Phone: one full-width card — text, address, then
+                                        // a row with the price and the handle / delete
+                                        // buttons. Desktop keeps the handle and the bin
+                                        // in the side columns. (The drag handle may only
+                                        // exist once, hence the JS switch, not CSS.)
+                                        return phone ? (
+                                          <div className="space-y-2">
+                                            {fields.text}
+                                            {fields.address}
+                                            <div className="flex items-center gap-1.5">
+                                              {fields.cost}
+                                              {grip}
+                                              {fields.trash}
+                                            </div>
+                                          </div>
+                                        ) : (
+                                          <div className="flex items-start gap-2">
+                                            {grip}
+                                            <div className="min-w-0 flex-1 space-y-2">
+                                              {fields.text}
+                                              <div className="flex gap-2">
+                                                <div className="min-w-0 flex-1">{fields.address}</div>
+                                                {fields.cost}
+                                              </div>
+                                            </div>
+                                            {fields.trash}
+                                          </div>
+                                        );
+                                      })()}
                                     </div>
                                   )}
                                 </Draggable>
@@ -292,7 +320,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                         <button
                           type="button"
                           onClick={() => addItem(sIndex)}
-                          className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-800"
+                          className="mt-2.5 inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-500 transition hover:bg-stone-100 hover:text-stone-800 active:bg-stone-100 sm:rounded-lg sm:px-2.5 sm:py-1.5"
                         >
                           <Plus className="h-4 w-4" />
                           Добавить пункт
@@ -311,7 +339,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
       <button
         type="button"
         onClick={() => setSections([...sections, emptySection()])}
-        className="w-full rounded-2xl border-2 border-dashed border-stone-300 py-3 text-stone-500 transition hover:border-[#1d3b5c] hover:text-[#1d3b5c] inline-flex items-center justify-center gap-2 font-medium"
+        className="w-full rounded-2xl border-2 border-dashed border-stone-300 py-4 text-stone-500 sm:py-3 transition hover:border-[#1d3b5c] hover:text-[#1d3b5c] inline-flex items-center justify-center gap-2 font-medium"
       >
         <Plus className="h-5 w-5" />
         Добавить блок
@@ -322,7 +350,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
 
 function CostInput({ value, currency, onChange }) {
   return (
-    <div className="relative w-full sm:w-28 sm:shrink-0">
+    <div className="relative min-w-0 flex-1 sm:w-28 sm:flex-none sm:shrink-0">
       <input
         className={`${input} pr-9 text-right tabular-nums`}
         inputMode="decimal"

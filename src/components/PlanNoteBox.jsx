@@ -126,7 +126,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
           onChange={(e) => setDraft({ ...draft, text: e.target.value })}
           placeholder="Свободный текст…"
           rows={2}
-          className="w-full resize-none rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2 text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
+          className="w-full resize-none rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2.5 text-base text-stone-700 sm:py-2 sm:text-sm placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
         />
         <div className="mt-2 flex items-center gap-2">
           <Link2 className="h-4 w-4 text-stone-400 shrink-0" />
@@ -134,20 +134,20 @@ export default function PlanNoteBox({ itemId, dayKey }) {
             value={draft.link}
             onChange={(e) => setDraft({ ...draft, link: e.target.value })}
             placeholder="Ссылка (https://…)"
-            className="min-w-0 flex-1 rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2 text-sm text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
+            className="min-w-0 flex-1 rounded-lg bg-white ring-1 ring-stone-200 px-3 py-2.5 text-base text-stone-700 sm:py-2 sm:text-sm placeholder:text-stone-400 focus:outline-none focus:ring-stone-400"
           />
         </div>
         <div className="mt-2 flex justify-end gap-2">
           <button
             onClick={() => setEditing(false)}
-            className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full text-stone-500 hover:text-stone-700 transition"
+            className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full text-stone-500 hover:text-stone-700 transition"
           >
             <X className="h-3.5 w-3.5" /> Отмена
           </button>
           <button
             onClick={save}
             disabled={saving}
-            className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-full bg-stone-800 text-white hover:bg-stone-700 transition disabled:opacity-60"
+            className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full bg-stone-800 text-white hover:bg-stone-700 transition disabled:opacity-60"
           >
             {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -166,7 +166,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
       <div className="mt-3 ml-1">
         <button
           onClick={startAdd}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition"
+          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition"
         >
           <Plus className="h-3.5 w-3.5" /> Заметка / ссылка
         </button>
@@ -197,13 +197,13 @@ export default function PlanNoteBox({ itemId, dayKey }) {
       <div className="mt-2 flex gap-1.5">
         <button
           onClick={startEdit}
-          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition"
+          className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition"
         >
           <Pencil className="h-3.5 w-3.5" /> Изменить
         </button>
         <button
           onClick={remove}
-          className="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full text-red-500 hover:bg-red-50 transition"
+          className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-red-500 hover:bg-red-50 transition"
         >
           <Trash2 className="h-3.5 w-3.5" /> Удалить
         </button>

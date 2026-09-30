@@ -288,7 +288,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
         <button
           onClick={() => pickFile(imgInputRef)}
           disabled={uploading}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
         >
           <Plus className="h-3.5 w-3.5" />
           {images.length > 0 ? "Ещё фото" : "Фото"}
@@ -296,7 +296,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
         <button
           onClick={() => pickFile(docInputRef)}
           disabled={uploading}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
         >
           {uploading ? (
             <>

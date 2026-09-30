@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   X,
@@ -12,6 +12,8 @@ import {
   Wallet,
   ShieldCheck,
   Smartphone,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -55,7 +57,7 @@ function InlineCost({ cost, currency, onSave }) {
 
   if (editing) {
     return (
-      <span className="ml-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5 text-xs font-semibold text-stone-600 ring-1 ring-stone-300">
+      <span className="ml-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs">
         <input
           autoFocus
           inputMode="decimal"
@@ -68,7 +70,7 @@ function InlineCost({ cost, currency, onSave }) {
             if (e.key === "Escape") setEditing(false);
           }}
           placeholder="0"
-          className="w-16 bg-transparent text-right tabular-nums outline-none"
+          className="w-16 bg-transparent text-right text-base tabular-nums outline-none sm:text-xs"
         />
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : currency}
       </span>
@@ -82,8 +84,8 @@ function InlineCost({ cost, currency, onSave }) {
       title={amount === null ? "Добавить цену" : "Изменить цену"}
       className={
         amount === null
-          ? "ml-2 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium text-stone-400 border border-dashed border-stone-300 transition hover:bg-stone-200/60 hover:text-stone-700"
-          : "ml-2 inline-flex shrink-0 items-center rounded-full bg-stone-200/70 px-2 py-0.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70"
+          ? "ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium text-stone-400 border border-dashed border-stone-300 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60 sm:px-2 sm:py-0.5"
+          : "ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
       }
     >
       {amount === null ? "+ цена" : formatMoney(amount, currency)}
@@ -116,7 +118,18 @@ function MapLink({ item, bar }) {
   );
 }
 
-export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
+// `prevDay` / `nextDay` are the neighbouring days ({ key, label }) or null;
+// `onNavigate(key)` opens one of them (footer buttons, or a swipe).
+export default function DayPlanModal({
+  plan,
+  dayInfo,
+  trip,
+  onSave,
+  onClose,
+  prevDay = null,
+  nextDay = null,
+  onNavigate,
+}) {
   const sections = useMemo(() => plan?.sections || [], [plan]);
   const hasPlan = sections.length > 0;
   // The first day also carries the trip's insurance and SIM card.
@@ -124,6 +137,8 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
   const currency = tripCurrency(trip);
   const total = dayTotal(plan);
 
+  const bodyRef = useRef(null);
+  const swipeRef = useRef(null);
   const [photosByItem, setPhotosByItem] = useState({});
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -147,7 +162,26 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
 
   useEffect(() => {
     loadPhotos();
+    bodyRef.current?.scrollTo({ top: 0 });
   }, [dayInfo?.key]);
+
+  // Swipe sideways (reading mode only) for the previous / next day. It has to
+  // be long and mostly horizontal, so it never steals a scroll.
+  const swipeStart = (e) => {
+    const t = e.touches[0];
+    swipeRef.current = { x: t.clientX, y: t.clientY };
+  };
+  const swipeEnd = (e) => {
+    const from = swipeRef.current;
+    swipeRef.current = null;
+    if (!from || editing || !onNavigate) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - from.x;
+    const dy = t.clientY - from.y;
+    if (Math.abs(dx) < 90 || Math.abs(dy) > Math.abs(dx) * 0.5) return;
+    const target = dx < 0 ? nextDay : prevDay;
+    if (target) onNavigate(target.key);
+  };
 
   // Hold the page still behind the modal. Only `overflow` is touched: pinning
   // the body with `position: fixed` forces a full repaint, which Chrome has
@@ -212,7 +246,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
       initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -223,7 +257,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
       />
 
       <motion.div
-        className="relative w-full max-w-2xl max-h-[88vh] overflow-hidden rounded-3xl shadow-2xl flex flex-col"
+        className="relative flex h-dvh w-full flex-col overflow-hidden shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-2xl sm:rounded-3xl"
         style={{ backgroundColor: "#fbf7f0" }}
         initial={false}
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
@@ -231,17 +265,17 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
       >
         {/* Header band */}
         <div
-          className="relative px-5 sm:px-7 pt-7 pb-6 shrink-0"
+          className="relative shrink-0 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6 sm:pt-7"
           style={{
             background:
               "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)",
           }}
         >
-          <div className="absolute top-5 right-5 flex gap-2">
+          <div className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex gap-2 sm:right-5 sm:top-5">
             {!editing && (
               <button
                 onClick={() => startEditing(true)}
-                className="grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
+                className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
                 aria-label="Редактировать день"
                 title="Редактировать день"
               >
@@ -250,7 +284,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
             )}
             <button
               onClick={editing ? cancelEditing : onClose}
-              className="grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
+              className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
               aria-label="Закрыть"
             >
               <X className="h-5 w-5" />
@@ -262,7 +296,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
             День {dayInfo?.dayNumber ?? "—"}
           </div>
 
-          <h2 className="mt-2 font-display text-3xl sm:text-4xl font-semibold text-white">
+          <h2 className="mt-1.5 max-w-[calc(100%-6.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:max-w-none sm:text-4xl">
             {editing ? "Редактирование дня" : headerCity || "План скоро появится"}
           </h2>
           <div className="mt-1.5 flex items-center gap-1.5 text-white/75 text-sm">
@@ -278,7 +312,12 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         </div>
 
         {/* Body */}
-        <div className="overflow-y-auto overscroll-contain px-4 sm:px-7 py-6 flex-1">
+        <div
+          ref={bodyRef}
+          onTouchStart={swipeStart}
+          onTouchEnd={swipeEnd}
+          className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-7 sm:py-6"
+        >
           {editing ? (
             <DayPlanEditor
               value={draft}
@@ -389,7 +428,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
                         </div>
 
                         <ul
-                          className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-3"
+                          className="ml-2 sm:ml-5 pl-6 border-l-2 space-y-4 sm:space-y-3"
                           style={{ borderColor: style.bar }}
                         >
                           {section.items.map((item) => (
@@ -472,16 +511,16 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
         {/* Footer */}
         {editing ? (
           <div
-            className="shrink-0 px-4 sm:px-7 py-4 flex items-center justify-end gap-2 border-t"
+            className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-7 sm:py-4"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
             {saveError && (
-              <span className="mr-auto text-sm text-[#a8451f]">{saveError}</span>
+              <span className="w-full text-sm text-[#a8451f] sm:mr-auto sm:w-auto">{saveError}</span>
             )}
             <button
               type="button"
               onClick={cancelEditing}
-              className="rounded-xl px-4 py-2.5 text-stone-600 font-medium transition hover:bg-stone-200/60"
+              className="rounded-xl px-5 py-3 text-stone-600 font-medium transition hover:bg-stone-200/60 active:bg-stone-200/60 sm:px-4 sm:py-2.5"
             >
               Отмена
             </button>
@@ -489,7 +528,7 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
               type="button"
               onClick={save}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition disabled:opacity-60"
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl px-5 py-3 font-semibold text-white shadow-sm transition disabled:opacity-60 sm:flex-none sm:py-2.5"
               style={{ backgroundColor: "#1d3b5c" }}
             >
               {saving ? (
@@ -502,15 +541,41 @@ export default function DayPlanModal({ plan, dayInfo, trip, onSave, onClose }) {
           </div>
         ) : (
           <div
-            className="shrink-0 px-4 sm:px-7 py-3.5 flex items-center gap-1.5 text-stone-400 text-xs border-t"
+            className="flex shrink-0 items-center justify-between gap-2 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
-            <Clock className="h-3.5 w-3.5" />
-            {trip ? `${trip.city} ${tripYearLabel(trip)}` : ""} · {dayInfo?.label}
+            <DayNavButton day={prevDay} dir="prev" onNavigate={onNavigate} />
+            <span className="flex min-w-0 items-center gap-1.5 text-xs text-stone-400">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              <span className="truncate">
+                {trip ? `${trip.city} ${tripYearLabel(trip)}` : ""}
+              </span>
+            </span>
+            <DayNavButton day={nextDay} dir="next" onNavigate={onNavigate} />
           </div>
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+// Footer button to the neighbouring day; an empty slot keeps the centre label put.
+function DayNavButton({ day, dir, onNavigate }) {
+  const Chevron = dir === "prev" ? ChevronLeft : ChevronRight;
+  if (!day || !onNavigate) return <span className="w-24 shrink-0" aria-hidden="true" />;
+  return (
+    <button
+      type="button"
+      onClick={() => onNavigate(day.key)}
+      className={`inline-flex min-h-11 w-24 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-medium text-stone-600 transition hover:bg-stone-200/60 active:bg-stone-200/60 ${
+        dir === "prev" ? "justify-start" : "justify-end"
+      }`}
+      aria-label={dir === "prev" ? "Предыдущий день" : "Следующий день"}
+    >
+      {dir === "prev" && <Chevron className="h-4 w-4 shrink-0" />}
+      <span className="truncate">{day.label}</span>
+      {dir === "next" && <Chevron className="h-4 w-4 shrink-0" />}
+    </button>
   );
 }
 

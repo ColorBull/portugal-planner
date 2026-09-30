@@ -86,7 +86,8 @@ export default function Home() {
   const page = Math.min(pageIndex, pages.length - 1);
   const shownDays = pages[page];
 
-  const selectedDay = tripDays.find((d) => d.key === selectedKey) || null;
+  const selectedIndex = tripDays.findIndex((d) => d.key === selectedKey);
+  const selectedDay = tripDays[selectedIndex] || null;
   const selectedPlan = selectedKey ? days[selectedKey] || null : null;
 
   return (
@@ -300,6 +301,9 @@ export default function Home() {
             trip={trip}
             onSave={(data) => saveDayPlan(selectedKey, data)}
             onClose={() => setSelectedKey(null)}
+            prevDay={tripDays[selectedIndex - 1] || null}
+            nextDay={tripDays[selectedIndex + 1] || null}
+            onNavigate={setSelectedKey}
           />
         )}
       </AnimatePresence>

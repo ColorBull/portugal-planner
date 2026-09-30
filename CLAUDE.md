@@ -101,6 +101,17 @@ entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
 correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
 
+## Phone layout
+
+Below Tailwind's `sm` (640px) the day view is a full-screen sheet (`h-dvh`,
+safe-area padding, big touch targets, 16px inputs so iOS doesn't zoom), with
+‹ / › day buttons in the footer and a sideways swipe. The editor stacks each item
+into one column; `useIsPhone()` switches the card markup, because the drag handle
+may exist only once per card. Address suggestions are in the flow on phones (a
+scrolling list inside the scrolling sheet fights for every swipe) and float from
+`sm` up. `formatMoney` joins amount and currency with a non-breaking space so
+they never wrap apart.
+
 ## NotebookLM export
 
 The book button in the trip header (`TripExportDialog.jsx`) writes the whole

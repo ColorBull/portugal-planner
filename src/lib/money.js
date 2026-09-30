@@ -21,7 +21,8 @@ export function formatMoney(amount, currency = DEFAULT_CURRENCY) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(amount || 0);
-  return `${n} ${currency}`;
+  // Non-breaking space: the amount and its currency sign must never wrap apart.
+  return `${n} ${currency}`;
 }
 
 // The first-day extras: one company name + cost each (documents are ordinary

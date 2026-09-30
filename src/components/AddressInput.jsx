@@ -81,29 +81,33 @@ export default function AddressInput({ value, onChange, className, placeholder }
 
   return (
     <div ref={boxRef} className="relative">
-      <input
-        className={className}
-        value={value || ""}
-        // Typing by hand drops the link of any place picked earlier; the plan
-        // then opens a Google Maps search for the typed address instead.
-        onChange={(e) => onChange({ address: e.target.value, mapUrl: "" })}
-        onFocus={() => results.length > 0 && setOpen(true)}
-        placeholder={placeholder}
-        autoComplete="off"
-      />
-
-      {loading && (
-        <Loader2 className="absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-stone-400" />
-      )}
+      <div className="relative">
+        <input
+          className={className}
+          value={value || ""}
+          // Typing by hand drops the link of any place picked earlier; the plan
+          // then opens a Google Maps search for the typed address instead.
+          onChange={(e) => onChange({ address: e.target.value, mapUrl: "" })}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder={placeholder}
+          autoComplete="off"
+        />
+        {loading && (
+          <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-stone-400" />
+        )}
+      </div>
 
       {open && (
-        <ul className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-stone-200 bg-white py-1 shadow-xl">
+        // On a phone the list sits in the flow and pushes the form down, so
+        // the editor's own scroll is the only one (a scrolling list inside a
+        // scrolling sheet fights for every swipe). From `sm` up it floats.
+        <ul className="mt-1.5 w-full overflow-hidden rounded-xl border border-stone-200 bg-white py-1 shadow-sm sm:absolute sm:z-30 sm:max-h-60 sm:overflow-y-auto sm:overscroll-contain sm:shadow-xl">
           {results.map((place) => (
             <li key={place.place_id}>
               <button
                 type="button"
                 onClick={() => pick(place)}
-                className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm text-stone-700 transition hover:bg-stone-100"
+                className="flex w-full items-start gap-2.5 px-3 py-3 text-left text-sm text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2"
               >
                 <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-stone-400" />
                 <span className="min-w-0 break-words">{place.display_name}</span>
