@@ -247,8 +247,11 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                             }
                                             placeholder="Что делаем"
                                           />
-                                          <div className="flex gap-2">
-                                            <div className="min-w-0 flex-1">
+                                          {/* A phone is too narrow for address and price side
+                                              by side: stack them, so the address gets the
+                                              whole width (and its suggestions with it). */}
+                                          <div className="flex flex-col gap-2 sm:flex-row">
+                                            <div className="min-w-0 sm:flex-1">
                                               <AddressInput
                                                 className={input}
                                                 value={item.address || ""}
@@ -319,7 +322,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
 
 function CostInput({ value, currency, onChange }) {
   return (
-    <div className="relative w-28 shrink-0">
+    <div className="relative w-full sm:w-28 sm:shrink-0">
       <input
         className={`${input} pr-9 text-right tabular-nums`}
         inputMode="decimal"
