@@ -65,11 +65,15 @@ export default function AddressInput({ value, onChange, className, placeholder, 
   }, [value]);
 
   useEffect(() => {
-    const onPointerDown = (e) => {
+    // A *click* outside closes the list, not a pointerdown: on a phone every
+    // scroll gesture starts with a pointerdown somewhere outside the list, and
+    // that used to make the suggestions vanish as soon as you began scrolling.
+    // A drag never produces a click.
+    const onClick = (e) => {
       if (!boxRef.current?.contains(e.target)) setOpen(false);
     };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
   }, []);
 
   const pick = (place) => {
