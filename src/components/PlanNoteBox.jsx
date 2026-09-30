@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, Link2, X, Loader2 } from "lucide-react";
 import { TripNote } from "@/api/entities";
 import { openExternal } from "@/lib/openExternal";
@@ -48,7 +48,9 @@ function NoteText({ text }) {
   );
 }
 
-export default function PlanNoteBox({ itemId, dayKey }) {
+// "Заметка / ссылка" lives in the item's "⋯" menu; ref.current.open() starts
+// a new note, or edits the existing one.
+const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
   const [note, setNote] = useState(null);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ text: "", link: "" });
@@ -79,6 +81,10 @@ export default function PlanNoteBox({ itemId, dayKey }) {
     setDraft({ text: note?.text || "", link: note?.link || "" });
     setEditing(true);
   };
+
+  useImperativeHandle(ref, () => ({
+    open: () => (note ? startEdit() : startAdd()),
+  }));
 
   const save = async () => {
     const text = draft.text.trim();
@@ -161,18 +167,7 @@ export default function PlanNoteBox({ itemId, dayKey }) {
     );
   }
 
-  if (!note) {
-    return (
-      <div className="mt-3 ml-1">
-        <button
-          onClick={startAdd}
-          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition"
-        >
-          <Plus className="h-3.5 w-3.5" /> Заметка / ссылка
-        </button>
-      </div>
-    );
-  }
+  if (!note) return null;
 
   return (
     <div className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
@@ -210,4 +205,6 @@ export default function PlanNoteBox({ itemId, dayKey }) {
       </div>
     </div>
   );
-}
+});
+
+export default PlanNoteBox;

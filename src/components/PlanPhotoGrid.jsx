@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Plus, Loader2, Trash2, FileText, FileType, File } from "lucide-react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { Loader2, Trash2, FileText, FileType, File } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TripPhoto } from "@/api/entities";
 import {
@@ -35,7 +35,12 @@ const openDocument = (record) => {
   openExternal(driveViewUrl(record.drive_file_id));
 };
 
-export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }) {
+// The add-photo / add-document buttons live in the item's "⋯" menu (DayPlanModal);
+// it reaches them through this ref: ref.current.pickPhoto() / .pickDocument().
+const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
+  { itemId, dayKey, photos = [], onChanged },
+  ref
+) {
   const { ensureDriveAccess } = useAuth();
   const imgInputRef = useRef(null);
   const docInputRef = useRef(null);
@@ -146,6 +151,11 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
     ref.current?.click();
   };
 
+  useImperativeHandle(ref, () => ({
+    pickPhoto: () => pickFile(imgInputRef),
+    pickDocument: () => pickFile(docInputRef),
+  }));
+
   const uploadFile = async (file, kind) => {
     setTapAgain(false);
     setUploading(true);
@@ -181,7 +191,7 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
   };
 
   return (
-    <div className="mt-3 ml-1">
+    <div className={docs.length || images.length || uploading || tapAgain ? "mt-3 ml-1" : ""}>
       {docs.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2.5">
           {docs.map((d) => {
@@ -284,37 +294,16 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
         className="hidden"
       />
 
-      <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => pickFile(imgInputRef)}
-          disabled={uploading}
-          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {images.length > 0 ? "Ещё фото" : "Фото"}
-        </button>
-        <button
-          onClick={() => pickFile(docInputRef)}
-          disabled={uploading}
-          className="inline-flex items-center gap-1.5 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full border border-dashed border-stone-300 text-stone-500 hover:border-stone-400 hover:text-stone-700 transition disabled:opacity-60"
-        >
-          {uploading ? (
-            <>
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Загрузка…
-            </>
-          ) : (
-            <>
-              <Plus className="h-3.5 w-3.5" />
-              {docs.length > 0 ? "Ещё документ" : "Документ"}
-            </>
-          )}
-        </button>
-      </div>
+      {uploading && (
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-stone-300 px-3.5 py-2 text-[13px] font-medium text-stone-500 sm:px-3 sm:py-1.5 sm:text-xs">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          Загрузка…
+        </div>
+      )}
 
       {tapAgain && !uploading && (
         <p className="mt-1.5 text-[11px] text-stone-500">
-          Google Drive подключён — нажмите кнопку ещё раз, чтобы выбрать файл.
+          Google Drive подключён — откройте меню «⋯» и выберите действие ещё раз.
         </p>
       )}
 
@@ -356,4 +345,6 @@ export default function PlanPhotoGrid({ itemId, dayKey, photos = [], onChanged }
       )}
     </div>
   );
-}
+});
+
+export default PlanPhotoGrid;

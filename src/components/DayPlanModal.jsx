@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import {
   X,
@@ -12,7 +13,10 @@ import {
   Wallet,
   ShieldCheck,
   Smartphone,
-  Plus,
+  MoreHorizontal,
+  ImagePlus,
+  FileText,
+  StickyNote,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -25,13 +29,14 @@ import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
 import { uid } from "@/api/trips";
 import { tripYearLabel } from "@/lib/tripDays";
+import { useIsPhone } from "@/lib/useIsPhone";
 import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
 // A price that can be set or changed right in the day view: tap the badge (or
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
-function InlineCost({ cost, currency, onSave }) {
+const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, ref) {
   const amount = parseCost(cost);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
@@ -41,6 +46,8 @@ function InlineCost({ cost, currency, onSave }) {
     setValue(amount === null ? "" : String(amount).replace(".", ","));
     setEditing(true);
   };
+
+  useImperativeHandle(ref, () => ({ start }));
 
   const commit = async () => {
     const next = parseCost(value);
@@ -79,27 +86,26 @@ function InlineCost({ cost, currency, onSave }) {
     );
   }
 
+  // No price yet: nothing to show — "Цена" in the item's "⋯" menu starts editing.
+  if (amount === null) return null;
+
   return (
     <button
       type="button"
       onClick={start}
-      title={amount === null ? "Добавить цену" : "Изменить цену"}
-      className={
-        amount === null
-          ? "ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium text-stone-400 border border-dashed border-stone-300 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60 sm:px-2 sm:py-0.5"
-          : "ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
-      }
+      title="Изменить цену"
+      className="ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
     >
-      {amount === null ? "+ цена" : formatMoney(amount, currency)}
+      {formatMoney(amount, currency)}
     </button>
   );
-}
+});
 
 // Address of one plan item, editable right in the day view like the price:
-// "+ адрес" when there is none, a pencil next to the link when there is. The
-// editor opens in the flow under the item (with its suggestions), so on a phone
+// The link shows when there is an address; "Адрес" in the item's "⋯" menu opens
+// the editor. It opens in the flow under the item (with its suggestions), so on a phone
 // the field is full-width, you see what you type, and the page just scrolls.
-function ItemAddress({ item, bar, onSave }) {
+const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ address: "", mapUrl: "" });
   const [busy, setBusy] = useState(false);
@@ -109,6 +115,8 @@ function ItemAddress({ item, bar, onSave }) {
     setDraft({ address: item.address || "", mapUrl: item.mapUrl || "" });
     setEditing(true);
   };
+
+  useImperativeHandle(ref, () => ({ start }));
 
   // Bring the field into view once the keyboard has made room for it.
   useEffect(() => {
@@ -170,37 +178,8 @@ function ItemAddress({ item, bar, onSave }) {
     );
   }
 
-  if (!item.address && !item.mapUrl) {
-    return (
-      <div className="mt-2">
-        <button
-          type="button"
-          onClick={start}
-          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-stone-300 px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:border-stone-400 hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
-        >
-          <Plus className="h-3.5 w-3.5" /> Адрес
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-start gap-1">
-      <div className="min-w-0 flex-1">
-        <MapLink item={item} bar={bar} />
-      </div>
-      <button
-        type="button"
-        onClick={start}
-        className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60"
-        aria-label="Изменить адрес"
-        title="Изменить адрес"
-      >
-        <Pencil className="h-3.5 w-3.5" />
-      </button>
-    </div>
-  );
-}
+  return <MapLink item={item} bar={bar} />;
+});
 
 function MapLink({ item, bar }) {
   if (!item.address && !item.mapUrl) return null;
@@ -463,40 +442,17 @@ export default function DayPlanModal({
                         className="min-w-0 rounded-2xl border bg-white/70 p-4"
                         style={{ borderColor: "#ece3d4" }}
                       >
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
-                            style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-                          >
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-                            {title}
-                          </span>
-                          <span className="ml-auto">
-                            <InlineCost
-                              cost={extra.cost}
-                              currency={currency}
-                              onSave={(cost) => saveExtraCost(key, cost)}
-                            />
-                          </span>
-                        </div>
-                        <div className="mt-2 break-words font-medium text-stone-700">
-                          {extra.company || (
-                            <button
-                              type="button"
-                              onClick={() => startEditing(false)}
-                              className="text-sm font-normal text-stone-400 underline decoration-dotted underline-offset-2 hover:text-stone-700"
-                            >
-                              Не указано — добавить
-                            </button>
-                          )}
-                        </div>
-                        <PlanPhotoGrid
-                          itemId={key}
+                        <ExtraTools
+                          title={title}
+                          Icon={Icon}
+                          itemKey={key}
+                          extra={extra}
                           dayKey={dayInfo.key}
+                          currency={currency}
                           photos={photosByItem[key] || []}
                           onChanged={loadPhotos}
+                          onSaveCost={(cost) => saveExtraCost(key, cost)}
+                          onEditCompany={() => startEditing(false)}
                         />
                       </div>
                     );
@@ -568,30 +524,16 @@ export default function DayPlanModal({
                                   boxShadow: `0 0 0 4px ${style.bg}`,
                                 }}
                               />
-                              <div className="flex items-start justify-between gap-1">
-                                <div className="min-w-0 text-stone-700 leading-relaxed break-words">
-                                  {item.text}
-                                </div>
-                                <span className="mt-0.5">
-                                  <InlineCost
-                                    cost={item.cost}
-                                    currency={currency}
-                                    onSave={(cost) => saveItemCost(item.id, cost)}
-                                  />
-                                </span>
-                              </div>
-                              <ItemAddress
+                              <ItemBlock
                                 item={item}
-                                bar={style.bar}
-                                onSave={(patch) => saveItemAddress(item.id, patch)}
-                              />
-                              <PlanPhotoGrid
-                                itemId={item.id}
                                 dayKey={dayInfo.key}
+                                currency={currency}
+                                bar={style.bar}
                                 photos={photosByItem[item.id] || []}
                                 onChanged={loadPhotos}
+                                onSaveCost={(cost) => saveItemCost(item.id, cost)}
+                                onSaveAddress={(patch) => saveItemAddress(item.id, patch)}
                               />
-                              <PlanNoteBox itemId={item.id} dayKey={dayInfo.key} />
                             </li>
                           ))}
                         </ul>
@@ -690,6 +632,164 @@ export default function DayPlanModal({
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+// One "⋯" button instead of a row of add-buttons. On a phone the actions come up
+// as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
+// no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
+function ActionMenu({ actions }) {
+  const phone = useIsPhone();
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ left: 0, top: 0 });
+  const btnRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const toggle = () => {
+    if (!open && btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      const w = 232;
+      const h = actions.length * 44 + 12;
+      setPos({
+        left: Math.min(Math.max(r.right - w, 8), window.innerWidth - w - 8),
+        top: r.bottom + h + 8 > window.innerHeight ? Math.max(r.top - h - 4, 8) : r.bottom + 4,
+      });
+    }
+    setOpen((o) => !o);
+  };
+
+  // Run inside the tap itself: a file picker only opens from a user gesture.
+  const choose = (action) => {
+    setOpen(false);
+    action.run();
+  };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={toggle}
+        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60"
+        aria-label="Действия"
+        title="Цена, адрес, фото, документ, заметка"
+      >
+        <MoreHorizontal className="h-5 w-5" />
+      </button>
+      {open &&
+        createPortal(
+          <div
+            data-no-swipe
+            className={`fixed inset-0 z-[70] ${phone ? "bg-stone-950/40" : ""}`}
+            onClick={() => setOpen(false)}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className={
+                phone
+                  ? "absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl"
+                  : "absolute w-[232px] rounded-2xl bg-white p-1.5 shadow-2xl ring-1 ring-stone-200"
+              }
+              style={phone ? undefined : { left: pos.left, top: pos.top }}
+            >
+              {phone && <div className="mx-auto mb-1 mt-1 h-1 w-10 rounded-full bg-stone-200" />}
+              {actions.map((a) => (
+                <button
+                  key={a.key}
+                  type="button"
+                  onClick={() => choose(a)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-left text-[15px] text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm"
+                >
+                  <a.icon className="h-5 w-5 shrink-0 text-stone-400 sm:h-4 sm:w-4" />
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
+  );
+}
+
+// Everything of one plan item in the reading view; its add-actions share one menu.
+function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost, onSaveAddress }) {
+  const costRef = useRef(null);
+  const addressRef = useRef(null);
+  const gridRef = useRef(null);
+  const noteRef = useRef(null);
+  const hasCost = parseCost(item.cost) !== null;
+  const hasAddress = !!(item.address || item.mapUrl);
+
+  const actions = [
+    { key: "cost", icon: Wallet, label: hasCost ? "Изменить цену" : "Добавить цену", run: () => costRef.current?.start() },
+    { key: "address", icon: MapPin, label: hasAddress ? "Изменить адрес" : "Добавить адрес", run: () => addressRef.current?.start() },
+    { key: "photo", icon: ImagePlus, label: "Добавить фото", run: () => gridRef.current?.pickPhoto() },
+    { key: "doc", icon: FileText, label: "Добавить документ", run: () => gridRef.current?.pickDocument() },
+    { key: "note", icon: StickyNote, label: "Заметка / ссылка", run: () => noteRef.current?.open() },
+  ];
+
+  return (
+    <>
+      <div className="flex items-start justify-between gap-1">
+        <div className="min-w-0 pt-1 text-stone-700 leading-relaxed break-words sm:pt-0">
+          {item.text}
+        </div>
+        <span className="flex shrink-0 items-center">
+          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} />
+          <ActionMenu actions={actions} />
+        </span>
+      </div>
+      <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSaveAddress} />
+      <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
+      <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
+    </>
+  );
+}
+
+// Insurance / SIM card of the first day: price, photo, document.
+function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onChanged, onSaveCost, onEditCompany }) {
+  const costRef = useRef(null);
+  const gridRef = useRef(null);
+  const actions = [
+    { key: "cost", icon: Wallet, label: parseCost(extra.cost) !== null ? "Изменить цену" : "Добавить цену", run: () => costRef.current?.start() },
+    { key: "photo", icon: ImagePlus, label: "Добавить фото", run: () => gridRef.current?.pickPhoto() },
+    { key: "doc", icon: FileText, label: "Добавить документ", run: () => gridRef.current?.pickDocument() },
+  ];
+  return (
+    <>
+      <div className="flex items-center gap-2">
+        <span
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+          style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+        >
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{title}</span>
+        <span className="ml-auto flex items-center">
+          <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} />
+          <ActionMenu actions={actions} />
+        </span>
+      </div>
+      <div className="mt-2 break-words font-medium text-stone-700">
+        {extra.company || (
+          <button
+            type="button"
+            onClick={onEditCompany}
+            className="text-sm font-normal text-stone-400 underline decoration-dotted underline-offset-2 hover:text-stone-700"
+          >
+            Не указано — добавить
+          </button>
+        )}
+      </div>
+      <PlanPhotoGrid ref={gridRef} itemId={itemKey} dayKey={dayKey} photos={photos} onChanged={onChanged} />
+    </>
   );
 }
 

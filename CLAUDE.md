@@ -111,7 +111,12 @@ doesn't zoom, and
 into one column; `useIsPhone()` switches the card markup, because the drag handle
 may exist only once per card. Address suggestions are in the flow on phones (a
 scrolling list inside the scrolling sheet fights for every swipe) and float from
-`sm` up. `formatMoney` joins amount and currency with a non-breaking space so
+`sm` up. In the reading view each plan item has one "⋯" menu (`ActionMenu` in
+`DayPlanModal.jsx`, a bottom sheet on phones) instead of add-buttons: price,
+address, photo, document, note. The menu drives the children through refs
+(`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument`,
+`PlanNoteBox.open`); what is already set (price badge, address link, photos,
+note) still shows. `formatMoney` joins amount and currency with a non-breaking space so
 they never wrap apart.
 
 ## NotebookLM export
