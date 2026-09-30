@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
-import { LogOut, WifiOff } from "lucide-react";
+import { WifiOff } from "lucide-react";
 import { useOnline } from "@/lib/useOnline";
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -12,24 +12,7 @@ import { TripProvider } from "@/lib/TripContext";
 import Home from "./pages/Home";
 import TripPicker from "./pages/TripPicker";
 import MapBackdrop from "@/components/MapBackdrop";
-import PinnedCorner from "@/components/PinnedCorner";
 import { t, LanguageProvider, useLang } from "@/lib/i18n";
-
-function SignOutButton() {
-  const { signOut } = useAuth();
-  return (
-    <PinnedCorner side="right">
-      <button
-        onClick={signOut}
-        title={t("Выйти")}
-        aria-label={t("Выйти")}
-        className="grid h-10 w-10 place-items-center rounded-full bg-white/85 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:text-stone-800"
-      >
-        <LogOut className="h-4 w-4" />
-      </button>
-    </PinnedCorner>
-  );
-}
 
 // Shown while there is no connection: the app is running on this device's
 // saved copy, and edits are queued until the network comes back.
@@ -70,15 +53,7 @@ function Gate() {
       <Routes key={lang}>
         {/* Sign-out lives on the trip list only; inside a trip that corner
             belongs to the PIN-lock button. */}
-        <Route
-          path="/"
-          element={
-            <>
-              <SignOutButton />
-              <TripPicker />
-            </>
-          }
-        />
+        <Route path="/" element={<TripPicker />} />
         <Route path="/trip/:tripId" element={<Home />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

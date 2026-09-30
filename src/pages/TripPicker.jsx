@@ -12,6 +12,7 @@ import {
   ArchiveRestore,
   ArrowLeft,
   Lock,
+  LogOut,
 } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
@@ -21,6 +22,7 @@ import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
 import { ownerName } from "@/lib/family";
 import SettingsButton from "@/components/SettingsButton";
+import PinnedCorner from "@/components/PinnedCorner";
 import { useAuth } from "@/lib/AuthContext";
 import { canSeeTrip, useTripLockChanges, PRIVATE_TRIP_LABEL } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
@@ -78,7 +80,7 @@ export default function TripPicker() {
   const navigate = useNavigate();
   const { activeTrips, archivedTrips, loading, error, addTrip, editTrip, archiveTrip, removeTrip } =
     useTrips();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   useTripLockChanges();
   const isHidden = (trip) => !canSeeTrip(trip, user?.email);
   // Confirmations name the trip only when this viewer may see it.
@@ -117,12 +119,23 @@ export default function TripPicker() {
   const spinner = <Loader2 className="h-4 w-4 animate-spin" />;
 
   return (
-    // The page scrolls inside this box, not the document: the pinned settings and
-    // sign-out buttons (PinnedCorner) then cannot be moved by the browser's own
-    // scrolling, whatever a phone does with its address bar.
+    // The page scrolls inside this box, not the document, so a phone's own
+    // address-bar handling never gets involved. The settings and sign-out buttons
+    // are at the top of the page and scroll away with it.
     <div className="fixed inset-0 z-10 overflow-y-auto overscroll-contain">
     <div className="relative flex min-h-full w-full flex-col items-center justify-center px-4 pb-12 pt-20">
       <SettingsButton calendar />
+      <PinnedCorner side="right">
+        <button
+          type="button"
+          onClick={signOut}
+          title={t("Выйти")}
+          aria-label={t("Выйти")}
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/85 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:text-stone-800"
+        >
+          <LogOut className="h-4 w-4" />
+        </button>
+      </PinnedCorner>
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">
           <span

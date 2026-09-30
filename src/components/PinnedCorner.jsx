@@ -1,25 +1,21 @@
-import { createPortal } from "react-dom";
-
-// A button pinned to a top corner of the screen (the settings gear, sign-out).
-// Rendered straight into <body>, so no ancestor — a transformed or filtered
-// container — can turn `position: fixed` into "fixed to that ancestor" and let it
-// scroll with the page; its own compositing layer keeps it from lagging behind
-// while a phone scrolls. `side` is physical on purpose ("left" / "right"): these
-// stay in the same corner in Hebrew too. Clear of the status bar / notch.
+// A button at the top-left or top-right of the page (the settings gear, sign-out).
+// It is part of the page, not fixed to the screen: it sits at the very top and
+// scrolls away with the content, so it never floats over the trips when you scroll
+// down. The parent must be `position: relative` and span the page.
+// `side` is physical on purpose ("left" / "right"): the gear stays in the left
+// corner in Hebrew too. Clear of the status bar / notch.
 export default function PinnedCorner({ side, offset = "0.75rem", children }) {
-  return createPortal(
+  return (
     <div
       dir="ltr"
       style={{
-        position: "fixed",
+        position: "absolute",
         top: "max(0.75rem, env(safe-area-inset-top))",
         [side]: offset,
-        zIndex: 40,
-        transform: "translateZ(0)",
+        zIndex: 20,
       }}
     >
       {children}
-    </div>,
-    document.body
+    </div>
   );
 }
