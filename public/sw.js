@@ -83,7 +83,10 @@ self.addEventListener("message", (event) => {
 async function networkFirstIndex(request) {
   const cache = await caches.open(SHELL);
   try {
-    const res = await fetch(request);
+    // GitHub Pages sends `Cache-Control: max-age=600` on index.html, and a plain
+    // fetch() honours it — so a new deploy stayed invisible for up to ten
+    // minutes. "no-cache" always revalidates (a cheap 304 when nothing changed).
+    const res = await fetch(INDEX, { cache: "no-cache" });
     if (res.ok) await cache.put(INDEX, res.clone());
     return res;
   } catch (e) {
