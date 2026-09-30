@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
@@ -17,6 +17,7 @@ import {
   PRIVATE_TRIP_LABEL,
 } from "@/lib/tripLock";
 import TripLockDialog from "@/components/TripLockDialog";
+import TripExportDialog from "@/components/TripExportDialog";
 
 // A long trip is split into pages, so the grid always fits one screen.
 const PER_PAGE = 30;
@@ -30,8 +31,17 @@ function paginate(days) {
 export default function Home() {
   const { tripId: routeId } = useParams();
   const navigate = useNavigate();
-  const { trips, loading, openTrip, tripId, days, daysLoading, saveDayPlan, setTripLock } =
-    useTrips();
+  const {
+    trips,
+    loading,
+    openTrip,
+    tripId,
+    days,
+    daysLoading,
+    saveDayPlan,
+    setTripLock,
+    saveTripExport,
+  } = useTrips();
   const { user } = useAuth();
 
   const [selectedKey, setSelectedKey] = useState(null);
@@ -53,6 +63,7 @@ export default function Home() {
   // told to remember it; `unlockedId` covers the rest of this visit.
   const [unlockedId, setUnlockedId] = useState(null);
   const [lockDialog, setLockDialog] = useState(null); // "setup" | "manage"
+  const [exportOpen, setExportOpen] = useState(false);
   const owner = isTripOwner(trip, user?.email);
   const lockedOut =
     !!trip && isTripLocked(trip) && unlockedId !== trip.id && !isRemembered(trip);
@@ -91,18 +102,35 @@ export default function Home() {
         Поездки
       </button>
 
-      {owner && !lockedOut && (
-        <button
-          type="button"
-          onClick={() => setLockDialog(isTripLocked(trip) ? "manage" : "setup")}
-          className={`fixed top-3 right-3 z-40 grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
-            isTripLocked(trip) ? "text-[#1d3b5c]" : "text-stone-400"
-          }`}
-          aria-label={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
-          title={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
-        >
-          {isTripLocked(trip) ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
-        </button>
+      {trip && !lockedOut && (
+        <div className="fixed top-3 right-3 z-40 flex gap-2">
+          {ready && (
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
+                trip.export_doc_id ? "text-[#1d3b5c]" : "text-stone-400"
+              }`}
+              aria-label="Выгрузить поездку в Google Drive для NotebookLM"
+              title="Выгрузить в Google Drive для NotebookLM"
+            >
+              <BookOpen className="h-4 w-4" />
+            </button>
+          )}
+          {owner && (
+            <button
+              type="button"
+              onClick={() => setLockDialog(isTripLocked(trip) ? "manage" : "setup")}
+              className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
+                isTripLocked(trip) ? "text-[#1d3b5c]" : "text-stone-400"
+              }`}
+              aria-label={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
+              title={isTripLocked(trip) ? "Поездка закрыта PIN-кодом" : "Закрыть поездку PIN-кодом"}
+            >
+              {isTripLocked(trip) ? <Lock className="h-4 w-4" /> : <LockOpen className="h-4 w-4" />}
+            </button>
+          )}
+        </div>
       )}
 
       <div className="relative z-10 w-full max-w-3xl">
@@ -240,6 +268,15 @@ export default function Home() {
           showName={!hidden}
           onUnlocked={() => setUnlockedId(trip.id)}
           onClose={() => navigate("/")}
+        />
+      )}
+
+      {exportOpen && ready && (
+        <TripExportDialog
+          trip={trip}
+          days={days}
+          onSaved={(docId) => saveTripExport(trip.id, docId)}
+          onClose={() => setExportOpen(false)}
         />
       )}
 

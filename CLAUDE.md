@@ -101,6 +101,18 @@ entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
 correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
 
+## NotebookLM export
+
+The book button in the trip header (`TripExportDialog.jsx`) writes the whole
+trip — days, prices, notes, document links — as HTML (`lib/tripExport.js`) and
+uploads it to the shared Drive folder converted to a native **Google Doc**
+(`saveGoogleDoc` in `api/drive.js`). The doc id is kept on the trip
+(`export_doc_id`, `export_date`), so "Обновить" overwrites the same file and the
+link never changes. In NotebookLM it is added as a *Google Drive* source, which
+can be re-synced with one click after an update. It is a manual snapshot, not
+live sync. `drive.file` only lets an account overwrite docs it created itself;
+for anyone else `saveGoogleDoc` falls back to creating a fresh doc.
+
 ## Offline
 
 Each device keeps its own copy, so a trip opens with no signal.

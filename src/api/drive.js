@@ -170,6 +170,62 @@ export async function uploadToDrive(file, { name } = {}) {
   return id;
 }
 
+// Create — or, given fileId, overwrite in place — a native Google Doc built
+// from an HTML string (Drive converts it). The id, and so the link, stays the
+// same across updates: that is what lets NotebookLM re-sync the source.
+// drive.file only lets an account change files this app created for it, so when
+// the old doc is out of reach (made by someone else, or deleted) a new one is
+// created instead. Returns { id, url, created }.
+export async function saveGoogleDoc({ fileId, name, html }) {
+  const boundary = `pp${Date.now()}${Math.random().toString(16).slice(2)}`;
+  const multipart = (metadata) =>
+    new Blob(
+      [
+        `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n` +
+          `${JSON.stringify(metadata)}\r\n` +
+          `--${boundary}\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n`,
+        html,
+        `\r\n--${boundary}--`,
+      ],
+      { type: `multipart/related; boundary=${boundary}` }
+    );
+  const headers = { "Content-Type": `multipart/related; boundary=${boundary}` };
+  const docUrl = (id) => `https://docs.google.com/document/d/${id}/edit`;
+
+  if (fileId) {
+    try {
+      await driveFetch(
+        `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart&fields=id`,
+        { method: "PATCH", headers, body: multipart({ name }) }
+      );
+      return { id: fileId, url: docUrl(fileId), created: false };
+    } catch (err) {
+      if (!/Drive (403|404)/.test(err.message)) throw err;
+    }
+  }
+
+  const res = await driveFetch(
+    "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
+    {
+      method: "POST",
+      headers,
+      body: multipart({
+        name,
+        mimeType: "application/vnd.google-apps.document",
+        parents:
+          DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? [DRIVE_FOLDER_ID] : undefined,
+      }),
+    }
+  );
+  const { id } = await res.json();
+  await driveFetch(`https://www.googleapis.com/drive/v3/files/${id}/permissions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role: "reader", type: "anyone" }),
+  }).catch(() => {});
+  return { id, url: docUrl(id), created: true };
+}
+
 export async function deleteFromDrive(fileId) {
   if (!fileId) return;
   await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`, {

@@ -85,6 +85,12 @@ export async function setTripPin(id, pinHash) {
   });
 }
 
+// Remember the Google Doc a trip was last exported to (for NotebookLM), so the
+// next export overwrites it and the link stays the same.
+export async function setTripExport(id, docId) {
+  await updateTrip(id, { export_doc_id: docId, export_date: new Date().toISOString() });
+}
+
 async function deleteAll(tripId, name) {
   const snap = await readDocs(collection(db, "trips", tripId, name));
   await write(Promise.all(snap.docs.map((d) => deleteDoc(d.ref))));
