@@ -47,7 +47,10 @@ let expiresAt = 0;
 let reauthorize = null; // async () => newToken, registered by AuthContext
 
 try {
-  const saved = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || "null");
+  // Kept across closing and reopening the app (the token lasts an hour and only
+  // reaches Drive files this app made), so an upload within the hour does not ask
+  // Google for a new one.
+  const saved = JSON.parse(localStorage.getItem(TOKEN_KEY) || "null");
   if (saved && saved.token && saved.expiresAt > Date.now()) {
     accessToken = saved.token;
     expiresAt = saved.expiresAt;
@@ -61,9 +64,9 @@ export function setDriveToken(token, lifetimeSeconds = 3600) {
   expiresAt = token ? Date.now() + (lifetimeSeconds - 120) * 1000 : 0;
   try {
     if (token) {
-      sessionStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expiresAt }));
+      localStorage.setItem(TOKEN_KEY, JSON.stringify({ token, expiresAt }));
     } else {
-      sessionStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(TOKEN_KEY);
     }
   } catch {
     /* ignore */
