@@ -113,7 +113,7 @@ export default function TripPicker() {
   const spinner = <Loader2 className="h-4 w-4 animate-spin" />;
 
   return (
-    <div className="relative min-h-svh w-full flex flex-col items-center justify-center px-4 py-12">
+    <div className="relative min-h-svh w-full flex flex-col items-center justify-center px-4 pb-12 pt-20">
       <LanguageSwitch />
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">
