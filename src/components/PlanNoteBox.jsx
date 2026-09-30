@@ -1,5 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 import { Plus, Pencil, Trash2, Link2, X, Loader2 } from "lucide-react";
+import { useHoldMenu } from "@/lib/useHoldMenu";
 import { TripNote } from "@/api/entities";
 import { openExternal } from "@/lib/openExternal";
 
@@ -124,6 +125,24 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
     }
   };
 
+  // Hold (or right-click) the note to change or delete it; only the link can go too.
+  const dropLink = async () => {
+    if (!note) return;
+    try {
+      await TripNote.update(note.id, { link: "" });
+      await load();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  const { bind, menu } = useHoldMenu([
+    { key: "edit", label: "Изменить", icon: Pencil, run: startEdit },
+    ...(note?.link && note?.text
+      ? [{ key: "link", label: "Удалить ссылку", icon: Link2, danger: true, run: dropLink }]
+      : []),
+    { key: "del", label: "Удалить заметку", icon: Trash2, danger: true, run: remove },
+  ]);
+
   if (editing) {
     return (
       <div className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
@@ -170,7 +189,8 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
   if (!note) return null;
 
   return (
-    <div className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+    <div {...bind} className="mt-3 ml-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+      {menu}
       {note.text && <NoteText text={note.text} />}
       {note.link && (
         <a

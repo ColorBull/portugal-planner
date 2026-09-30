@@ -10,6 +10,7 @@ import {
   Pencil,
   Loader2,
   Check,
+  Trash2,
   Wallet,
   ShieldCheck,
   Smartphone,
@@ -30,6 +31,7 @@ import { openMapUrl } from "@/lib/mapsLink";
 import { uid } from "@/api/trips";
 import { tripYearLabel } from "@/lib/tripDays";
 import { useIsPhone } from "@/lib/useIsPhone";
+import { useHoldMenu } from "@/lib/useHoldMenu";
 import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
@@ -48,6 +50,12 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
   };
 
   useImperativeHandle(ref, () => ({ start }));
+
+  // Hold (or right-click) the badge to change or delete the price.
+  const { bind, menu } = useHoldMenu([
+    { key: "edit", label: "Изменить цену", icon: Pencil, run: start },
+    { key: "del", label: "Удалить цену", icon: Trash2, danger: true, run: () => onSave(null) },
+  ]);
 
   const commit = async () => {
     const next = parseCost(value);
@@ -90,14 +98,18 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
   if (amount === null) return null;
 
   return (
+    <>
+    {menu}
     <button
       type="button"
+      {...bind}
       onClick={start}
       title="Изменить цену"
       className="ml-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
     >
       {formatMoney(amount, currency)}
     </button>
+    </>
   );
 });
 
@@ -117,6 +129,17 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
   };
 
   useImperativeHandle(ref, () => ({ start }));
+
+  const { bind, menu } = useHoldMenu([
+    { key: "edit", label: "Изменить адрес", icon: Pencil, run: start },
+    {
+      key: "del",
+      label: "Удалить адрес",
+      icon: Trash2,
+      danger: true,
+      run: () => onSave({ address: "", mapUrl: "" }),
+    },
+  ]);
 
   // Bring the field into view once the keyboard has made room for it.
   useEffect(() => {
@@ -178,7 +201,13 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
     );
   }
 
-  return <MapLink item={item} bar={bar} />;
+  if (!item.address && !item.mapUrl) return null;
+  return (
+    <div {...bind}>
+      <MapLink item={item} bar={bar} />
+      {menu}
+    </div>
+  );
 });
 
 function MapLink({ item, bar }) {
@@ -317,7 +346,7 @@ export default function DayPlanModal({
       })),
     });
 
-  const saveItemAddress = (itemId, patch) =>
+  const saveItemPatch = (itemId, patch) =>
     onSave({
       sections: sections.map((s) => ({
         ...s,
@@ -532,7 +561,7 @@ export default function DayPlanModal({
                                 photos={photosByItem[item.id] || []}
                                 onChanged={loadPhotos}
                                 onSaveCost={(cost) => saveItemCost(item.id, cost)}
-                                onSaveAddress={(patch) => saveItemAddress(item.id, patch)}
+                                onSavePatch={(patch) => saveItemPatch(item.id, patch)}
                               />
                             </li>
                           ))}
@@ -719,7 +748,10 @@ function ActionMenu({ actions }) {
 }
 
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost, onSaveAddress }) {
+function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch }) {
+  const [editingText, setEditingText] = useState(false);
+  const [textDraft, setTextDraft] = useState("");
+  const [busy, setBusy] = useState(false);
   const costRef = useRef(null);
   const addressRef = useRef(null);
   const gridRef = useRef(null);
@@ -727,7 +759,27 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
   const hasCost = parseCost(item.cost) !== null;
   const hasAddress = !!(item.address || item.mapUrl);
 
+  const startText = () => {
+    setTextDraft(item.text || "");
+    setEditingText(true);
+  };
+  const commitText = async () => {
+    const text = textDraft.trim();
+    if (!text || text === item.text) return setEditingText(false);
+    setBusy(true);
+    try {
+      await onSavePatch({ text });
+      setEditingText(false);
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const actions = [
+    { key: "text", icon: Pencil, label: "Изменить название", run: startText },
     { key: "cost", icon: Wallet, label: hasCost ? "Изменить цену" : "Добавить цену", run: () => costRef.current?.start() },
     { key: "address", icon: MapPin, label: hasAddress ? "Изменить адрес" : "Добавить адрес", run: () => addressRef.current?.start() },
     { key: "photo", icon: ImagePlus, label: "Добавить фото", run: () => gridRef.current?.pickPhoto() },
@@ -738,7 +790,14 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
   return (
     <>
       <div className="flex items-start justify-between gap-1">
-        <div className="min-w-0 pt-1 text-stone-700 leading-relaxed break-words sm:pt-0">
+        {/* Tap the title to edit it in place. */}
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => !window.getSelection()?.toString() && startText()}
+          onKeyDown={(e) => e.key === "Enter" && startText()}
+          className="min-w-0 cursor-text break-words rounded-md pt-1 leading-relaxed text-stone-700 transition hover:bg-stone-200/40 sm:pt-0"
+        >
           {item.text}
         </div>
         <span className="flex shrink-0 items-center">
@@ -746,7 +805,37 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
           <ActionMenu actions={actions} />
         </span>
       </div>
-      <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSaveAddress} />
+      {editingText && (
+        <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
+          <textarea
+            autoFocus
+            rows={3}
+            value={textDraft}
+            onChange={(e) => setTextDraft(e.target.value)}
+            className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm"
+          />
+          <div className="mt-2 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setEditingText(false)}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
+              <X className="h-3.5 w-3.5" /> Отмена
+            </button>
+            <button
+              type="button"
+              onClick={commitText}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              Сохранить
+            </button>
+          </div>
+        </div>
+      )}
+      <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSavePatch} />
       <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
       <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
     </>
