@@ -117,7 +117,11 @@ export default function TripPicker() {
   const spinner = <Loader2 className="h-4 w-4 animate-spin" />;
 
   return (
-    <div className="relative min-h-svh w-full flex flex-col items-center justify-center px-4 pb-12 pt-20">
+    // The page scrolls inside this box, not the document: the pinned settings and
+    // sign-out buttons (PinnedCorner) then cannot be moved by the browser's own
+    // scrolling, whatever a phone does with its address bar.
+    <div className="fixed inset-0 z-10 overflow-y-auto overscroll-contain">
+    <div className="relative flex min-h-full w-full flex-col items-center justify-center px-4 pb-12 pt-20">
       <SettingsButton calendar />
       <div className="relative z-10 w-full max-w-3xl">
         <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">
@@ -283,6 +287,7 @@ export default function TripPicker() {
           onClose={() => setDeleting(null)}
         />
       )}
+    </div>
     </div>
   );
 }
