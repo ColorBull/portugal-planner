@@ -1,10 +1,5 @@
 import { initializeApp } from "firebase/app";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  setPersistence,
-  browserLocalPersistence,
-} from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 import {
   initializeFirestore,
   persistentLocalCache,
@@ -14,8 +9,15 @@ import { firebaseConfig } from "@/config";
 
 const app = initializeApp(firebaseConfig);
 
+// The default persistence (IndexedDB, then localStorage) keeps the sign-in across
+// restarts. A phone short of storage may still throw a site's data away; asking
+// for persistent storage tells the browser this data is to be kept.
 export const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence).catch(() => {});
+try {
+  navigator.storage?.persist?.();
+} catch {
+  /* not supported */
+}
 
 // Every document the app reads is also kept in IndexedDB on this device, so
 // trips, day plans, notes and photo records stay readable offline. Writes made
@@ -25,12 +27,8 @@ export const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
 });
 
-// Google sign-in that also grants per-file Drive access, so the app can
-// upload trip photos into the shared Drive folder. `drive.file` is a
-// non-sensitive scope: access is limited to files this app creates.
+// Plain Google sign-in: who you are, nothing else — so signing in again (a new
+// phone, cleared site data) is one tap and no permission screen. Drive access for
+// photos and documents is asked for separately, on the first upload
+// (api/drive.js → requestDriveAccess).
 export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope("https://www.googleapis.com/auth/drive.file");
-// "consent" (not just "select_account") so Google always returns an access
-// token that actually carries the drive.file grant — without it a returning
-// user is signed in with no Drive scope and uploads fail with 403.
-googleProvider.setCustomParameters({ prompt: "consent" });

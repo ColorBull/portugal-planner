@@ -5,14 +5,13 @@ import {
   signInWithRedirect,
   getRedirectResult,
   signOut as fbSignOut,
-  GoogleAuthProvider,
 } from "firebase/auth";
 import { auth, googleProvider } from "@/api/firebase";
 import { ALLOWED_EMAILS } from "@/config";
 import {
   setDriveToken,
   registerReauthorize,
-  tokenGrantsDrive,
+  requestDriveAccess,
   hasDriveAccess,
   driveTokenStale,
   renewSilently,
@@ -50,42 +49,33 @@ export function AuthProvider({ children }) {
     });
   }, []);
 
-  // Pop the Google dialog and capture a fresh Drive access token. Google shows
-  // the Drive permission as an optional checkbox; if it's left unticked the
-  // token has no drive.file scope, so re-prompt once before giving up.
-  const authorize = async (allowRetry = true) => {
-    let result;
+  // Sign in with Google: identity only. Drive access is a separate request.
+  const authorize = async () => {
     try {
-      result = await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(auth, googleProvider);
     } catch (e) {
       if (!POPUP_UNAVAILABLE.has(e?.code)) throw e;
-      // Navigates away; the token is picked up by getRedirectResult on return.
+      // Navigates away; the sign-in completes when the page comes back.
       await signInWithRedirect(auth, googleProvider);
-      return null;
     }
-    const credential = GoogleAuthProvider.credentialFromResult(result);
-    const token = credential?.accessToken || null;
-    setDriveToken(token);
-    if (token && allowRetry && !(await tokenGrantsDrive(token))) {
+  };
+
+  // Coming back from the redirect fallback above (onAuthStateChanged does the rest).
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {});
+  }, []);
+
+  // Drive access, asked for from a tap (Google's window if it has to be).
+  const driveAccessFromTap = async () => {
+    const { token, noScope } = await requestDriveAccess(auth.currentUser?.email);
+    if (noScope) {
       setError(
         t("Похоже, при входе не был отмечен доступ к Google Drive. ") +
           t("Отметьте галочку доступа к файлам Drive в следующем окне.")
       );
-      return authorize(false);
     }
     return token;
   };
-
-  // Coming back from the redirect fallback above.
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (!result) return;
-        const token = GoogleAuthProvider.credentialFromResult(result)?.accessToken;
-        if (token) setDriveToken(token);
-      })
-      .catch(() => {});
-  }, []);
 
   // Keep the Drive token fresh while the app is open, so an upload never has
   // to stop and ask. Renewal is silent; the dialog stays as the fallback.
@@ -121,7 +111,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     registerReauthorize(async () => {
       try {
-        return await authorize();
+        return await driveAccessFromTap();
       } catch {
         return null;
       }
@@ -133,14 +123,12 @@ export function AuthProvider({ children }) {
   const ensureDriveAccess = async () => {
     if (hasDriveAccess()) return true;
     setError(null);
-    // Access was granted once already: a quiet renewal is enough, no dialog.
-    if (canRenewSilently() && (await renewSilently().catch(() => null))) return true;
+    // One request does both: quiet when Google already has the permission and a
+    // session to reuse, Google's own window (which waits for the person) when not.
     try {
-      return !!(await authorize());
-    } catch (e) {
-      if (!isDismissal(e?.code)) {
-        setError(t("Не удалось подключить Google Drive. Попробуйте ещё раз."));
-      }
+      return !!(await driveAccessFromTap());
+    } catch {
+      setError(t("Не удалось подключить Google Drive. Попробуйте ещё раз."));
       return false;
     }
   };

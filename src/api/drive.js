@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { DRIVE_FOLDER_ID } from "@/config";
-import { renewDriveToken } from "@/api/googleToken";
+import { renewDriveToken, requestDriveToken } from "@/api/googleToken";
 import { t } from "@/lib/i18n";
 
 const TOKEN_KEY = "pp_drive_token";
@@ -95,6 +95,21 @@ export async function renewSilently() {
   noteSilentRenewal(true);
   setDriveToken(renewed.access_token, renewed.expires_in || 3600);
   return renewed.access_token;
+}
+
+// Drive access from a tap: Google's consent window if it has to be (the Drive
+// permission is only asked for here, when it is needed — not at every sign-in).
+// Resolves { token } or { token: null, noScope: true } when the window was
+// answered without ticking the Drive box.
+export async function requestDriveAccess(hint) {
+  const response = await requestDriveToken(hint);
+  if (!response?.access_token) return { token: null };
+  if (response.scope && !response.scope.split(" ").includes(DRIVE_SCOPE)) {
+    return { token: null, noScope: true };
+  }
+  noteSilentRenewal(true);
+  setDriveToken(response.access_token, response.expires_in || 3600);
+  return { token: response.access_token };
 }
 
 // Whether "silent" renewal has ever worked on this device. It is not silent

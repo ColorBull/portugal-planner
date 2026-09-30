@@ -21,7 +21,8 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
   `.filter/.create/.update/.delete` surface and writes under whichever trip is
   open (`setActiveTripId`). `trips/_meta` is bookkeeping, never a trip.
 - **Files** — Google Drive. Photos & documents are uploaded (via the `drive.file`
-  OAuth scope granted at sign-in) into one shared Drive folder
+  scope, asked for through Google Identity Services on the first upload — sign-in
+  itself is identity only, no Drive permission screen) into one shared Drive folder
   (`DRIVE_FOLDER_ID`), link-shared, and rendered through
   `https://lh3.googleusercontent.com/d/<id>=w<size>` (not
   `drive.google.com/thumbnail`: that one refuses CORS, so the service worker
@@ -222,13 +223,20 @@ Each device keeps its own copy, so a trip opens with no signal.
   protection = `firestore.rules` + Firebase "Authorized domains".
 - The Google **service-account** JSON is a real secret — `.gitignore`d, never used
   by the frontend.
-- Drive OAuth access tokens last ~1 h and Firebase does not refresh them.
-  `drive.js` re-pops the Google dialog on a 401 and retries once.
-- Google's consent screen shows the `drive.file` permission as an **optional
-  checkbox** (granular permissions). Clicking through without ticking it =
-  signed in but no Drive scope → uploads 403 "insufficient authentication
-  scopes". `tokenGrantsDrive()` (tokeninfo endpoint) detects this; `authorize()`
-  re-prompts once and the upload path shows a Russian "tick the box" message.
+- Sign-in (Firebase, Google popup — redirect where popups are blocked) is
+  identity only: no Drive scope, no `prompt: "consent"`, so signing in again is one
+  tap. Drive access is a separate Google Identity Services token
+  (`requestDriveAccess` in `drive.js`, `AuthContext.ensureDriveAccess`), asked for
+  from a tap on the first upload. Its tokens last ~1 h; `drive.js` renews them
+  (quietly where Google has a session, else Google's window) and on a 401 retries
+  once. Persistent storage is requested at start (`firebase.js`) so a phone short
+  of space does not throw the sign-in away — that is what made one device ask to
+  sign in at every start.
+- Google shows the `drive.file` permission as an **optional checkbox** (granular
+  permissions). Clicking through without ticking it = a token with no Drive scope
+  → uploads 403 "insufficient authentication scopes". `requestDriveAccess`
+  checks the granted scope and the upload path shows a Russian "tick the box"
+  message.
 - `firestore.rules` uses `rules_version = '2'`, where a recursive wildcard
   matches **one or more** segments (v1 matched zero or more). So
   `match /trips/{tripId}/{document=**}` covers the sub-collections but **not**

@@ -16,6 +16,7 @@ import { GOOGLE_OAUTH_CLIENT_ID } from "@/config";
 const GIS_SRC = "https://accounts.google.com/gsi/client";
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const RENEW_TIMEOUT_MS = 10000;
+const INTERACTIVE_TIMEOUT_MS = 180000;
 
 export const canRenewSilently = () =>
   !!GOOGLE_OAUTH_CLIENT_ID && GOOGLE_OAUTH_CLIENT_ID !== "REPLACE_ME";
@@ -59,6 +60,28 @@ async function ensureClient() {
     error_callback: () => settle(null),
   });
   return tokenClient;
+}
+
+// Asks for a token and waits for the person: Google may show its sign-in and
+// consent windows (first time on a device, or no Google session to reuse). Call
+// it from a tap. Resolves to the response ({ access_token, expires_in, scope }) or
+// null if nothing came of it. `hint` is the account's e-mail, so Google does not
+// offer the account chooser.
+export async function requestDriveToken(hint) {
+  if (!canRenewSilently()) return null;
+  try {
+    const client = await ensureClient();
+    settle(null); // a silent attempt still waiting is superseded
+    return await new Promise((resolve) => {
+      pending = resolve;
+      setTimeout(() => {
+        if (pending === resolve) settle(null);
+      }, INTERACTIVE_TIMEOUT_MS);
+      client.requestAccessToken({ prompt: "", hint: hint || undefined });
+    });
+  } catch {
+    return null;
+  }
 }
 
 // Resolves to { access_token, expires_in } or null when Google wants to show
