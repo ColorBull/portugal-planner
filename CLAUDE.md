@@ -103,8 +103,10 @@ correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` d
 
 ## Phone layout
 
-Below Tailwind's `sm` (640px) the day view is a full-screen sheet (`h-dvh`,
-safe-area padding, big touch targets, 16px inputs so iOS doesn't zoom), with
+The day view is a full-page sheet on every screen size (`h-dvh`; header, body
+and footer content sit in a centred `max-w-3xl` column). Below Tailwind's `sm`
+(640px) it also has safe-area padding, big touch targets, 16px inputs so iOS
+doesn't zoom, and
 ‹ / › day buttons in the footer and a sideways swipe. The editor stacks each item
 into one column; `useIsPhone()` switches the card markup, because the drag handle
 may exist only once per card. Address suggestions are in the flow on phones (a

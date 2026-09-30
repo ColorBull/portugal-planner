@@ -368,7 +368,7 @@ export default function DayPlanModal({
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center"
       initial={false}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -379,7 +379,7 @@ export default function DayPlanModal({
       />
 
       <motion.div
-        className="relative flex h-dvh w-full flex-col overflow-hidden shadow-2xl sm:h-auto sm:max-h-[88vh] sm:max-w-2xl sm:rounded-3xl"
+        className="relative flex h-dvh w-full flex-col overflow-hidden"
         style={{ backgroundColor: "#fbf7f0" }}
         initial={false}
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
@@ -387,13 +387,14 @@ export default function DayPlanModal({
       >
         {/* Header band */}
         <div
-          className="relative shrink-0 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6 sm:pt-7"
+          className="shrink-0 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6 sm:pt-7"
           style={{
             background:
               "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)",
           }}
         >
-          <div className="absolute right-3 top-[max(0.75rem,env(safe-area-inset-top))] flex gap-2 sm:right-5 sm:top-5">
+          <div className="relative mx-auto w-full max-w-3xl">
+          <div className="absolute right-0 top-0 flex gap-2">
             {!editing && (
               <button
                 onClick={() => startEditing(true)}
@@ -431,6 +432,7 @@ export default function DayPlanModal({
             )}
             {dayInfo?.weekday}, {dayInfo?.label}
           </div>
+          </div>
         </div>
 
         {/* Body */}
@@ -440,6 +442,7 @@ export default function DayPlanModal({
           onTouchEnd={swipeEnd}
           className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-7 sm:py-6"
         >
+          <div className="mx-auto w-full max-w-3xl">
           {editing ? (
             <DayPlanEditor
               value={draft}
@@ -632,14 +635,16 @@ export default function DayPlanModal({
               )}
             </>
           )}
+          </div>
         </div>
 
         {/* Footer */}
         {editing ? (
           <div
-            className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-7 sm:py-4"
+            className="shrink-0 border-t px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 sm:px-7 sm:py-4"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
+            <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-end gap-2">
             {saveError && (
               <span className="w-full text-sm text-[#a8451f] sm:mr-auto sm:w-auto">{saveError}</span>
             )}
@@ -664,12 +669,14 @@ export default function DayPlanModal({
               )}
               Сохранить
             </button>
+            </div>
           </div>
         ) : (
           <div
-            className="flex shrink-0 items-center justify-between gap-2 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
+            className="shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
           >
+            <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
             <DayNavButton day={prevDay} dir="prev" onNavigate={onNavigate} />
             <span className="flex min-w-0 items-center gap-1.5 text-xs text-stone-400">
               <Clock className="h-3.5 w-3.5 shrink-0" />
@@ -678,6 +685,7 @@ export default function DayPlanModal({
               </span>
             </span>
             <DayNavButton day={nextDay} dir="next" onNavigate={onNavigate} />
+            </div>
           </div>
         )}
       </motion.div>
