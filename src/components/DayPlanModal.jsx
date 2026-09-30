@@ -12,12 +12,14 @@ import {
   Wallet,
   ShieldCheck,
   Smartphone,
+  Plus,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
 import PlanNoteBox from "@/components/PlanNoteBox";
+import AddressInput from "@/components/AddressInput";
 import DayPlanEditor, { emptySection } from "@/components/DayPlanEditor";
 import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
@@ -90,6 +92,113 @@ function InlineCost({ cost, currency, onSave }) {
     >
       {amount === null ? "+ цена" : formatMoney(amount, currency)}
     </button>
+  );
+}
+
+// Address of one plan item, editable right in the day view like the price:
+// "+ адрес" when there is none, a pencil next to the link when there is. The
+// editor opens in the flow under the item (with its suggestions), so on a phone
+// the field is full-width, you see what you type, and the page just scrolls.
+function ItemAddress({ item, bar, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ address: "", mapUrl: "" });
+  const [busy, setBusy] = useState(false);
+  const panelRef = useRef(null);
+
+  const start = () => {
+    setDraft({ address: item.address || "", mapUrl: item.mapUrl || "" });
+    setEditing(true);
+  };
+
+  // Bring the field into view once the keyboard has made room for it.
+  useEffect(() => {
+    if (!editing) return;
+    const t = setTimeout(
+      () => panelRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }),
+      300
+    );
+    return () => clearTimeout(t);
+  }, [editing]);
+
+  const commit = async () => {
+    setBusy(true);
+    try {
+      await onSave({ address: draft.address.trim(), mapUrl: draft.address.trim() ? draft.mapUrl : "" });
+      setEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert("Не удалось сохранить адрес.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <div
+        ref={panelRef}
+        data-no-swipe
+        className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200"
+      >
+        <AddressInput
+          autoFocus
+          value={draft.address}
+          onChange={(patch) => setDraft((d) => ({ ...d, ...patch }))}
+          placeholder="Адрес или название места"
+          className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm"
+        />
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setEditing(false)}
+            disabled={busy}
+            className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
+          >
+            <X className="h-3.5 w-3.5" /> Отмена
+          </button>
+          <button
+            type="button"
+            onClick={commit}
+            disabled={busy}
+            className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+            Сохранить
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!item.address && !item.mapUrl) {
+    return (
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={start}
+          className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-stone-300 px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:border-stone-400 hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
+        >
+          <Plus className="h-3.5 w-3.5" /> Адрес
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-start gap-1">
+      <div className="min-w-0 flex-1">
+        <MapLink item={item} bar={bar} />
+      </div>
+      <button
+        type="button"
+        onClick={start}
+        className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60"
+        aria-label="Изменить адрес"
+        title="Изменить адрес"
+      >
+        <Pencil className="h-3.5 w-3.5" />
+      </button>
+    </div>
   );
 }
 
@@ -168,6 +277,11 @@ export default function DayPlanModal({
   // Swipe sideways (reading mode only) for the previous / next day. It has to
   // be long and mostly horizontal, so it never steals a scroll.
   const swipeStart = (e) => {
+    // Not from a field: selecting text by dragging must not turn the page.
+    if (e.target.closest?.("input, textarea, [data-no-swipe]")) {
+      swipeRef.current = null;
+      return;
+    }
     const t = e.touches[0];
     swipeRef.current = { x: t.clientX, y: t.clientY };
   };
@@ -221,6 +335,14 @@ export default function DayPlanModal({
       sections: sections.map((s) => ({
         ...s,
         items: (s.items || []).map((it) => (it.id === itemId ? { ...it, cost } : it)),
+      })),
+    });
+
+  const saveItemAddress = (itemId, patch) =>
+    onSave({
+      sections: sections.map((s) => ({
+        ...s,
+        items: (s.items || []).map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
       })),
     });
 
@@ -455,7 +577,11 @@ export default function DayPlanModal({
                                   />
                                 </span>
                               </div>
-                              <MapLink item={item} bar={style.bar} />
+                              <ItemAddress
+                                item={item}
+                                bar={style.bar}
+                                onSave={(patch) => saveItemAddress(item.id, patch)}
+                              />
                               <PlanPhotoGrid
                                 itemId={item.id}
                                 dayKey={dayInfo.key}

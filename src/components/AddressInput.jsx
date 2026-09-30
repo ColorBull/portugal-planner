@@ -13,7 +13,7 @@ const mapUrlFor = (place) =>
     `${place.lat},${place.lon}`
   )}`;
 
-export default function AddressInput({ value, onChange, className, placeholder }) {
+export default function AddressInput({ value, onChange, className, placeholder, autoFocus }) {
   const [results, setResults] = useState([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,6 +90,7 @@ export default function AddressInput({ value, onChange, className, placeholder }
           onChange={(e) => onChange({ address: e.target.value, mapUrl: "" })}
           onFocus={() => results.length > 0 && setOpen(true)}
           placeholder={placeholder}
+          autoFocus={autoFocus}
           autoComplete="off"
         />
         {loading && (
