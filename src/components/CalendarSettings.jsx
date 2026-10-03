@@ -9,17 +9,30 @@ import {
   applyCalendarChanges,
   calendarName,
   connectCalendar,
+  deviceTimeZone,
   emailKey,
   ensureCalendar,
   explainCalendarError,
   findCalendarChanges,
   preloadCalendar,
   pushTrip,
+  tripTimeZone,
 } from "@/api/gcal";
 import { t } from "@/lib/i18n";
 
 // Settings → Google Calendar: pick a trip, then send its schedule to a calendar
 // of its own (api/gcal.js), or bring back what was changed there.
+
+// Every zone the browser knows, the device's and the trip's included.
+function timeZones(...extra) {
+  let list = [];
+  try {
+    list = Intl.supportedValuesOf("timeZone");
+  } catch {
+    list = [];
+  }
+  return [...new Set([...extra.filter(Boolean), ...list])].sort();
+}
 
 const action =
   "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium " +
@@ -29,13 +42,20 @@ function describe(change) {
   if (change.type === "rename") return t("Переименовано: «{from}» → «{to}»", { from: change.from, to: change.to });
   if (change.type === "move")
     return t("Перенесено на {day}: «{text}»", { day: formatDayLabel(change.day), text: change.text });
+  if (change.type === "time")
+    return change.time
+      ? t("Новое время {time}: «{text}»", { time: change.time, text: change.text })
+      : t("Теперь на весь день: «{text}»", { text: change.text });
   if (change.type === "add")
-    return t("Новое событие на {day}: «{text}»", { day: formatDayLabel(change.day), text: change.text });
+    return t("Новое событие на {day}: «{text}»", {
+      day: formatDayLabel(change.day),
+      text: change.time ? `${change.time} ${change.text}` : change.text,
+    });
   return t("Удалено в календаре: «{text}»", { text: change.text });
 }
 
 export default function CalendarSettings({ onBack }) {
-  const { trips, saveTripGcal } = useTrips();
+  const { trips, saveTripGcal, editTrip } = useTrips();
   const { user } = useAuth();
   const email = user?.email;
   const visible = trips.filter((trip) => canSeeTrip(trip, email));
@@ -163,10 +183,31 @@ export default function CalendarSettings({ onBack }) {
         <div className="mt-4 space-y-2">
           <p className="text-xs text-stone-500">
             {t(
-              "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие на весь день. Время из текста остаётся в названии.",
+              "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие. Пункт с указанным временем — в это время, остальные — на весь день.",
               { name: calendarName(trip) }
             )}
           </p>
+
+          <label className="block text-xs text-stone-500">
+            {t("Часовой пояс поездки")}
+            <select
+              value={tripTimeZone(trip)}
+              disabled={!!busy}
+              onChange={(e) =>
+                editTrip(trip.id, { timezone: e.target.value }).catch((err) => {
+                  console.error(err);
+                  setStatus({ kind: "error", text: t("Не удалось сохранить.") });
+                })
+              }
+              className="mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-base text-stone-800 outline-none sm:text-sm"
+            >
+              {timeZones(trip.timezone, deviceTimeZone()).map((zone) => (
+                <option key={zone} value={zone}>
+                  {zone.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
+          </label>
 
           <button
             type="button"

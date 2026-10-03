@@ -16,6 +16,7 @@ import {
   PenLine,
   ChevronLeft,
   Clock,
+  Receipt,
 } from "lucide-react";
 import { uid } from "@/api/trips";
 import { useAuth } from "@/lib/AuthContext";
@@ -189,13 +190,20 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
               </StatCard>
               <StatCard Icon={Wallet} label={t("Всего потрачено")} className="col-span-2 sm:col-span-1">
                 <span dir="ltr">{formatMoney(costs.total, currency)}</span>
-                {costs.total > 0 && (
+                {costs.daily > 0 && (
                   <span className="block text-xs font-normal text-stone-500">
                     {t("≈ {sum} в день", { sum: formatMoney(costs.perDay, currency) })}
                   </span>
                 )}
               </StatCard>
             </div>
+
+            {/* The receipt: fixed spending line by line, then the days, then the total */}
+            {costs.total > 0 && (
+              <Section Icon={Receipt} title={t("Расходы поездки")}>
+                <ReceiptView costs={costs} currency={currency} />
+              </Section>
+            )}
 
             {/* Cities */}
             <Section Icon={Building2} title={t("Города")}>
@@ -346,6 +354,63 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// Pre-trip spending by kind (each with its items when there is more than one,
+// or a name to show), the days' spending, and what it all came to.
+function ReceiptView({ costs, currency }) {
+  const money = (n) => (
+    <span dir="ltr" className="shrink-0 tabular-nums">
+      {formatMoney(n, currency)}
+    </span>
+  );
+  const row = "flex items-baseline justify-between gap-3";
+  return (
+    <div className="text-sm text-stone-700">
+      {costs.fixed.lines.length > 0 && (
+        <>
+          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+            {t("До поездки")}
+          </p>
+          <ul className="space-y-2">
+            {costs.fixed.lines.map((line) => (
+              <li key={line.kind}>
+                <div className={`${row} font-medium`}>
+                  <span className="min-w-0 break-words">{t(line.title)}</span>
+                  {money(line.total)}
+                </div>
+                {(line.items.length > 1 || line.items[0]?.text) && (
+                  <ul className="mt-0.5 space-y-0.5 ps-3 text-xs text-stone-500">
+                    {line.items.map((x, i) => (
+                      <li key={i} className={row}>
+                        <span className="min-w-0 break-words">{x.text || "—"}</span>
+                        {line.items.length > 1 && money(x.cost)}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className={`${row} mt-2 border-t border-dashed border-stone-300 pt-2 text-stone-500`}>
+            <span>{t("Итого до поездки")}</span>
+            {money(costs.fixed.total)}
+          </div>
+        </>
+      )}
+      <div className={`${row} ${costs.fixed.lines.length ? "mt-3" : ""} font-medium`}>
+        <span>{t("Расходы по дням")}</span>
+        {money(costs.daily)}
+      </div>
+      <div
+        className={`${row} mt-3 border-t-2 border-double border-stone-400 pt-3 font-display text-lg font-semibold`}
+        style={{ color: "#1d3b5c" }}
+      >
+        <span>{t("Итого за поездку")}</span>
+        {money(costs.total)}
+      </div>
+    </div>
   );
 }
 

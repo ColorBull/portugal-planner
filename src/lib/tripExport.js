@@ -3,7 +3,7 @@
 // NotebookLM reads and keeps in sync (see api/drive.js → saveGoogleDoc).
 
 import { buildDays, tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
-import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
+import { EXTRAS, dayTotal, fixedReceipt, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
 import { driveViewUrl } from "@/api/drive";
 import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
 import { countryLabel } from "@/lib/countries";
@@ -44,6 +44,7 @@ const fileHtml = (p) =>
 
 // The summary page (components/TripSummaryModal.jsx), after the last day.
 function summaryHtml(trip, list, days, currency, tripTotal) {
+  const money = (n) => esc(formatMoney(n, currency));
   const s = trip.summary || {};
   const out = [`<h2>${t("Итоги поездки")}</h2>`];
   const cities = cityStats(list, days, trip)
@@ -53,6 +54,25 @@ function summaryHtml(trip, list, days, currency, tripTotal) {
     `<p>${t("Длительность")}: ${list.length}. ${t("Всего потрачено")}: ${esc(formatMoney(tripTotal, currency))}.</p>`,
     `<h3>${t("Города")}</h3><ul>${cities}</ul>`
   );
+  const fixed = fixedReceipt(list.map((d) => days[d.key]));
+  const daily = Math.round((tripTotal - fixed.total) * 100) / 100;
+  if (tripTotal) {
+    const lines = fixed.lines
+      .map(
+        (l) =>
+          `<li>${esc(t(l.title))}: ${money(l.total)}${
+            l.items.some((x) => x.text)
+              ? `<ul>${l.items.map((x) => `<li>${esc(x.text || "—")}: ${money(x.cost)}</li>`).join("")}</ul>`
+              : ""
+          }</li>`
+      )
+      .join("");
+    out.push(
+      `<h3>${t("Расходы поездки")}</h3><ul>${lines}` +
+        (fixed.lines.length ? `<li>${t("Итого до поездки")}: ${money(fixed.total)}</li>` : "") +
+        `<li>${t("Расходы по дням")}: ${money(daily)}</li><li><b>${t("Итого за поездку")}: ${money(tripTotal)}</b></li></ul>`
+    );
+  }
   const highlights = sortedEntries(s.highlights);
   if (highlights.length)
     out.push(`<h3>${t("Лучшие моменты")}</h3><ul>${highlights.map((h) => `<li>${esc(h.text)}</li>`).join("")}</ul>`);
@@ -132,7 +152,8 @@ export function buildTripHtml({ trip, days, notes, photos }) {
         const href = mapHref(it);
         const extra = [
           it.address && `📍 ${href ? link(href, it.address) : esc(it.address)}`,
-          cost !== null && `<b>${esc(formatMoney(cost, currency))}</b>`,
+          cost !== null &&
+            `<b>${esc(formatMoney(cost, currency))}</b>${isFixedItem(it, s) ? ` (${t("до поездки")})` : ""}`,
         ].filter(Boolean);
         const sub = [
           ...(dayNotes[it.id] || []).map(noteHtml),
@@ -153,8 +174,9 @@ export function buildTripHtml({ trip, days, notes, photos }) {
     ];
     if (loose.length) body.push(`<h3>${t("Прочее")}</h3><ul>${loose.join("")}</ul>`);
 
+    // The day's total leaves out flights, insurance, SIM…; the trip's has them.
     const total = dayTotal(plan);
-    tripTotal += total;
+    tripTotal += total + fixedReceipt([plan]).total;
     if (total) body.push(`<p><b>${t("Итого за день")}: ${esc(formatMoney(total, currency))}</b></p>`);
   });
 

@@ -20,6 +20,7 @@ import {
   StickyNote,
   ChevronLeft,
   ChevronRight,
+  Receipt,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -33,14 +34,15 @@ import { tripYearLabel } from "@/lib/tripDays";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { useHoldMenu } from "@/lib/useHoldMenu";
 import { countryLabel } from "@/lib/countries";
-import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/money";
+import { EXTRAS, dayTotal, fixedTotal, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
 import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
 // A price that can be set or changed right in the day view: tap the badge (or
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
-const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, ref) {
+// `fixed`: a pre-trip expense (lib/money.js) — blue badge, not in the day's total.
+const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixed = false }, ref) {
   const amount = parseCost(cost);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
@@ -107,11 +109,100 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave }, re
       dir="ltr"
       {...bind}
       onClick={start}
-      title={t("Изменить цену")}
-      className="ms-2 inline-flex shrink-0 items-center whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
+      title={fixed ? t("Расход до поездки — не входит в итог дня") : t("Изменить цену")}
+      className={`ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums transition sm:px-2 sm:py-0.5 ${
+        fixed ? "" : "bg-stone-200/70 text-stone-600 hover:bg-stone-300/70 active:bg-stone-300/70"
+      }`}
+      style={fixed ? { backgroundColor: "#e8eef5", color: "#1d3b5c" } : undefined}
     >
+      {fixed && <Receipt className="h-3 w-3 shrink-0" />}
       {formatMoney(amount, currency)}
     </button>
+    </>
+  );
+});
+
+// The time of one plan item ("HH:MM", or "" for none), set like the price: "Время"
+// in the item's "⋯" menu, or tap the chip. With a time the item goes to Google
+// Calendar as a timed event instead of an all-day one (api/gcal.js).
+const InlineTime = forwardRef(function InlineTime({ time, onSave }, ref) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const start = () => {
+    setValue(time || "");
+    setEditing(true);
+  };
+
+  useImperativeHandle(ref, () => ({ start }));
+
+  const { bind, menu } = useHoldMenu([
+    { key: "edit", label: t("Изменить время"), icon: Pencil, run: start },
+    { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: () => onSave("") },
+  ]);
+
+  const commit = async () => {
+    const next = /^\d{2}:\d{2}$/.test(value) ? value : "";
+    if (next === (time || "")) return setEditing(false);
+    setBusy(true);
+    try {
+      await onSave(next);
+      setEditing(false);
+    } catch (err) {
+      console.error(err);
+      alert(t("Не удалось сохранить."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <span
+        data-no-swipe
+        onClick={(e) => e.stopPropagation()}
+        className="me-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs"
+      >
+        <Clock className="h-3.5 w-3.5 shrink-0" />
+        <input
+          autoFocus
+          type="time"
+          value={value}
+          disabled={busy}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === "Enter") e.currentTarget.blur();
+            if (e.key === "Escape") setEditing(false);
+          }}
+          className="bg-transparent text-base tabular-nums outline-none sm:text-xs"
+        />
+        {busy && <Loader2 className="h-3 w-3 animate-spin" />}
+      </span>
+    );
+  }
+
+  if (!time) return null;
+
+  return (
+    <>
+      {menu}
+      <button
+        type="button"
+        dir="ltr"
+        {...bind}
+        onClick={(e) => {
+          e.stopPropagation();
+          start();
+        }}
+        title={t("Изменить время")}
+        className="me-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 align-middle text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
+      >
+        <Clock className="h-3 w-3 shrink-0" />
+        {time}
+      </button>
     </>
   );
 });
@@ -255,7 +346,9 @@ export default function DayPlanModal({
   // The first day also carries the trip's insurance and SIM card.
   const firstDay = dayInfo?.dayNumber === 1;
   const currency = tripCurrency(trip);
+  // The day's own spending; flights, insurance, SIM… are the trip's (lib/money.js).
   const total = dayTotal(plan);
+  const fixed = fixedTotal(plan);
 
   const bodyRef = useRef(null);
   const swipeRef = useRef(null);
@@ -559,6 +652,7 @@ export default function DayPlanModal({
                               />
                               <ItemBlock
                                 item={item}
+                                fixed={isFixedItem(item, section)}
                                 dayKey={dayInfo.key}
                                 currency={currency}
                                 bar={style.bar}
@@ -594,18 +688,38 @@ export default function DayPlanModal({
                   </button>
                 </div>
               )}
-              {total > 0 && (
-                <div
-                  className="mt-8 flex items-center justify-between rounded-2xl px-4 py-3"
-                  style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-                >
-                  <span className="inline-flex items-center gap-2 font-semibold">
-                    <Wallet className="h-5 w-5" />
-                    {t("Итого за день")}
-                  </span>
-                  <span dir="ltr" className="font-display text-xl font-semibold tabular-nums">
-                    {formatMoney(total, currency)}
-                  </span>
+              {(total > 0 || fixed > 0) && (
+                <div className="mt-8 space-y-2">
+                  {total > 0 && (
+                    <div
+                      className="flex items-center justify-between rounded-2xl px-4 py-3"
+                      style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+                    >
+                      <span className="inline-flex items-center gap-2 font-semibold">
+                        <Wallet className="h-5 w-5" />
+                        {t("Итого за день")}
+                      </span>
+                      <span dir="ltr" className="font-display text-xl font-semibold tabular-nums">
+                        {formatMoney(total, currency)}
+                      </span>
+                    </div>
+                  )}
+                  {fixed > 0 && (
+                    <div className="flex items-start justify-between gap-3 px-4 text-sm text-stone-500">
+                      <span className="inline-flex min-w-0 items-start gap-2">
+                        <Receipt className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>
+                          {t("Расходы до поездки")}
+                          <span className="block text-xs text-stone-400">
+                            {t("Не входят в итог дня — учтены в итогах поездки")}
+                          </span>
+                        </span>
+                      </span>
+                      <span dir="ltr" className="shrink-0 font-semibold tabular-nums">
+                        {formatMoney(fixed, currency)}
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </>
@@ -752,11 +866,12 @@ function ActionMenu({ actions }) {
 }
 
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch }) {
+function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const costRef = useRef(null);
+  const timeRef = useRef(null);
   const addressRef = useRef(null);
   const gridRef = useRef(null);
   const noteRef = useRef(null);
@@ -785,6 +900,17 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
   const actions = [
     { key: "text", icon: Pencil, label: t("Изменить название"), run: startText },
     { key: "cost", icon: Wallet, label: hasCost ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
+    { key: "time", icon: Clock, label: item.time ? t("Изменить время") : t("Указать время"), run: () => timeRef.current?.start() },
+    {
+      key: "fixed",
+      icon: Receipt,
+      label: fixed ? t("Перенести в расходы дня") : t("Отнести к расходам до поездки"),
+      run: () =>
+        onSavePatch({ fixed: !fixed }).catch((err) => {
+          console.error(err);
+          alert(t("Не удалось сохранить."));
+        }),
+    },
     { key: "address", icon: MapPin, label: hasAddress ? t("Изменить адрес") : t("Добавить адрес"), run: () => addressRef.current?.start() },
     { key: "photo", icon: ImagePlus, label: t("Добавить фото"), run: () => gridRef.current?.pickPhoto() },
     { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
@@ -802,10 +928,11 @@ function ItemBlock({ item, dayKey, currency, bar, photos, onChanged, onSaveCost,
           onKeyDown={(e) => e.key === "Enter" && startText()}
           className="min-w-0 cursor-text break-words rounded-md pt-1 leading-relaxed text-stone-700 transition hover:bg-stone-200/40 sm:pt-0"
         >
+          <InlineTime ref={timeRef} time={item.time} onSave={(time) => onSavePatch({ time })} />
           {item.text}
         </div>
         <span className="flex shrink-0 items-center">
-          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} />
+          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} />
           <ActionMenu actions={actions} />
         </span>
       </div>
@@ -920,6 +1047,8 @@ function cloneSection(section) {
       address: it.address || "",
       mapUrl: it.mapUrl || "",
       cost: parseCost(it.cost) ?? "",
+      time: it.time || "",
+      ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
     })),
   };
 }
@@ -970,9 +1099,11 @@ function splitItem(it) {
     address: (it.address || "").trim(),
     mapUrl: (it.mapUrl || "").trim(),
     cost: parseCost(it.cost),
+    time: /^\d{2}:\d{2}$/.test(it.time || "") ? it.time : "",
+    ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
   };
   const rest = parts
     .slice(1)
-    .map((text) => ({ id: uid("item"), text, address: "", mapUrl: "", cost: null }));
+    .map((text) => ({ id: uid("item"), text, address: "", mapUrl: "", cost: null, time: "" }));
   return [first, ...rest];
 }

@@ -6,13 +6,14 @@
 // rest of the account's calendar. The calendar's id is kept per account on the
 // trip (`trip.gcal[<email key>]`), because every family member has their own.
 //
-// Push  — every plan item becomes an all-day event on its day (times in the
-//         text stay in the title: the event has no time zone to guess). The
-//         event carries the item id in its private extended properties and its
+// Push  — every plan item becomes an event on its day: at its time (`item.time`,
+//         "HH:MM", one hour long, in the trip's time zone — tripTimeZone) when
+//         it has one, else all day. The event carries the item id in its private extended properties and its
 //         event id is derived from it, so re-pushing updates instead of
 //         duplicating, and items deleted in the app are deleted from the calendar.
 // Pull  — events changed in the calendar since the last push are compared with
-//         the plan: renamed, moved to another day, deleted, or new. Nothing is
+//         the plan: renamed, moved to another day, given another time, deleted,
+//         or new. Nothing is
 //         written until the user has seen the list (see CalendarSettings).
 //
 // The Calendar API must be enabled in the Google Cloud project that owns
@@ -107,6 +108,14 @@ export const emailKey = (email) => String(email || "").toLowerCase().replace(/[^
 
 export const calendarName = (trip) => `✈ ${trip.city} ${tripYearLabel(trip)}`;
 
+export const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+
+// The zone an item's "HH:MM" is read in: chosen in the calendar settings
+// (`trip.timezone`), else this device's.
+export const tripTimeZone = (trip) => trip?.timezone || deviceTimeZone();
+
+const TIME = /^\d{2}:\d{2}$/;
+
 // Event ids allow only 0-9 a-v: the item id as base32hex.
 const eventIdFor = (itemId) =>
   "pp" + [...new TextEncoder().encode(itemId)].map((b) => b.toString(32).padStart(2, "0")).join("");
@@ -117,8 +126,30 @@ const nextDay = (key) => {
   return toKey(d);
 };
 
+// Events are listed in the trip's time zone (listEvents), so these are local.
 const dayOf = (event) => event.start?.date || event.start?.dateTime?.slice(0, 10) || null;
 const timeOf = (event) => (event.start?.dateTime ? event.start.dateTime.slice(11, 16) : "");
+
+// "HH:MM" an hour later, as { date, time } — past midnight it is the next day.
+function hourLater(dayKey, time) {
+  const [h, m] = time.split(":").map(Number);
+  const minutes = h * 60 + m + 60;
+  const pad = (n) => String(n).padStart(2, "0");
+  const at = `${pad(Math.floor(minutes / 60) % 24)}:${pad(minutes % 60)}`;
+  return { date: minutes >= 24 * 60 ? nextDay(dayKey) : dayKey, time: at };
+}
+
+function eventTimes(trip, dayKey, item) {
+  if (!TIME.test(item.time || "")) {
+    return { start: { date: dayKey }, end: { date: nextDay(dayKey) } };
+  }
+  const timeZone = tripTimeZone(trip);
+  const end = hourLater(dayKey, item.time);
+  return {
+    start: { dateTime: `${dayKey}T${item.time}:00`, timeZone },
+    end: { dateTime: `${end.date}T${end.time}:00`, timeZone },
+  };
+}
 
 function eventBody(trip, dayKey, section, item) {
   const href =
@@ -139,20 +170,21 @@ function eventBody(trip, dayKey, section, item) {
     summary: (item.text || "").slice(0, 1000) || t("Без названия"),
     description,
     location: item.address || undefined,
-    start: { date: dayKey },
-    end: { date: nextDay(dayKey) },
+    ...eventTimes(trip, dayKey, item),
     transparency: "transparent",
     status: "confirmed",
     extendedProperties: { private: { pp_trip: trip.id, pp_day: dayKey, pp_item: item.id } },
   };
 }
 
-async function listEvents(calendarId) {
+async function listEvents(calendarId, timeZone) {
   const out = [];
   let pageToken = "";
   do {
     const page = await call(
-      `/calendars/${encodeURIComponent(calendarId)}/events?showDeleted=true&maxResults=2500${
+      `/calendars/${encodeURIComponent(calendarId)}/events?showDeleted=true&maxResults=2500&timeZone=${encodeURIComponent(
+        timeZone
+      )}${
         pageToken ? `&pageToken=${pageToken}` : ""
       }`
     );
@@ -187,7 +219,7 @@ export async function ensureCalendar(trip, email) {
     body: JSON.stringify({
       summary: calendarName(trip),
       description: t("Создано приложением Portugal Planner"),
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      timeZone: tripTimeZone(trip),
     }),
   });
   return { id: made.id, created: true };
@@ -197,7 +229,7 @@ export async function ensureCalendar(trip, email) {
 
 export async function pushTrip(trip, calendarId, onProgress) {
   const days = await listDays(trip.id);
-  const existing = await listEvents(calendarId);
+  const existing = await listEvents(calendarId, tripTimeZone(trip));
 
   // An item may already have an event that did not get its id from us (one the
   // user made in the calendar and then pulled in): keep using that one.
@@ -265,7 +297,7 @@ export async function pushTrip(trip, calendarId, onProgress) {
 // Compare the calendar with the plan. Only events edited after `pushedAt` count,
 // so edits made in the app since the last push are not mistaken for calendar edits.
 export async function findCalendarChanges(trip, calendarId, pushedAt) {
-  const [events, days] = await Promise.all([listEvents(calendarId), listDays(trip.id)]);
+  const [events, days] = await Promise.all([listEvents(calendarId, tripTimeZone(trip)), listDays(trip.id)]);
 
   const where = new Map();
   Object.entries(days).forEach(([dayKey, plan]) =>
@@ -293,13 +325,17 @@ export async function findCalendarChanges(trip, calendarId, pushedAt) {
       if (day && day !== at.dayKey) {
         changes.push({ type: "move", itemId, day, text: event.summary || at.item.text });
       }
-    } else if (event.status !== "cancelled" && day) {
       const time = timeOf(event);
+      if (time !== (TIME.test(at.item.time || "") ? at.item.time : "")) {
+        changes.push({ type: "time", itemId, time, text: event.summary || at.item.text });
+      }
+    } else if (event.status !== "cancelled" && day) {
       changes.push({
         type: "add",
         eventId: event.id,
         day,
-        text: `${time ? `${time} ` : ""}${event.summary || t("Без названия")}`,
+        time: timeOf(event),
+        text: event.summary || t("Без названия"),
         address: event.location || "",
       });
     }
@@ -340,12 +376,13 @@ export async function applyCalendarChanges(trip, calendarId, changes) {
 
   for (const change of changes) {
     if (change.type === "delete") removeItem(change.itemId);
-    if (change.type === "rename") {
+    if (change.type === "rename" || change.type === "time") {
       for (const plan of Object.values(days))
         for (const section of plan.sections || [])
           for (const item of section.items || [])
             if (item.id === change.itemId) {
-              item.text = change.to;
+              if (change.type === "rename") item.text = change.to;
+              else item.time = change.time;
               touched.add(plan.id);
             }
     }
@@ -357,7 +394,14 @@ export async function applyCalendarChanges(trip, calendarId, changes) {
       }
     }
     if (change.type === "add") {
-      const item = { id: uid("item"), text: change.text, address: change.address || "", mapUrl: "", cost: null };
+      const item = {
+        id: uid("item"),
+        text: change.text,
+        address: change.address || "",
+        mapUrl: "",
+        cost: null,
+        time: change.time || "",
+      };
       place(change.day, item);
       linked.push({ eventId: change.eventId, day: change.day, itemId: item.id });
     }

@@ -229,8 +229,6 @@ export default {
     "No changes in the calendar.",
   "Ищу изменения…":
     "Looking for changes…",
-  "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие на весь день. Время из текста остаётся в названии.":
-    "The calendar “{name}” will appear in your Google Calendar: every plan item is an all-day event. Any time written in the text stays in the title.",
   "Календарь ещё не создан для этой поездки. Сначала отправьте расписание.":
     "No calendar has been created for this trip yet. Send the schedule first.",
   "Назад":
@@ -363,4 +361,46 @@ export default {
     "Family",
   "Папка этой поездки в Google Drive ещё не открыта для вас. Она откроется сама, когда {name} в следующий раз откроет приложение. Попробуйте позже.":
     "This trip’s Google Drive folder isn’t open to you yet. It opens by itself the next time {name} opens the app. Please try again later.",
+  "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие. Пункт с указанным временем — в это время, остальные — на весь день.":
+    "A calendar “{name}” will appear in your Google Calendar: each plan item becomes an event — at its time if it has one, otherwise all day.",
+  "Перелёты":
+    "Flights",
+  "Подготовка и прочее":
+    "Preparations & other",
+  "Расход до поездки — не входит в итог дня":
+    "Pre-trip expense — not in the day’s total",
+  "Время":
+    "Time",
+  "Указать время":
+    "Set time",
+  "Изменить время":
+    "Change time",
+  "Удалить время":
+    "Remove time",
+  "Отнести к расходам до поездки":
+    "Count as a pre-trip expense",
+  "Перенести в расходы дня":
+    "Count as a daily expense",
+  "Расходы до поездки":
+    "Pre-trip expenses",
+  "Не входят в итог дня — учтены в итогах поездки":
+    "Not in the day’s total — counted in the trip summary",
+  "Новое время {time}: «{text}»":
+    "New time {time}: “{text}”",
+  "Теперь на весь день: «{text}»":
+    "Now all day: “{text}”",
+  "Часовой пояс поездки":
+    "Trip time zone",
+  "Расходы поездки":
+    "Trip expenses",
+  "До поездки":
+    "Before the trip",
+  "до поездки":
+    "pre-trip",
+  "Итого до поездки":
+    "Pre-trip total",
+  "Расходы по дням":
+    "Daily expenses",
+  "Итого за поездку":
+    "Trip total",
 };

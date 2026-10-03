@@ -84,8 +84,16 @@ guard against accidents, not security — `firestore.rules` is the real gate.
 Every plan item has an optional `cost` (a number, in the trip's `currency`,
 chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 (`{ company, cost }`) on its day doc; their documents are ordinary uploads with
-`item_id` `"insurance"` / `"sim"`. The day view ends with "Итого за день" —
-`dayTotal()` in `src/lib/money.js`. Prices can also be set or changed
+`item_id` `"insurance"` / `"sim"`. Spending is **fixed** (pre-trip: flights,
+insurance, SIM, preparations) or **daily**. Insurance / SIM are always fixed; a
+plan item is fixed when `item.fixed === true`, or when it sits in a Plane
+("Перелёт") block and `fixed` isn't `false` — toggled from the item's "⋯" menu,
+shown as a blue badge. The day view ends with "Итого за день" — `dayTotal()` in
+`src/lib/money.js`, daily only — plus a "Расходы до поездки" line for that day's
+fixed spending. The trip total (summary, export) is daily + fixed;
+`fixedReceipt()` groups the fixed part by kind (flights / insurance / sim / prep)
+for the receipt on the summary page. Items also have an optional `time`
+("HH:MM", from the "⋯" menu or the editor). Prices can also be set or changed
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.
@@ -97,7 +105,8 @@ opens `TripSummaryModal` — not a day: no date, not counted. The last day's
 "next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
 tile in the 30-per-page pagination. Computed from the days: length (days /
 nights), cities with days and spend each (`plan.city || trip.city`), total
-spend (sum of `dayTotal`), most expensive day. Entered afterwards, stored on
+spend (daily + fixed, with a receipt-style breakdown of the fixed part), most
+expensive day (daily only). Entered afterwards, stored on
 the trip doc as `trip.summary`: `note`, `ratings_by` (per person, keyed by `emailKey`:
 `{ email, food: 1-5, … }`; each sets their own stars and sees the family
 average per question and overall; questions in `RATING_QUESTIONS`; tap the same
@@ -160,10 +169,12 @@ inline styles; a new colour needs a line there. Pastel icon chips carry
 **Calendar** (`api/gcal.js`, `CalendarSettings.jsx`): per trip, a secondary
 calendar made by the app (scope `calendar.app.created` through the Google
 Identity Services token client, same `GOOGLE_OAUTH_CLIENT_ID`; its id is kept on
-the trip, per account, in `trip.gcal`). Push: every plan item is an all-day event
-(id derived from the item id, the item id also in its private extended
-properties), so re-pushing updates in place and deletes what was removed. Pull:
-events edited since the last push are diffed against the plan (renamed / moved /
+the trip, per account, in `trip.gcal`). Push: every plan item is an event — a
+one-hour timed event when it has `time`, in `trip.timezone` (picked in the
+calendar settings; default this device's zone), else all-day (id derived from
+the item id, the item id also in its private extended properties), so
+re-pushing updates in place and deletes what was removed. Pull: events edited
+since the last push are diffed against the plan (renamed / moved / new time /
 deleted / new) and shown to the user to tick before anything is written.
 Needs the **Google Calendar API enabled** in the Google Cloud project, or every
 call answers 403 accessNotConfigured.

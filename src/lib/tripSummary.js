@@ -11,7 +11,7 @@
 // highlights / actions are maps rather than arrays so each entry is its own
 // field path (see setTripSummary in api/trips.js).
 
-import { dayTotal } from "@/lib/money";
+import { dayTotal, fixedReceipt } from "@/lib/money";
 import { emailKey } from "@/api/gcal";
 
 export { emailKey };
@@ -32,7 +32,8 @@ export const RATING_QUESTIONS = [
   { key: "overall", label: "Общее впечатление" },
 ];
 
-// [{ city, days, cost }] in the order the cities were first reached.
+// [{ city, days, cost }] in the order the cities were first reached. `cost` is
+// daily spending only: a flight is not the city's.
 export function cityStats(tripDays, days, trip) {
   const byCity = new Map();
   tripDays.forEach((d) => {
@@ -46,19 +47,25 @@ export function cityStats(tripDays, days, trip) {
   return [...byCity.values()];
 }
 
-// { total, perDay, top: { day, total } | null }
+// { total, daily, fixed, perDay, top: { day, total } | null }
+//   daily  — the days' own spending (perDay and the top day come from it)
+//   fixed  — flights, insurance, SIM… as a receipt (money.js → fixedReceipt)
+//   total  — both together: what the trip cost
 export function costStats(tripDays, days) {
-  let total = 0;
+  let daily = 0;
   let top = null;
   tripDays.forEach((d) => {
     const sum = dayTotal(days[d.key]);
-    total += sum;
+    daily += sum;
     if (sum > 0 && (!top || sum > top.total)) top = { day: d, total: sum };
   });
-  total = Math.round(total * 100) / 100;
+  daily = Math.round(daily * 100) / 100;
+  const fixed = fixedReceipt(tripDays.map((d) => days[d.key]));
   return {
-    total,
-    perDay: tripDays.length ? Math.round((total / tripDays.length) * 100) / 100 : 0,
+    total: Math.round((daily + fixed.total) * 100) / 100,
+    daily,
+    fixed,
+    perDay: tripDays.length ? Math.round((daily / tripDays.length) * 100) / 100 : 0,
     top,
   };
 }
