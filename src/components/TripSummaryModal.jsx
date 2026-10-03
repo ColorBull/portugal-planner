@@ -269,9 +269,14 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
                   const stats = questionStats(family, q.key);
                   return (
                     <li key={q.key} className="border-t border-stone-200 py-2 first:border-t-0 first:pt-0 last:pb-0">
-                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                      {/* Phone: stars on their own line, so they line up in every row. */}
+                      <div className="flex flex-col items-start gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                         <span className="text-stone-700">{t(q.label)}</span>
-                        <Stars value={mine[q.key] || 0} onChange={(v) => rate(q.key, v)} />
+                        {/* -ms-2 lines the first star up with the label above it (on the
+                            outer span, so it follows the page direction in Hebrew). */}
+                        <span className="-ms-2 sm:ms-0">
+                          <Stars value={mine[q.key] || 0} onChange={(v) => rate(q.key, v)} />
+                        </span>
                       </div>
                       {stats.avg !== null && (
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-stone-500">
