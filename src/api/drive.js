@@ -177,14 +177,88 @@ async function driveFetch(url, options = {}, retry = true) {
   return res;
 }
 
-// Upload a File/Blob into the shared folder and make it viewable by anyone
-// with the link (so the other parent's browser can render the thumbnail).
-// Returns the Drive file id.
-export async function uploadToDrive(file, { name } = {}) {
+// For work nobody asked for (moving files, sharing folders): never opens a Google
+// window — without a live token it throws, and a 401 is not retried.
+async function quietFetch(url, options = {}) {
+  if (!hasDriveAccess()) throw new Error("Drive token not available");
+  return driveFetch(url, options, false);
+}
+
+const sharedRoot = () =>
+  DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? DRIVE_FOLDER_ID : null;
+
+const FILES = "https://www.googleapis.com/drive/v3/files";
+
+// A trip's folder inside the shared one. Returns the folder id.
+export async function createDriveFolder(name, { quiet = false } = {}) {
+  const res = await (quiet ? quietFetch : driveFetch)(`${FILES}?fields=id`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: sharedRoot() ? [sharedRoot()] : undefined,
+    }),
+  });
+  return (await res.json()).id;
+}
+
+// Rename a folder and/or switch "limited access" on or off. With it on, the
+// folder no longer inherits the shared folder's members: they still see it, greyed
+// out, but only its owner and people added to it directly can open it. Only the
+// folder's owner may switch it.
+export async function updateDriveFolder(id, { name, limited }) {
+  const body = {};
+  if (name !== undefined) body.name = name;
+  if (limited !== undefined) body.inheritedPermissionsDisabled = limited;
+  await quietFetch(`${FILES}/${id}?fields=id`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+// Let one person into a limited-access folder (as an editor, so they can upload
+// into it), without Google's notification e-mail. Returns the permission id.
+export async function shareDriveFolder(id, email) {
+  const res = await quietFetch(
+    `${FILES}/${id}/permissions?sendNotificationEmail=false&fields=id`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "writer", type: "user", emailAddress: email }),
+    }
+  );
+  return (await res.json()).id;
+}
+
+export async function unshareDriveFolder(id, permissionId) {
+  await quietFetch(`${FILES}/${id}/permissions/${permissionId}`, { method: "DELETE" });
+}
+
+// Move a file into a folder. Drive only lets this account do it for files it can
+// reach (drive.file: ones it uploaded through this app) — anything else throws.
+export async function moveDriveFile(fileId, folderId) {
+  const res = await quietFetch(`${FILES}/${fileId}?fields=parents`);
+  const { parents = [] } = await res.json();
+  if (parents.includes(folderId) && parents.length === 1) return;
+  const remove = parents.filter((p) => p !== folderId).join(",");
+  await quietFetch(
+    `${FILES}/${fileId}?addParents=${folderId}` +
+      (remove ? `&removeParents=${remove}` : "") +
+      "&fields=id",
+    { method: "PATCH" }
+  );
+}
+
+// Upload a File/Blob into the shared folder (or the trip's folder inside it) and
+// make it viewable by anyone with the link (so the other parent's browser can
+// render the thumbnail). Returns the Drive file id.
+export async function uploadToDrive(file, { name, folderId } = {}) {
+  const parent = folderId || sharedRoot();
   const metadata = {
     name: name || file.name || `photo-${Date.now()}`,
-    parents:
-      DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? [DRIVE_FOLDER_ID] : undefined,
+    parents: parent ? [parent] : undefined,
   };
 
   // multipart/related body (the form the Drive v3 multipart upload expects):
@@ -225,7 +299,7 @@ export async function uploadToDrive(file, { name } = {}) {
 // drive.file only lets an account change files this app created for it, so when
 // the old doc is out of reach (made by someone else, or deleted) a new one is
 // created instead. Returns { id, url, created }.
-export async function saveGoogleDoc({ fileId, name, html }) {
+export async function saveGoogleDoc({ fileId, name, html, folderId }) {
   const boundary = `pp${Date.now()}${Math.random().toString(16).slice(2)}`;
   const multipart = (metadata) =>
     new Blob(
@@ -261,8 +335,7 @@ export async function saveGoogleDoc({ fileId, name, html }) {
       body: multipart({
         name,
         mimeType: "application/vnd.google-apps.document",
-        parents:
-          DRIVE_FOLDER_ID && DRIVE_FOLDER_ID !== "REPLACE_ME" ? [DRIVE_FOLDER_ID] : undefined,
+        parents: folderId || sharedRoot() ? [folderId || sharedRoot()] : undefined,
       }),
     }
   );

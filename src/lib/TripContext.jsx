@@ -17,6 +17,7 @@ import {
 import { setActiveTripId } from "@/api/entities";
 import { isOnline } from "@/api/offline";
 import { driveImageUrl } from "@/api/drive";
+import { syncTripFolder } from "@/api/tripFolders";
 import { useOnline } from "@/lib/useOnline";
 import { t } from "@/lib/i18n";
 
@@ -105,23 +106,34 @@ export function TripProvider({ children }) {
 
   // Save every trip onto this device in the background — plans, notes, photo
   // records and thumbnails — so any of them opens later without a connection.
+  // With a Drive token at hand, also keep each trip's Drive folder in order
+  // (api/tripFolders.js): lock state, who may open it, this account's files in it.
   useEffect(() => {
     if (loading || !trips.length || !isOnline()) return;
     let cancelled = false;
     (async () => {
+      let changed = false;
       for (const t of trips) {
         if (cancelled) return;
+        let photos = [];
         try {
-          await warmImages(await warmTrip(t.id));
+          photos = await warmTrip(t.id);
+          await warmImages(photos);
         } catch (e) {
           console.warn("Could not cache trip", t.id, e);
         }
+        try {
+          if (await syncTripFolder(t, photos)) changed = true;
+        } catch (e) {
+          console.warn("Could not tidy the Drive folder of trip", t.id, e);
+        }
       }
+      if (changed && !cancelled) refresh();
     })();
     return () => {
       cancelled = true;
     };
-  }, [trips, loading]);
+  }, [trips, loading, refresh]);
 
   // Open a trip: notes & photos follow it, and its day plans are fetched.
   const openTrip = useCallback(async (id) => {

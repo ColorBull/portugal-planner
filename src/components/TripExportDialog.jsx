@@ -2,6 +2,7 @@ import { useState } from "react";
 import { BookOpen, Check, Copy, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { TripNote, TripPhoto } from "@/api/entities";
 import { saveGoogleDoc } from "@/api/drive";
+import { tripUploadFolder } from "@/api/tripFolders";
 import { isOnline } from "@/api/offline";
 import { buildTripHtml, tripDocName } from "@/lib/tripExport";
 import { t, localeTag } from "@/lib/i18n";
@@ -35,7 +36,8 @@ export default function TripExportDialog({ trip, days, onSaved, onClose }) {
     try {
       const [notes, photos] = await Promise.all([TripNote.filter(), TripPhoto.filter()]);
       const html = buildTripHtml({ trip, days, notes, photos });
-      const saved = await saveGoogleDoc({ fileId: docId, name: tripDocName(trip), html });
+      const folderId = await tripUploadFolder(trip);
+      const saved = await saveGoogleDoc({ fileId: docId, name: tripDocName(trip), html, folderId });
       await onSaved(saved.id);
     } catch (err) {
       console.error(err);

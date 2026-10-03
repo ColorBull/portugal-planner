@@ -46,6 +46,7 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/api/offline.js` | cache-fallback reads, non-blocking writes (see Offline) |
 | `public/sw.js` | service worker: app shell + Drive thumbnails + flags offline |
 | `src/api/drive.js` | Drive upload / delete / thumbnail URLs + OAuth token cache |
+| `src/api/tripFolders.js` | per-trip Drive folders, limited access for locked trips |
 | `src/lib/AuthContext.jsx` | sign-in, allow-list check, Drive token capture & refresh |
 | `src/App.jsx` | gate: loading → sign-in → access-restricted → app |
 | `src/api/trips.js` | trips + day-plan CRUD, and the one-time seed from `tripPlans.js` |
@@ -121,6 +122,28 @@ prompt (no city, country, map zoom, edit button; but with who made it —
 entered the right PIN once — `trip-seen:<id>` in `localStorage`, set on every
 correct unlock regardless of "Запомнить пароль"; `canSeeTrip()` decides. Logic in `src/lib/tripLock.js`, UI in
 `TripLockDialog.jsx`.
+
+## Drive folders per trip
+
+`src/api/tripFolders.js`. Each trip's uploads (and its NotebookLM doc) go into
+its own folder inside the shared `DRIVE_FOLDER_ID`, made on the first upload and
+kept on the trip as `drive_folder: { id, by, limited, name }`. A trip locked
+with a PIN gets a Drive **limited-access** folder (`inheritedPermissionsDisabled`)
+made by the trip's owner and named "Частная поездка · <start date>": the
+others see it greyed out in Drive and can't open it. Getting past the PIN in
+the app writes a request into `trip.drive_access[emailKey]` (`email`,
+`pin_hash`); the owner's app, next time it is open with a Drive token, adds that
+person to the folder (writer, no e-mail) and records `perm` / `granted` /
+`folder`. Until then that person's uploads to the trip are refused with a
+"try later" message. A new PIN removes those who only know the old one; unlocking
+switches limited access off again. Only a folder's maker can switch it, so
+locking a trip whose open folder someone else made creates a fresh one.
+In the background (`syncTripFolder`, from `TripContext`'s prefetch loop, never
+asking for a token) each device moves the files **it** uploaded into the trip's
+folder (drive.file reaches nothing else) and marks them `drive_folder_id` on the
+photo record; files Drive refuses are remembered in `pp_drive_unmovable` and
+left alone (e.g. the Base44-era uploads stay in the root). The app itself never
+needs folder access — files are link-shared and shown by link.
 
 ## Settings, theme, Google Calendar
 

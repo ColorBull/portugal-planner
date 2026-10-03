@@ -10,6 +10,8 @@ import {
   hasDriveAccess,
 } from "@/api/drive";
 import { isOnline } from "@/api/offline";
+import { tripUploadFolder } from "@/api/tripFolders";
+import { useTrips } from "@/lib/TripContext";
 import { Image } from "@/components/ui/image";
 import PhotoLightbox from "@/components/PhotoLightbox";
 import { openExternal } from "@/lib/openExternal";
@@ -43,6 +45,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   ref
 ) {
   const { ensureDriveAccess } = useAuth();
+  const { trip } = useTrips();
   const imgInputRef = useRef(null);
   const docInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
@@ -161,11 +164,14 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
     setTapAgain(false);
     setUploading(true);
     try {
-      const fileId = await uploadToDrive(file);
+      // The trip's own folder in the shared one (api/tripFolders.js).
+      const folderId = trip ? await tripUploadFolder(trip) : undefined;
+      const fileId = await uploadToDrive(file, { folderId });
       await TripPhoto.create({
         day_key: dayKey,
         item_id: itemId,
         drive_file_id: fileId,
+        drive_folder_id: folderId,
         kind,
         file_name: kind === "document" ? file.name : undefined,
       });

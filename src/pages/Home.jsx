@@ -10,6 +10,7 @@ import { SUMMARY_KEY } from "@/lib/tripSummary";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
 import { useAuth } from "@/lib/AuthContext";
+import { requestFolderAccess } from "@/api/tripFolders";
 import {
   isTripLocked,
   isTripOwner,
@@ -76,6 +77,12 @@ export default function Home() {
   // Behind the PIN prompt, only the owner (or a device that has had the PIN)
   // sees which trip this is.
   const hidden = !!trip && !canSeeTrip(trip, user?.email);
+
+  // Past the PIN: ask to be let into the trip's Drive folder too (the owner's
+  // app does it — api/tripFolders.js).
+  useEffect(() => {
+    if (trip && user && !lockedOut) requestFolderAccess(trip).catch(console.warn);
+  }, [trip, user, lockedOut]);
 
   const tripDays = useMemo(
     () => (trip ? buildDays(trip.startDate, trip.endDate) : []),

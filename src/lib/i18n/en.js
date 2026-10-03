@@ -361,4 +361,6 @@ export default {
     "The stars are your own rating. Below them is the family average.",
   "Семья":
     "Family",
+  "Папка этой поездки в Google Drive ещё не открыта для вас. Она откроется сама, когда {name} в следующий раз откроет приложение. Попробуйте позже.":
+    "This trip’s Google Drive folder isn’t open to you yet. It opens by itself the next time {name} opens the app. Please try again later.",
 };
