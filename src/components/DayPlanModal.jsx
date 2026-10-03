@@ -132,7 +132,9 @@ const timeLabel = (item) =>
     ? `${item.time}${TIME_RE.test(item.end_time || "") ? `–${item.end_time}` : ""}`
     : "";
 
-// The chip before the title; tap to change, hold (right-click) to change or delete.
+// The chip on the first line, level with the timeline dot (26px = one line of
+// the title), with the title below it. Tap to change, hold (right-click) to
+// change or delete.
 function TimeChip({ item, onEdit, onClear }) {
   const { bind, menu } = useHoldMenu([
     { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
@@ -152,7 +154,7 @@ function TimeChip({ item, onEdit, onClear }) {
           onEdit();
         }}
         title={t("Изменить время")}
-        className="me-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 -my-1 px-2.5 py-1 align-middle text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
+        className="mb-1 flex h-[26px] w-fit items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2"
       >
         <Clock className="h-3 w-3 shrink-0" />
         {label}
