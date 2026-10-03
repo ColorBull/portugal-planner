@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, ChevronLeft, ChevronRight, Lock, LockOpen } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, Lock, LockOpen, Trophy } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
+import TripSummaryModal from "@/components/TripSummaryModal";
+import { SUMMARY_KEY } from "@/lib/tripSummary";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
 import { useAuth } from "@/lib/AuthContext";
@@ -20,12 +22,13 @@ import TripLockDialog from "@/components/TripLockDialog";
 import TripExportDialog from "@/components/TripExportDialog";
 import { t } from "@/lib/i18n";
 
-// A long trip is split into pages, so the grid always fits one screen.
+// A long trip is split into pages, so the grid always fits one screen. The
+// summary tile counts as a tile here, so it never makes a page overflow.
 const PER_PAGE = 30;
 
-function paginate(days) {
+function paginate(tiles) {
   const pages = [];
-  for (let i = 0; i < days.length; i += PER_PAGE) pages.push(days.slice(i, i + PER_PAGE));
+  for (let i = 0; i < tiles.length; i += PER_PAGE) pages.push(tiles.slice(i, i + PER_PAGE));
   return pages.length ? pages : [[]];
 }
 
@@ -42,6 +45,7 @@ export default function Home() {
     saveDayPlan,
     setTripLock,
     saveTripExport,
+    saveTripSummary,
   } = useTrips();
   const { user } = useAuth();
 
@@ -80,7 +84,11 @@ export default function Home() {
 
   const ready = trip && tripId === routeId && !daysLoading && !lockedOut;
 
-  const pages = useMemo(() => paginate(tripDays), [tripDays]);
+  // The days, then one more tile for the summary page (not a day: no date).
+  const pages = useMemo(
+    () => paginate(tripDays.length ? [...tripDays, { key: SUMMARY_KEY, summary: true }] : []),
+    [tripDays]
+  );
   const [pageIndex, setPageIndex] = useState(0);
   useEffect(() => setPageIndex(0), [routeId]);
 
@@ -90,6 +98,8 @@ export default function Home() {
   const selectedIndex = tripDays.findIndex((d) => d.key === selectedKey);
   const selectedDay = tripDays[selectedIndex] || null;
   const selectedPlan = selectedKey ? days[selectedKey] || null : null;
+  const lastDay = tripDays[tripDays.length - 1] || null;
+  const summaryLink = { key: SUMMARY_KEY, label: t("Итоги") };
 
   return (
     <div
@@ -174,6 +184,32 @@ export default function Home() {
             className="mx-auto grid grid-cols-5 gap-2 sm:grid-cols-6 sm:gap-3 sm:[max-width:calc((100svh-15rem)/5*6+5*0.75rem)]"
           >
             {shownDays.map((day) => {
+              if (day.summary) {
+                return (
+                  <motion.button
+                    key={day.key}
+                    onClick={() => setSelectedKey(SUMMARY_KEY)}
+                    initial={false}
+                    whileHover={{ y: -5, scale: 1.03 }}
+                    whileTap={{ scale: 0.97 }}
+                    title={t("Итоги поездки")}
+                    className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 shadow-md sm:shadow-lg overflow-hidden group flex flex-col items-center justify-center gap-1 sm:gap-1.5 border border-white/40 backdrop-blur-md"
+                    style={{
+                      background:
+                        "linear-gradient(150deg, rgba(29,59,92,0.82) 0%, rgba(44,95,138,0.74) 60%, rgba(58,124,165,0.68) 100%)",
+                    }}
+                  >
+                    <Trophy className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: "#e0a06f" }} />
+                    <span className="max-w-full truncate text-[11px] sm:text-sm font-semibold leading-tight text-white">
+                      {t("Итоги")}
+                    </span>
+                    <span
+                      className="absolute bottom-0 start-0 h-1 w-0 group-hover:w-full transition-all duration-300"
+                      style={{ backgroundColor: "#c4623a" }}
+                    />
+                  </motion.button>
+                );
+              }
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
               return (
@@ -294,15 +330,28 @@ export default function Home() {
       )}
 
       <AnimatePresence>
-        {selectedKey && !lockedOut && (
+        {selectedKey === SUMMARY_KEY && ready && (
+          <TripSummaryModal
+            key={SUMMARY_KEY}
+            trip={trip}
+            tripDays={tripDays}
+            days={days}
+            onSave={(patch) => saveTripSummary(trip.id, patch)}
+            onClose={() => setSelectedKey(null)}
+            lastDay={lastDay}
+            onNavigate={setSelectedKey}
+          />
+        )}
+        {selectedDay && !lockedOut && (
           <DayPlanModal
+            key="day"
             plan={selectedPlan}
             dayInfo={selectedDay}
             trip={trip}
             onSave={(data) => saveDayPlan(selectedKey, data)}
             onClose={() => setSelectedKey(null)}
             prevDay={tripDays[selectedIndex - 1] || null}
-            nextDay={tripDays[selectedIndex + 1] || null}
+            nextDay={tripDays[selectedIndex + 1] || summaryLink}
             onNavigate={setSelectedKey}
           />
         )}

@@ -16,6 +16,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   serverTimestamp,
 } from "firebase/firestore";
 import { db, auth } from "@/api/firebase";
@@ -95,6 +96,17 @@ export async function setTripExport(id, docId) {
 // See api/gcal.js.
 export async function setTripGcal(id, gcal) {
   await updateTrip(id, { gcal });
+}
+
+// The trip's summary page (components/TripSummaryModal.jsx), as a field of the
+// trip doc. Written by field path — { "summary.note": "…", "summary.actions.<id>":
+// { … } } — so two people editing different parts never overwrite each other;
+// a null value removes that field.
+export async function setTripSummary(id, patch) {
+  await updateTrip(
+    id,
+    Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, v === null ? deleteField() : v]))
+  );
 }
 
 async function deleteAll(tripId, name) {

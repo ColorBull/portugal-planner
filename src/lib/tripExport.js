@@ -7,6 +7,7 @@ import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/mo
 import { driveViewUrl } from "@/api/drive";
 import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
 import { countryLabel } from "@/lib/countries";
+import { RATING_QUESTIONS, averageRating, cityStats, sortedEntries } from "@/lib/tripSummary";
 
 const esc = (s) =>
   String(s ?? "")
@@ -39,6 +40,38 @@ const fileHtml = (p) =>
   p.kind === "document"
     ? `<li><i>${t("Документ")}:</i> ${link(driveViewUrl(p.drive_file_id), p.file_name || t("документ"))}</li>`
     : `<li><i>${t("Фото")}:</i> ${link(driveViewUrl(p.drive_file_id), t("открыть фото"))}</li>`;
+
+// The summary page (components/TripSummaryModal.jsx), after the last day.
+function summaryHtml(trip, list, days, currency, tripTotal) {
+  const s = trip.summary || {};
+  const out = [`<h2>${t("Итоги поездки")}</h2>`];
+  const cities = cityStats(list, days, trip)
+    .map((c) => `<li>${esc(c.city)}: ${c.days}${c.cost ? `, ${esc(formatMoney(c.cost, currency))}` : ""}</li>`)
+    .join("");
+  out.push(
+    `<p>${t("Длительность")}: ${list.length}. ${t("Всего потрачено")}: ${esc(formatMoney(tripTotal, currency))}.</p>`,
+    `<h3>${t("Города")}</h3><ul>${cities}</ul>`
+  );
+  const highlights = sortedEntries(s.highlights);
+  if (highlights.length)
+    out.push(`<h3>${t("Лучшие моменты")}</h3><ul>${highlights.map((h) => `<li>${esc(h.text)}</li>`).join("")}</ul>`);
+  const rated = RATING_QUESTIONS.filter((q) => s.ratings?.[q.key]);
+  if (rated.length)
+    out.push(
+      `<h3>${t("Оценки")} (${averageRating(s.ratings)} / 5)</h3><ul>${rated
+        .map((q) => `<li>${esc(t(q.label))}: ${"★".repeat(s.ratings[q.key])}${"☆".repeat(5 - s.ratings[q.key])}</li>`)
+        .join("")}</ul>`
+    );
+  const actions = sortedEntries(s.actions, true);
+  if (actions.length)
+    out.push(
+      `<h3>${t("Что сделать после поездки")}</h3><ul>${actions
+        .map((a) => `<li>${a.done ? "☑" : "☐"} ${esc(a.text)}</li>`)
+        .join("")}</ul>`
+    );
+  if (s.note) out.push(`<h3>${t("Пара слов о поездке")}</h3><p>${esc(s.note).replace(/\n/g, "<br>")}</p>`);
+  return out.join("");
+}
 
 export function tripDocName(trip) {
   return `${trip.city} ${tripYearLabel(trip)} — ${t("план поездки")}`;
@@ -115,6 +148,8 @@ export function buildTripHtml({ trip, days, notes, photos }) {
     tripTotal += total;
     if (total) body.push(`<p><b>${t("Итого за день")}: ${esc(formatMoney(total, currency))}</b></p>`);
   });
+
+  if (list.length) body.push(summaryHtml(trip, list, days, currency, Math.round(tripTotal * 100) / 100));
 
   const head = [
     `<h1>${esc(trip.city)} ${esc(tripYearLabel(trip))} — ${esc(countryLabel(trip))}</h1>`,

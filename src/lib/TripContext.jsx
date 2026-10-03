@@ -8,6 +8,7 @@ import {
   setTripPin,
   setTripExport,
   setTripGcal,
+  setTripSummary,
   listDays,
   saveDay,
   ensureSeeded,
@@ -37,6 +38,24 @@ async function warmImages(photos) {
     // Not there yet (e.g. Google is still making the thumbnail): retry later.
     if (!ok) warmedImages.delete(url);
   }
+}
+
+// { "a.b.c": v } applied to a copy of obj, as Firestore applies field paths;
+// null deletes the field.
+function applyFieldPaths(obj, patch) {
+  const out = { ...obj };
+  Object.entries(patch).forEach(([path, value]) => {
+    const keys = path.split(".");
+    let node = out;
+    keys.slice(0, -1).forEach((k) => {
+      node[k] = { ...(node[k] && typeof node[k] === "object" ? node[k] : {}) };
+      node = node[k];
+    });
+    const last = keys[keys.length - 1];
+    if (value === null) delete node[last];
+    else node[last] = value;
+  });
+  return out;
 }
 
 const TripContext = createContext(null);
@@ -179,6 +198,12 @@ export function TripProvider({ children }) {
     [refresh]
   );
 
+  // Shown at once; no full refresh, so a tap on a star stays instant.
+  const saveTripSummary = useCallback(async (id, patch) => {
+    setTrips((prev) => prev.map((t) => (t.id === id ? applyFieldPaths(t, patch) : t)));
+    await setTripSummary(id, patch);
+  }, []);
+
   const removeTrip = useCallback(
     async (id) => {
       await deleteTrip(id);
@@ -200,6 +225,7 @@ export function TripProvider({ children }) {
     setTripLock,
     saveTripExport,
     saveTripGcal,
+    saveTripSummary,
     loading,
     error,
     refresh,

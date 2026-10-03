@@ -53,6 +53,8 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/lib/tripDays.js` | start/end date → day cards (Russian labels, UTC) |
 | `src/pages/TripPicker.jsx` | welcome screen: choose / add / edit / delete a trip |
 | `src/pages/Home.jsx` | one trip's dashboard (`#/trip/:tripId`) |
+| `src/components/TripSummaryModal.jsx` | the "Итоги" page after the last day |
+| `src/lib/tripSummary.js` | rating questions, per-city / cost stats for it |
 | `src/components/DayPlanEditor.jsx` | edit mode: add/delete/drag blocks & items |
 | `src/components/MapBackdrop.jsx` | the one map layer, above the router so it survives navigation |
 | `src/components/WorldMapBackground.jsx` | draws the map; world ↔ continent is a CSS transform |
@@ -86,6 +88,21 @@ chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.
+
+## Trip summary
+
+After the last day tile the grid has one more tile, "Итоги" (trophy), which
+opens `TripSummaryModal` — not a day: no date, not counted. The last day's
+"next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
+tile in the 30-per-page pagination. Computed from the days: length (days /
+nights), cities with days and spend each (`plan.city || trip.city`), total
+spend (sum of `dayTotal`), most expensive day. Entered afterwards, stored on
+the trip doc as `trip.summary`: `note`, `ratings` (`{ food: 1-5, … }`, shared,
+questions in `RATING_QUESTIONS`; tap the same star to clear), `highlights` and
+`actions` (maps `id → { text, at, by[, done] }`). Saved by field path
+(`setTripSummary`, null deletes) with an optimistic local update and no
+refresh, so two people editing different entries don't clobber each other.
+The NotebookLM export ends with it.
 
 ## PIN lock
 

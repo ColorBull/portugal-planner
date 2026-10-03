@@ -287,4 +287,72 @@ export default {
     "By: {name}",
   "Введите PIN-код, чтобы открыть поездку от {name} ({dates}).":
     "Enter the PIN to open the trip by {name} ({dates}).",
+  "Итоги":
+    "Summary",
+  "Итоги поездки":
+    "Trip summary",
+  "Длительность":
+    "Length",
+  "Городов":
+    "Cities",
+  "Всего потрачено":
+    "Total spent",
+  "≈ {sum} в день":
+    "≈ {sum} a day",
+  "Города":
+    "Cities",
+  "Самый дорогой день: {day} — {sum}":
+    "Most expensive day: {day} — {sum}",
+  "Лучшие моменты":
+    "Highlights",
+  "Что запомнилось больше всего?":
+    "What do you remember most?",
+  "Добавить момент":
+    "Add a highlight",
+  "Оценки":
+    "Ratings",
+  "Еда и кухня":
+    "Food",
+  "Транспорт":
+    "Transport",
+  "Жильё и условия":
+    "Accommodation & living conditions",
+  "Красота городов":
+    "Beauty of the cities",
+  "Достопримечательности":
+    "Sights & attractions",
+  "Люди и гостеприимство":
+    "People & hospitality",
+  "Безопасность":
+    "Safety",
+  "Цены и соотношение цена/качество":
+    "Prices & value for money",
+  "Погода":
+    "Weather",
+  "Общее впечатление":
+    "Overall impression",
+  "Что сделать после поездки":
+    "After-trip to-dos",
+  "Например: отправить фото бабушке":
+    "E.g. send the photos to Grandma",
+  "Добавить задачу":
+    "Add a to-do",
+  "Пара слов о поездке":
+    "A few words about the trip",
+  "Как вам поездка? Пара слов на память.":
+    "How was the trip? A few words to remember it by.",
+  "Сохранено":
+    "Saved",
+  "Отметить как сделанное":
+    "Mark as done",
+  "Отметить как не сделанное":
+    "Mark as not done",
+  "день":
+    "day",
+  "дней":
+    "days",
+  "ночь":
+    "night",
+  "ночей":
+    "nights",
 };
