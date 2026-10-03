@@ -2,6 +2,7 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { ICON_OPTIONS, iconFor, styleFor } from "@/data/planStyles";
 import AddressInput from "@/components/AddressInput";
+import TimeSelect from "@/components/TimeSelect";
 import { uid } from "@/api/trips";
 import { EXTRAS } from "@/lib/money";
 import { useIsPhone } from "@/lib/useIsPhone";
@@ -256,24 +257,18 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                             <div className="flex shrink-0 gap-1.5">
                                               <label className="block">
                                                 <span className={hint}>{t("Начало")}</span>
-                                                <input
-                                                  type="time"
-                                                  className={`${input} w-auto tabular-nums`}
+                                                <TimeSelect
+                                                  className="w-[7.5rem]"
                                                   value={item.time || ""}
-                                                  onChange={(e) =>
-                                                    patchItem(sIndex, iIndex, { time: e.target.value })
-                                                  }
+                                                  onChange={(time) => patchItem(sIndex, iIndex, { time })}
                                                 />
                                               </label>
                                               <label className="block">
                                                 <span className={hint}>{t("Конец")}</span>
-                                                <input
-                                                  type="time"
-                                                  className={`${input} w-auto tabular-nums`}
+                                                <TimeSelect
+                                                  className="w-[7.5rem]"
                                                   value={item.end_time || ""}
-                                                  onChange={(e) =>
-                                                    patchItem(sIndex, iIndex, { end_time: e.target.value })
-                                                  }
+                                                  onChange={(end_time) => patchItem(sIndex, iIndex, { end_time })}
                                                 />
                                               </label>
                                             </div>

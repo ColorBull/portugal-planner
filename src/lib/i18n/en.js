@@ -411,4 +411,16 @@ export default {
     "Set the start time first.",
   "Без конца событие в календаре длится час. Конец раньше начала — значит, на следующий день.":
     "Without an end, the calendar event lasts an hour. An end before the start means the next day.",
+  "Часы":
+    "Hours",
+  "Минуты":
+    "Minutes",
+  "Очистить":
+    "Clear",
+  "Поставить будильник":
+    "Set an alarm",
+  "Поставить будильник на {time}":
+    "Set an alarm for {time}",
+  "Будильник на {time}":
+    "Alarm at {time}",
 };

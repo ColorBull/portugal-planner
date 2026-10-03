@@ -94,7 +94,12 @@ fixed spending. The trip total (summary, export) is daily + fixed;
 `fixedReceipt()` groups the fixed part by kind (flights / insurance / sim / prep)
 for the receipt on the summary page. Items also have an optional start `time`
 and `end_time` ("HH:MM", labelled "Начало" / "Конец", from the "⋯" menu or the
-editor; an end without a start is refused, an end before the start = next day). Prices can also be set or changed
+editor; an end without a start is refused, an end before the start = next day). Times are
+picked with `TimeSelect.jsx` (hour + minute `<select>`s), never `<input type="time">`:
+Chrome's Android clock dialog clips its "Set" button with a large system font. An
+item with a time (or an "8:00" in its text) has an alarm-clock button / menu entry
+(`lib/alarm.js`): Android → clock app `SET_ALARM` intent, falling back to a Google
+Calendar event where Chrome refuses it; iPhone → an .ics with an alert at that time. Prices can also be set or changed
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.

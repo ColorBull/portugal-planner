@@ -21,11 +21,14 @@ import {
   ChevronLeft,
   ChevronRight,
   Receipt,
+  AlarmClock,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
 import PlanNoteBox from "@/components/PlanNoteBox";
 import AddressInput from "@/components/AddressInput";
+import TimeSelect from "@/components/TimeSelect";
+import { alarmTime, setAlarm } from "@/lib/alarm";
 import DayPlanEditor, { emptySection } from "@/components/DayPlanEditor";
 import { iconFor, styleFor } from "@/data/planStyles";
 import { openMapUrl } from "@/lib/mapsLink";
@@ -134,10 +137,11 @@ const timeLabel = (item) =>
 
 // The chip on the first line, level with the timeline dot (26px = one line of
 // the title), with the title below it. Tap to change, hold (right-click) to
-// change or delete.
-function TimeChip({ item, onEdit, onClear }) {
+// change or delete. The alarm-clock button beside it sets a device alarm (lib/alarm.js).
+function TimeChip({ item, onEdit, onClear, onAlarm }) {
   const { bind, menu } = useHoldMenu([
     { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
+    { key: "alarm", label: t("Поставить будильник"), icon: AlarmClock, run: onAlarm },
     { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: onClear },
   ]);
   const label = timeLabel(item);
@@ -145,20 +149,34 @@ function TimeChip({ item, onEdit, onClear }) {
   return (
     <>
       {menu}
-      <button
-        type="button"
-        dir="ltr"
-        {...bind}
-        onClick={(e) => {
-          e.stopPropagation();
-          onEdit();
-        }}
-        title={t("Изменить время")}
-        className="mb-1 flex h-[26px] w-fit items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2"
-      >
-        <Clock className="h-3 w-3 shrink-0" />
-        {label}
-      </button>
+      <span className="mb-1 flex h-[26px] items-center gap-1">
+        <button
+          type="button"
+          dir="ltr"
+          {...bind}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit();
+          }}
+          title={t("Изменить время")}
+          className="flex h-full w-fit items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2"
+        >
+          <Clock className="h-3 w-3 shrink-0" />
+          {label}
+        </button>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAlarm();
+          }}
+          title={t("Поставить будильник на {time}", { time: item.time })}
+          aria-label={t("Поставить будильник на {time}", { time: item.time })}
+          className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/70 hover:text-stone-700 active:bg-stone-200/70"
+        >
+          <AlarmClock className="h-3.5 w-3.5" />
+        </button>
+      </span>
     </>
   );
 }
@@ -187,8 +205,6 @@ function TimeEditor({ item, onSave, onClose }) {
     }
   };
 
-  const field =
-    "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-base tabular-nums text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:py-2 sm:text-sm";
   const hint = "block text-[11px] font-semibold uppercase tracking-wider text-stone-400";
 
   return (
@@ -196,11 +212,11 @@ function TimeEditor({ item, onSave, onClose }) {
       <div className="grid grid-cols-2 gap-3">
         <label className={hint}>
           {t("Начало")}
-          <input autoFocus type="time" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
+          <TimeSelect value={start} onChange={setStart} className="mt-1" />
         </label>
         <label className={hint}>
           {t("Конец")}
-          <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
+          <TimeSelect value={end} onChange={setEnd} className="mt-1" />
         </label>
       </div>
       <p className="mt-2 text-xs text-stone-400">
@@ -904,6 +920,8 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
   const noteRef = useRef(null);
   const hasCost = parseCost(item.cost) !== null;
   const hasAddress = !!(item.address || item.mapUrl);
+  const wakeAt = alarmTime(item);
+  const alarm = () => setAlarm({ dayKey, time: wakeAt, title: item.text });
 
   const startText = () => {
     setTextDraft(item.text || "");
@@ -928,6 +946,9 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     { key: "text", icon: Pencil, label: t("Изменить название"), run: startText },
     { key: "cost", icon: Wallet, label: hasCost ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
     { key: "time", icon: Clock, label: item.time ? t("Изменить время") : t("Указать время"), run: () => setEditingTime(true) },
+    ...(wakeAt
+      ? [{ key: "alarm", icon: AlarmClock, label: t("Будильник на {time}", { time: wakeAt }), run: alarm }]
+      : []),
     {
       key: "fixed",
       icon: Receipt,
@@ -957,6 +978,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
         >
           <TimeChip
             item={item}
+            onAlarm={alarm}
             onEdit={() => setEditingTime(true)}
             onClear={() =>
               onSavePatch({ time: "", end_time: "" }).catch((err) => {
