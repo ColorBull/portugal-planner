@@ -122,70 +122,24 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
   );
 });
 
-// The time of one plan item ("HH:MM", or "" for none), set like the price: "Время"
-// in the item's "⋯" menu, or tap the chip. With a time the item goes to Google
-// Calendar as a timed event instead of an all-day one (api/gcal.js).
-const InlineTime = forwardRef(function InlineTime({ time, onSave }, ref) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
-  const [busy, setBusy] = useState(false);
+// When a plan item happens: `time` (start) and `end_time` ("HH:MM", "" for none).
+// With them the item goes to Google Calendar as an event with those hours
+// instead of an all-day one (api/gcal.js). An end earlier than the start means
+// the next day (a night flight).
+const TIME_RE = /^\d{2}:\d{2}$/;
+const timeLabel = (item) =>
+  TIME_RE.test(item.time || "")
+    ? `${item.time}${TIME_RE.test(item.end_time || "") ? `–${item.end_time}` : ""}`
+    : "";
 
-  const start = () => {
-    setValue(time || "");
-    setEditing(true);
-  };
-
-  useImperativeHandle(ref, () => ({ start }));
-
+// The chip before the title; tap to change, hold (right-click) to change or delete.
+function TimeChip({ item, onEdit, onClear }) {
   const { bind, menu } = useHoldMenu([
-    { key: "edit", label: t("Изменить время"), icon: Pencil, run: start },
-    { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: () => onSave("") },
+    { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
+    { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: onClear },
   ]);
-
-  const commit = async () => {
-    const next = /^\d{2}:\d{2}$/.test(value) ? value : "";
-    if (next === (time || "")) return setEditing(false);
-    setBusy(true);
-    try {
-      await onSave(next);
-      setEditing(false);
-    } catch (err) {
-      console.error(err);
-      alert(t("Не удалось сохранить."));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  if (editing) {
-    return (
-      <span
-        data-no-swipe
-        onClick={(e) => e.stopPropagation()}
-        className="me-2 inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs"
-      >
-        <Clock className="h-3.5 w-3.5 shrink-0" />
-        <input
-          autoFocus
-          type="time"
-          value={value}
-          disabled={busy}
-          onChange={(e) => setValue(e.target.value)}
-          onBlur={commit}
-          onKeyDown={(e) => {
-            e.stopPropagation();
-            if (e.key === "Enter") e.currentTarget.blur();
-            if (e.key === "Escape") setEditing(false);
-          }}
-          className="bg-transparent text-base tabular-nums outline-none sm:text-xs"
-        />
-        {busy && <Loader2 className="h-3 w-3 animate-spin" />}
-      </span>
-    );
-  }
-
-  if (!time) return null;
-
+  const label = timeLabel(item);
+  if (!label) return null;
   return (
     <>
       {menu}
@@ -195,17 +149,87 @@ const InlineTime = forwardRef(function InlineTime({ time, onSave }, ref) {
         {...bind}
         onClick={(e) => {
           e.stopPropagation();
-          start();
+          onEdit();
         }}
         title={t("Изменить время")}
         className="me-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 align-middle text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
       >
         <Clock className="h-3 w-3 shrink-0" />
-        {time}
+        {label}
       </button>
     </>
   );
-});
+}
+
+// Start and end, each labelled, under the item (in the flow, like the address).
+function TimeEditor({ item, onSave, onClose }) {
+  const [start, setStart] = useState(item.time || "");
+  const [end, setEnd] = useState(item.end_time || "");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+
+  const commit = async () => {
+    const time = TIME_RE.test(start) ? start : "";
+    let endTime = TIME_RE.test(end) ? end : "";
+    if (endTime && !time) return setError(t("Сначала укажите время начала."));
+    if (endTime === time) endTime = "";
+    setBusy(true);
+    try {
+      await onSave({ time, end_time: endTime });
+      onClose();
+    } catch (err) {
+      console.error(err);
+      setError(t("Не удалось сохранить."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const field =
+    "mt-1 w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-base tabular-nums text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:py-2 sm:text-sm";
+  const hint = "block text-[11px] font-semibold uppercase tracking-wider text-stone-400";
+
+  return (
+    <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
+      <div className="grid grid-cols-2 gap-3">
+        <label className={hint}>
+          {t("Начало")}
+          <input autoFocus type="time" value={start} onChange={(e) => setStart(e.target.value)} className={field} />
+        </label>
+        <label className={hint}>
+          {t("Конец")}
+          <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} className={field} />
+        </label>
+      </div>
+      <p className="mt-2 text-xs text-stone-400">
+        {error ? (
+          <span className="text-[#a8451f]">{error}</span>
+        ) : (
+          t("Без конца событие в календаре длится час. Конец раньше начала — значит, на следующий день.")
+        )}
+      </p>
+      <div className="mt-2 flex justify-end gap-2">
+        <button
+          type="button"
+          onClick={onClose}
+          disabled={busy}
+          className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
+        >
+          <X className="h-3.5 w-3.5" /> {t("Отмена")}
+        </button>
+        <button
+          type="button"
+          onClick={commit}
+          disabled={busy}
+          className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+          {t("Сохранить")}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // Address of one plan item, editable right in the day view like the price:
 // The link shows when there is an address; "Адрес" in the item's "⋯" menu opens
@@ -871,7 +895,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
   const costRef = useRef(null);
-  const timeRef = useRef(null);
+  const [editingTime, setEditingTime] = useState(false);
   const addressRef = useRef(null);
   const gridRef = useRef(null);
   const noteRef = useRef(null);
@@ -900,7 +924,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
   const actions = [
     { key: "text", icon: Pencil, label: t("Изменить название"), run: startText },
     { key: "cost", icon: Wallet, label: hasCost ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
-    { key: "time", icon: Clock, label: item.time ? t("Изменить время") : t("Указать время"), run: () => timeRef.current?.start() },
+    { key: "time", icon: Clock, label: item.time ? t("Изменить время") : t("Указать время"), run: () => setEditingTime(true) },
     {
       key: "fixed",
       icon: Receipt,
@@ -928,7 +952,16 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
           onKeyDown={(e) => e.key === "Enter" && startText()}
           className="min-w-0 cursor-text break-words rounded-md pt-1 leading-relaxed text-stone-700 transition hover:bg-stone-200/40 sm:pt-0"
         >
-          <InlineTime ref={timeRef} time={item.time} onSave={(time) => onSavePatch({ time })} />
+          <TimeChip
+            item={item}
+            onEdit={() => setEditingTime(true)}
+            onClear={() =>
+              onSavePatch({ time: "", end_time: "" }).catch((err) => {
+                console.error(err);
+                alert(t("Не удалось сохранить."));
+              })
+            }
+          />
           {item.text}
         </div>
         <span className="flex shrink-0 items-center">
@@ -966,6 +999,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
           </div>
         </div>
       )}
+      {editingTime && <TimeEditor item={item} onSave={onSavePatch} onClose={() => setEditingTime(false)} />}
       <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSavePatch} />
       <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
       <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
@@ -1048,6 +1082,7 @@ function cloneSection(section) {
       mapUrl: it.mapUrl || "",
       cost: parseCost(it.cost) ?? "",
       time: it.time || "",
+      end_time: it.end_time || "",
       ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
     })),
   };
@@ -1099,11 +1134,12 @@ function splitItem(it) {
     address: (it.address || "").trim(),
     mapUrl: (it.mapUrl || "").trim(),
     cost: parseCost(it.cost),
-    time: /^\d{2}:\d{2}$/.test(it.time || "") ? it.time : "",
+    time: TIME_RE.test(it.time || "") ? it.time : "",
+    end_time: TIME_RE.test(it.time || "") && TIME_RE.test(it.end_time || "") ? it.end_time : "",
     ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
   };
   const rest = parts
     .slice(1)
-    .map((text) => ({ id: uid("item"), text, address: "", mapUrl: "", cost: null, time: "" }));
+    .map((text) => ({ id: uid("item"), text, address: "", mapUrl: "", cost: null, time: "", end_time: "" }));
   return [first, ...rest];
 }

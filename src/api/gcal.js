@@ -6,9 +6,10 @@
 // rest of the account's calendar. The calendar's id is kept per account on the
 // trip (`trip.gcal[<email key>]`), because every family member has their own.
 //
-// Push  — every plan item becomes an event on its day: at its time (`item.time`,
-//         "HH:MM", one hour long, in the trip's time zone — tripTimeZone) when
-//         it has one, else all day. The event carries the item id in its private extended properties and its
+// Push  — every plan item becomes an event on its day: from `item.time` to
+//         `item.end_time` ("HH:MM", in the trip's time zone — tripTimeZone; no
+//         end = one hour; an end before the start = the next day) when it has
+//         a start time, else all day. The event carries the item id in its private extended properties and its
 //         event id is derived from it, so re-pushing updates instead of
 //         duplicating, and items deleted in the app are deleted from the calendar.
 // Pull  — events changed in the calendar since the last push are compared with
@@ -129,6 +130,7 @@ const nextDay = (key) => {
 // Events are listed in the trip's time zone (listEvents), so these are local.
 const dayOf = (event) => event.start?.date || event.start?.dateTime?.slice(0, 10) || null;
 const timeOf = (event) => (event.start?.dateTime ? event.start.dateTime.slice(11, 16) : "");
+const endTimeOf = (event) => (event.end?.dateTime ? event.end.dateTime.slice(11, 16) : "");
 
 // "HH:MM" an hour later, as { date, time } — past midnight it is the next day.
 function hourLater(dayKey, time) {
@@ -144,7 +146,10 @@ function eventTimes(trip, dayKey, item) {
     return { start: { date: dayKey }, end: { date: nextDay(dayKey) } };
   }
   const timeZone = tripTimeZone(trip);
-  const end = hourLater(dayKey, item.time);
+  const end =
+    TIME.test(item.end_time || "") && item.end_time !== item.time
+      ? { date: item.end_time < item.time ? nextDay(dayKey) : dayKey, time: item.end_time }
+      : hourLater(dayKey, item.time);
   return {
     start: { dateTime: `${dayKey}T${item.time}:00`, timeZone },
     end: { dateTime: `${end.date}T${end.time}:00`, timeZone },
@@ -325,9 +330,20 @@ export async function findCalendarChanges(trip, calendarId, pushedAt) {
       if (day && day !== at.dayKey) {
         changes.push({ type: "move", itemId, day, text: event.summary || at.item.text });
       }
+      // Hours: the end only counts when the item has one (else it is our hour).
       const time = timeOf(event);
-      if (time !== (TIME.test(at.item.time || "") ? at.item.time : "")) {
-        changes.push({ type: "time", itemId, time, text: event.summary || at.item.text });
+      const endTime = endTimeOf(event);
+      const had = TIME.test(at.item.time || "") ? at.item.time : "";
+      const hadEnd = had && TIME.test(at.item.end_time || "") ? at.item.end_time : "";
+      const pushedEnd = had ? hadEnd || eventTimes(trip, at.dayKey, at.item).end.dateTime.slice(11, 16) : "";
+      if (time !== had || endTime !== pushedEnd) {
+        changes.push({
+          type: "time",
+          itemId,
+          time,
+          endTime: time && (endTime !== pushedEnd || hadEnd) ? endTime : "",
+          text: event.summary || at.item.text,
+        });
       }
     } else if (event.status !== "cancelled" && day) {
       changes.push({
@@ -335,6 +351,7 @@ export async function findCalendarChanges(trip, calendarId, pushedAt) {
         eventId: event.id,
         day,
         time: timeOf(event),
+        endTime: endTimeOf(event),
         text: event.summary || t("Без названия"),
         address: event.location || "",
       });
@@ -382,7 +399,10 @@ export async function applyCalendarChanges(trip, calendarId, changes) {
           for (const item of section.items || [])
             if (item.id === change.itemId) {
               if (change.type === "rename") item.text = change.to;
-              else item.time = change.time;
+              else {
+                item.time = change.time;
+                item.end_time = change.endTime || "";
+              }
               touched.add(plan.id);
             }
     }
@@ -401,6 +421,7 @@ export async function applyCalendarChanges(trip, calendarId, changes) {
         mapUrl: "",
         cost: null,
         time: change.time || "",
+        end_time: change.time ? change.endTime || "" : "",
       };
       place(change.day, item);
       linked.push({ eventId: change.eventId, day: change.day, itemId: item.id });

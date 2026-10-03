@@ -44,12 +44,17 @@ function describe(change) {
     return t("Перенесено на {day}: «{text}»", { day: formatDayLabel(change.day), text: change.text });
   if (change.type === "time")
     return change.time
-      ? t("Новое время {time}: «{text}»", { time: change.time, text: change.text })
+      ? t("Новое время {time}: «{text}»", {
+          time: change.endTime ? `${change.time}–${change.endTime}` : change.time,
+          text: change.text,
+        })
       : t("Теперь на весь день: «{text}»", { text: change.text });
   if (change.type === "add")
     return t("Новое событие на {day}: «{text}»", {
       day: formatDayLabel(change.day),
-      text: change.time ? `${change.time} ${change.text}` : change.text,
+      text: change.time
+        ? `${change.time}${change.endTime ? `–${change.endTime}` : ""} ${change.text}`
+        : change.text,
     });
   return t("Удалено в календаре: «{text}»", { text: change.text });
 }

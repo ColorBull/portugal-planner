@@ -92,8 +92,9 @@ shown as a blue badge. The day view ends with "Итого за день" — `da
 `src/lib/money.js`, daily only — plus a "Расходы до поездки" line for that day's
 fixed spending. The trip total (summary, export) is daily + fixed;
 `fixedReceipt()` groups the fixed part by kind (flights / insurance / sim / prep)
-for the receipt on the summary page. Items also have an optional `time`
-("HH:MM", from the "⋯" menu or the editor). Prices can also be set or changed
+for the receipt on the summary page. Items also have an optional start `time`
+and `end_time` ("HH:MM", labelled "Начало" / "Конец", from the "⋯" menu or the
+editor; an end without a start is refused, an end before the start = next day). Prices can also be set or changed
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.
@@ -170,7 +171,7 @@ inline styles; a new colour needs a line there. Pastel icon chips carry
 calendar made by the app (scope `calendar.app.created` through the Google
 Identity Services token client, same `GOOGLE_OAUTH_CLIENT_ID`; its id is kept on
 the trip, per account, in `trip.gcal`). Push: every plan item is an event — a
-one-hour timed event when it has `time`, in `trip.timezone` (picked in the
+timed event from `time` to `end_time` (no end = one hour) when it has a start, in `trip.timezone` (picked in the
 calendar settings; default this device's zone), else all-day (id derived from
 the item id, the item id also in its private extended properties), so
 re-pushing updates in place and deletes what was removed. Pull: events edited

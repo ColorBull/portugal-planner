@@ -21,7 +21,7 @@ export const emptySection = () => ({
   items: [emptyItem()],
 });
 
-export const emptyItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "", cost: "", time: "" });
+export const emptyItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "", cost: "", time: "", end_time: "" });
 
 const move = (list, from, to) => {
   const next = [...list];
@@ -253,16 +253,30 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                             />
                                           ),
                                           time: (
-                                            <input
-                                              type="time"
-                                              className={`${input} w-auto shrink-0 tabular-nums`}
-                                              value={item.time || ""}
-                                              onChange={(e) =>
-                                                patchItem(sIndex, iIndex, { time: e.target.value })
-                                              }
-                                              aria-label={t("Время")}
-                                              title={t("Время")}
-                                            />
+                                            <div className="flex shrink-0 gap-1.5">
+                                              <label className="block">
+                                                <span className={hint}>{t("Начало")}</span>
+                                                <input
+                                                  type="time"
+                                                  className={`${input} w-auto tabular-nums`}
+                                                  value={item.time || ""}
+                                                  onChange={(e) =>
+                                                    patchItem(sIndex, iIndex, { time: e.target.value })
+                                                  }
+                                                />
+                                              </label>
+                                              <label className="block">
+                                                <span className={hint}>{t("Конец")}</span>
+                                                <input
+                                                  type="time"
+                                                  className={`${input} w-auto tabular-nums`}
+                                                  value={item.end_time || ""}
+                                                  onChange={(e) =>
+                                                    patchItem(sIndex, iIndex, { end_time: e.target.value })
+                                                  }
+                                                />
+                                              </label>
+                                            </div>
                                           ),
                                           cost: (
                                             <CostInput
@@ -301,8 +315,8 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                           <div className="space-y-2">
                                             {fields.text}
                                             {fields.address}
+                                            {fields.time}
                                             <div className="flex items-center gap-1.5">
-                                              {fields.time}
                                               {fields.cost}
                                               {grip}
                                               {fields.trash}
@@ -315,9 +329,9 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               {fields.text}
                                               <div className="flex gap-2">
                                                 <div className="min-w-0 flex-1">{fields.address}</div>
-                                                {fields.time}
                                                 {fields.cost}
                                               </div>
+                                              {fields.time}
                                             </div>
                                             {fields.trash}
                                           </div>

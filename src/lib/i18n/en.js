@@ -403,4 +403,12 @@ export default {
     "Daily expenses",
   "Итого за поездку":
     "Trip total",
+  "Начало":
+    "Start",
+  "Конец":
+    "End",
+  "Сначала укажите время начала.":
+    "Set the start time first.",
+  "Без конца событие в календаре длится час. Конец раньше начала — значит, на следующий день.":
+    "Without an end, the calendar event lasts an hour. An end before the start means the next day.",
 };
