@@ -1,4 +1,4 @@
-// Who made a trip, for trips whose name is hidden behind a PIN (the other
+// Family members' names. Who made a trip, for trips whose name is hidden behind a PIN (the other
 // family members see only "Private trip", so this is what tells two of them
 // apart). Keep the e-mails in step with ALLOWED_EMAILS in config.js.
 
@@ -10,8 +10,10 @@ const NAMES = {
   "yoffelena@gmail.com": { ru: "Лена", en: "Lena", he: "לנה" },
 };
 
-export function ownerName(trip) {
-  const email = String(trip?.created_by || "").toLowerCase();
-  if (!email) return "";
-  return NAMES[email]?.[getLang()] || email.split("@")[0];
+export function personName(email) {
+  const e = String(email || "").toLowerCase();
+  if (!e) return "";
+  return NAMES[e]?.[getLang()] || e.split("@")[0];
 }
+
+export const ownerName = (trip) => personName(trip?.created_by);

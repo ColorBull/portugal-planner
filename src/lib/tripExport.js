@@ -7,7 +7,8 @@ import { EXTRAS, dayTotal, formatMoney, parseCost, tripCurrency } from "@/lib/mo
 import { driveViewUrl } from "@/api/drive";
 import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
 import { countryLabel } from "@/lib/countries";
-import { RATING_QUESTIONS, averageRating, cityStats, sortedEntries } from "@/lib/tripSummary";
+import { RATING_QUESTIONS, cityStats, familyAverage, questionStats, raters, sortedEntries } from "@/lib/tripSummary";
+import { personName } from "@/lib/family";
 
 const esc = (s) =>
   String(s ?? "")
@@ -55,11 +56,19 @@ function summaryHtml(trip, list, days, currency, tripTotal) {
   const highlights = sortedEntries(s.highlights);
   if (highlights.length)
     out.push(`<h3>${t("Лучшие моменты")}</h3><ul>${highlights.map((h) => `<li>${esc(h.text)}</li>`).join("")}</ul>`);
-  const rated = RATING_QUESTIONS.filter((q) => s.ratings?.[q.key]);
+  const family = raters(s);
+  const rated = RATING_QUESTIONS.map((q) => ({ q, ...questionStats(family, q.key) })).filter(
+    (r) => r.avg !== null
+  );
   if (rated.length)
     out.push(
-      `<h3>${t("Оценки")} (${averageRating(s.ratings)} / 5)</h3><ul>${rated
-        .map((q) => `<li>${esc(t(q.label))}: ${"★".repeat(s.ratings[q.key])}${"☆".repeat(5 - s.ratings[q.key])}</li>`)
+      `<h3>${t("Оценки")} (${t("Семья")}: ${familyAverage(family)} / 5)</h3><ul>${rated
+        .map(
+          (r) =>
+            `<li>${esc(t(r.q.label))}: ${r.avg} / 5 (${r.votes
+              .map((v) => `${esc(personName(v.email))} ${v.value}`)
+              .join(", ")})</li>`
+        )
         .join("")}</ul>`
     );
   const actions = sortedEntries(s.actions, true);

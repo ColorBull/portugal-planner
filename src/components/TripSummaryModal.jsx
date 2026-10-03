@@ -19,13 +19,17 @@ import {
 } from "lucide-react";
 import { uid } from "@/api/trips";
 import { useAuth } from "@/lib/AuthContext";
+import { personName } from "@/lib/family";
 import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
 import { countryLabel } from "@/lib/countries";
 import { formatMoney, tripCurrency } from "@/lib/money";
 import {
   RATING_QUESTIONS,
-  averageRating,
   cityStats,
+  emailKey,
+  familyAverage,
+  questionStats,
+  raters,
   costStats,
   sortedEntries,
 } from "@/lib/tripSummary";
@@ -102,7 +106,17 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
   };
 
   const maxCityDays = Math.max(1, ...cities.map((c) => c.days));
-  const avg = averageRating(summary.ratings);
+  // Ratings are per person: everyone sets their own stars and sees the family average.
+  const me = emailKey(user?.email);
+  const mine = summary.ratings_by?.[me] || {};
+  const family = raters(summary);
+  const avg = familyAverage(family);
+  const fmt = (n) => n.toLocaleString(localeTag(), { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const rate = (qKey, value) =>
+    save({
+      [`summary.ratings_by.${me}.email`]: user?.email || null,
+      [`summary.ratings_by.${me}.${qKey}`]: value || null,
+    });
 
   return (
     <motion.div
@@ -237,26 +251,45 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
               title={t("Оценки")}
               aside={
                 avg !== null && (
-                  <span className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-stone-600">
+                  <span
+                    className="inline-flex items-center gap-1 text-sm font-semibold tabular-nums text-stone-600"
+                    title={t("Средняя оценка семьи")}
+                  >
                     <Star className="h-4 w-4" style={{ color: STAR, fill: STAR }} />
-                    {avg.toLocaleString(localeTag(), { minimumFractionDigits: 1 })}
+                    {fmt(avg)}
                   </span>
                 )
               }
             >
+              <p className="mb-3 text-sm text-stone-500">
+                {t("Звёзды — ваша личная оценка. Под ними — средняя оценка семьи.")}
+              </p>
               <ul>
-                {RATING_QUESTIONS.map((q) => (
-                  <li
-                    key={q.key}
-                    className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-stone-200 py-2 first:border-t-0 first:pt-0 last:pb-0"
-                  >
-                    <span className="text-stone-700">{t(q.label)}</span>
-                    <Stars
-                      value={summary.ratings?.[q.key] || 0}
-                      onChange={(v) => save({ [`summary.ratings.${q.key}`]: v || null })}
-                    />
-                  </li>
-                ))}
+                {RATING_QUESTIONS.map((q) => {
+                  const stats = questionStats(family, q.key);
+                  return (
+                    <li key={q.key} className="border-t border-stone-200 py-2 first:border-t-0 first:pt-0 last:pb-0">
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                        <span className="text-stone-700">{t(q.label)}</span>
+                        <Stars value={mine[q.key] || 0} onChange={(v) => rate(q.key, v)} />
+                      </div>
+                      {stats.avg !== null && (
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-stone-500">
+                          <span className="inline-flex items-center gap-1 font-semibold tabular-nums text-stone-600">
+                            {t("Семья")}
+                            <Star className="h-3 w-3" style={{ color: STAR, fill: STAR }} />
+                            {fmt(stats.avg)}
+                          </span>
+                          {stats.votes.map((v) => (
+                            <span key={v.email} className="tabular-nums">
+                              · {personName(v.email)} {v.value}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </Section>
 

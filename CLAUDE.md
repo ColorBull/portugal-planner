@@ -97,8 +97,10 @@ opens `TripSummaryModal` — not a day: no date, not counted. The last day's
 tile in the 30-per-page pagination. Computed from the days: length (days /
 nights), cities with days and spend each (`plan.city || trip.city`), total
 spend (sum of `dayTotal`), most expensive day. Entered afterwards, stored on
-the trip doc as `trip.summary`: `note`, `ratings` (`{ food: 1-5, … }`, shared,
-questions in `RATING_QUESTIONS`; tap the same star to clear), `highlights` and
+the trip doc as `trip.summary`: `note`, `ratings_by` (per person, keyed by `emailKey`:
+`{ email, food: 1-5, … }`; each sets their own stars and sees the family
+average per question and overall; questions in `RATING_QUESTIONS`; tap the same
+star to clear), `highlights` and
 `actions` (maps `id → { text, at, by[, done] }`). Saved by field path
 (`setTripSummary`, null deletes) with an optimistic local update and no
 refresh, so two people editing different entries don't clobber each other.

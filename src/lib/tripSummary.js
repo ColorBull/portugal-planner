@@ -3,7 +3,7 @@
 //
 //   trip.summary = {
 //     note:       "a few words about the trip",
-//     ratings:    { food: 1-5, transport: 1-5, … },
+//     ratings_by: { [emailKey]: { email, food: 1-5, transport: 1-5, … } },
 //     highlights: { [id]: { text, at, by } },
 //     actions:    { [id]: { text, done, at, by } },
 //   }
@@ -12,6 +12,9 @@
 // field path (see setTripSummary in api/trips.js).
 
 import { dayTotal } from "@/lib/money";
+import { emailKey } from "@/api/gcal";
+
+export { emailKey };
 
 export const SUMMARY_KEY = "summary";
 
@@ -67,8 +70,32 @@ export function sortedEntries(map, doneLast = false) {
     .sort((a, b) => (doneLast ? !!a.done - !!b.done : 0) || (a.at || 0) - (b.at || 0));
 }
 
-export function averageRating(ratings) {
-  const values = Object.values(ratings || {}).filter((v) => v >= 1 && v <= 5);
-  if (!values.length) return null;
-  return Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10;
+const valid = (v) => Number.isInteger(v) && v >= 1 && v <= 5;
+const mean = (values) =>
+  values.length ? Math.round((values.reduce((a, b) => a + b, 0) / values.length) * 10) / 10 : null;
+
+// Everyone who has rated: [{ key, email, ratings: { food: 4, … } }].
+export function raters(summary) {
+  return Object.entries(summary?.ratings_by || {})
+    .map(([key, v]) => ({
+      key,
+      email: v?.email || "",
+      ratings: Object.fromEntries(
+        RATING_QUESTIONS.filter((q) => valid(v?.[q.key])).map((q) => [q.key, v[q.key]])
+      ),
+    }))
+    .filter((r) => Object.keys(r.ratings).length);
+}
+
+// One question across the family: { avg, votes: [{ email, value }] }.
+export function questionStats(list, qKey) {
+  const votes = list
+    .filter((r) => r.ratings[qKey])
+    .map((r) => ({ email: r.email, value: r.ratings[qKey] }));
+  return { avg: mean(votes.map((v) => v.value)), votes };
+}
+
+// The family's overall score: each question's average, averaged.
+export function familyAverage(list) {
+  return mean(RATING_QUESTIONS.map((q) => questionStats(list, q.key).avg).filter((v) => v !== null));
 }

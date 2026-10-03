@@ -355,4 +355,10 @@ export default {
     "night",
   "ночей":
     "nights",
+  "Средняя оценка семьи":
+    "Family average",
+  "Звёзды — ваша личная оценка. Под ними — средняя оценка семьи.":
+    "The stars are your own rating. Below them is the family average.",
+  "Семья":
+    "Family",
 };
