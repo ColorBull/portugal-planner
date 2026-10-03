@@ -152,7 +152,7 @@ function TimeChip({ item, onEdit, onClear }) {
           onEdit();
         }}
         title={t("Изменить время")}
-        className="me-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 py-1 align-middle text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
+        className="me-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 -my-1 px-2.5 py-1 align-middle text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2 sm:py-0.5"
       >
         <Clock className="h-3 w-3 shrink-0" />
         {label}
@@ -664,12 +664,13 @@ export default function DayPlanModal({
                         >
                           {section.items.map((item) => (
                             <li key={item.id} className="relative min-w-0">
-                              {/* centred on the 2px rule, level with the first text line */}
+                              {/* centred on the 2px rule and on the first text line: the
+                                  title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
+                                  line's middle is 17px down there and 13px from sm up */}
                               <span
-                                className="absolute h-2.5 w-2.5 rounded-full"
+                                className="absolute top-3 h-2.5 w-2.5 rounded-full sm:top-2"
                                 style={{
                                   insetInlineStart: "-30px",
-                                  top: "8px",
                                   backgroundColor: style.bar,
                                   boxShadow: `0 0 0 4px ${style.bg}`,
                                 }}
