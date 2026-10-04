@@ -105,7 +105,7 @@ picked with `TimeSelect.jsx` (hour + minute `<select>`s), never `<input type="ti
 Chrome's Android clock dialog clips its "Set" button with a large system font. An
 item with a time (or an "8:00" in its text) has an alarm-clock button / menu entry
 (`lib/alarm.js`): Android → clock app `SET_ALARM` intent, falling back to a Google
-Calendar event where Chrome refuses it; iPhone → an .ics with an alert at that time. Prices can also be set or changed
+Calendar event where Chrome refuses it; iPhone → an .ics with an alert at that time. In the day view an item's time chip and price badge share one row above its title, at the same size. Prices can also be set or changed
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.

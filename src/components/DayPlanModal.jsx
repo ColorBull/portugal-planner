@@ -52,8 +52,12 @@ const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
 // `fixed`: a general trip expense (lib/money.js) — blue badge, not in the day's
 // total. With `scope`, the day / general choice is asked while the price is
-// typed, and `onSave(cost, fixed)` gets it too.
-const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixed = false, scope = false }, ref) {
+// typed, and `onSave(cost, fixed)` gets it too. `large`: the plan item's badge,
+// the same size as its time chip and on the same row.
+const InlineCost = forwardRef(function InlineCost(
+  { cost, currency, onSave, fixed = false, scope = false, large = false },
+  ref
+) {
   const amount = parseCost(cost);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
@@ -91,7 +95,11 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
 
   if (editing) {
     const field = (
-      <span className="ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs">
+      <span
+        className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white font-semibold text-stone-600 ring-1 ring-stone-300 ${
+          large ? "h-[30px] px-3 text-[15px]" : "ms-2 px-2.5 py-1 text-sm sm:px-2 sm:py-0.5 sm:text-xs"
+        }`}
+      >
         <input
           autoFocus
           inputMode="decimal"
@@ -104,14 +112,14 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
             if (e.key === "Escape") setEditing(false);
           }}
           placeholder="0"
-          className="w-16 bg-transparent text-end text-base tabular-nums outline-none sm:text-xs"
+          className={`w-16 bg-transparent text-end text-base tabular-nums outline-none ${large ? "sm:text-[15px]" : "sm:text-xs"}`}
         />
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : currency}
       </span>
     );
     if (!scope) return field;
     return (
-      <span className="flex flex-col items-end gap-1.5">
+      <span className="flex flex-wrap items-center gap-1.5">
         {field}
         <ExpenseScope value={fixedDraft} onChange={setFixedDraft} />
       </span>
@@ -130,12 +138,14 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
       {...bind}
       onClick={start}
       title={fixed ? t("Общий расход поездки — не входит в итог дня") : t("Изменить цену")}
-      className={`ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums transition sm:px-2 sm:py-0.5 ${
+      className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full font-semibold tabular-nums transition ${
+        large ? "h-[30px] gap-1.5 px-3 text-[15px] font-bold sm:px-2.5" : "ms-2 px-2.5 py-1 text-xs sm:px-2 sm:py-0.5"
+      } ${
         fixed ? "" : "bg-stone-200/70 text-stone-600 hover:bg-stone-300/70 active:bg-stone-300/70"
       }`}
       style={fixed ? { backgroundColor: "#e8eef5", color: "#1d3b5c" } : undefined}
     >
-      {fixed && <Receipt className="h-3 w-3 shrink-0" />}
+      {fixed && <Receipt className={`${large ? "h-4 w-4" : "h-3 w-3"} shrink-0`} />}
       {formatMoney(amount, currency)}
     </button>
     </>
@@ -166,7 +176,7 @@ function TimeChip({ item, onEdit, onClear, onAlarm }) {
   return (
     <>
       {menu}
-      <span className="mb-1 flex h-[30px] items-center gap-1">
+      <span className="flex h-[30px] items-center gap-1">
         <button
           type="button"
           dir="ltr"
@@ -720,10 +730,12 @@ export default function DayPlanModal({
                               {/* centred on the 2px rule and on the first text line: the
                                   title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
                                   line's middle is 17px down there and 13px from sm up; a
-                                  time chip (30px) puts it at 19px / 15px */}
+                                  time / price row (30px) puts it at 19px / 15px */}
                               <span
                                 className={`absolute h-2.5 w-2.5 rounded-full ${
-                                  timeLabel(item) ? "top-3.5 sm:top-2.5" : "top-3 sm:top-2"
+                                  timeLabel(item) || parseCost(item.cost) !== null
+                                    ? "top-3.5 sm:top-2.5"
+                                    : "top-3 sm:top-2"
                                 }`}
                                 style={{
                                   insetInlineStart: "-30px",
@@ -1200,14 +1212,9 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
   return (
     <>
       <div className="flex items-start justify-between gap-1">
-        {/* Tap the title to edit it in place. */}
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => !window.getSelection()?.toString() && startText()}
-          onKeyDown={(e) => e.key === "Enter" && startText()}
-          className="min-w-0 cursor-text break-words rounded-md pt-1 leading-relaxed text-stone-700 transition hover:bg-stone-200/40 sm:pt-0"
-        >
+        <div className="min-w-0 flex-1 pt-1 sm:pt-0">
+          {/* Time and price share the first row, same size; empty → no row. */}
+          <div className="mb-1 flex flex-wrap items-center gap-1.5 empty:hidden">
           <TimeChip
             item={item}
             onAlarm={alarm}
@@ -1219,12 +1226,20 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
               })
             }
           />
-          {item.text}
+          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope large />
+          </div>
+          {/* Tap the title to edit it in place. */}
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={() => !window.getSelection()?.toString() && startText()}
+            onKeyDown={(e) => e.key === "Enter" && startText()}
+            className="cursor-text break-words rounded-md leading-relaxed text-stone-700 transition hover:bg-stone-200/40"
+          >
+            {item.text}
+          </div>
         </div>
-        <span className="flex shrink-0 items-center">
-          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope />
-          <ActionMenu actions={actions} />
-        </span>
+        <ActionMenu actions={actions} />
       </div>
       {editingText && (
         <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
