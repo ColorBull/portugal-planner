@@ -6,7 +6,15 @@
 // rest of the account's calendar. The calendar's id is kept per account on the
 // trip (`trip.gcal[<email key>]`), because every family member has their own.
 //
-// Push  — every plan item becomes an event on its day: from `item.time` to
+// Which Google account: the one chosen in the calendar settings
+// (getCalendarAccount — kept per device, defaults to the app's sign-in e-mail).
+// The token is asked for with that account as the hint, and the account Google
+// actually returned is checked against it (the `email` scope + userinfo), so a
+// second account signed in on the device is never used by mistake.
+//
+// Push  — only the plan items marked for the calendar (`item.gcal === true`,
+//         from the item's "⋯" menu or the editor) become events — the rest
+//         stay in the app, and their old events are removed. Each one is on its day: from `item.time` to
 //         `item.end_time` ("HH:MM", in the trip's time zone — tripTimeZone; no
 //         end = one hour; an end before the start = the next day) when it has
 //         a start time, else all day. The event carries the item id in its private extended properties and its
@@ -28,6 +36,9 @@ import { parseCost, formatMoney, tripCurrency } from "@/lib/money";
 import { tripYearLabel, parseKey, toKey } from "@/lib/tripDays";
 
 const SCOPE = "https://www.googleapis.com/auth/calendar.app.created";
+// `email` only lets the app read which account Google gave the token for.
+const SCOPES = `${SCOPE} email`;
+const ACCOUNT_KEY = "pp_gcal_account";
 const API = "https://www.googleapis.com/calendar/v3";
 const CONCURRENCY = 4;
 
@@ -35,8 +46,51 @@ let client = null;
 let pending = null;
 let token = null;
 let expiresAt = 0;
+let tokenAccount = null; // the e-mail Google issued the token for
+
+const norm = (email) => String(email || "").trim().toLowerCase();
 
 export const calendarConnected = () => !!token && expiresAt > Date.now();
+export const connectedCalendarAccount = () => (calendarConnected() ? tokenAccount : null);
+
+// The account chosen for the calendar on this device (falls back to `fallback`,
+// the app's sign-in e-mail).
+export function getCalendarAccount(fallback) {
+  try {
+    return localStorage.getItem(ACCOUNT_KEY) || norm(fallback);
+  } catch {
+    return norm(fallback);
+  }
+}
+
+export function setCalendarAccount(email) {
+  try {
+    if (email) localStorage.setItem(ACCOUNT_KEY, norm(email));
+    else localStorage.removeItem(ACCOUNT_KEY);
+  } catch {
+    // private mode: the choice lasts for this visit only
+  }
+}
+
+const forget = () => {
+  if (token) window.google?.accounts?.oauth2?.revoke?.(token, () => {});
+  token = null;
+  expiresAt = 0;
+  tokenAccount = null;
+};
+
+// Which account a token belongs to; null when Google won't say.
+async function accountOf(accessToken) {
+  try {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    return norm((await res.json())?.email) || null;
+  } catch {
+    return null;
+  }
+}
 export const preloadCalendar = () => loadGis().catch(() => {});
 
 const settle = (value) => {
@@ -46,26 +100,58 @@ const settle = (value) => {
 };
 
 // Must run straight from a click: it opens Google's consent / account window.
-export async function connectCalendar(hint) {
-  if (calendarConnected()) return token;
+// `account`: the e-mail to use — a token for any other account is refused
+// (error.reason "wrongAccount", error.got = the account Google picked).
+// `choose`: show Google's account chooser and take whichever account is
+// picked; it becomes this device's calendar account.
+export async function connectCalendar({ account, choose = false } = {}) {
+  const want = norm(account);
+  if (!choose && calendarConnected() && (!want || !tokenAccount || tokenAccount === want)) return token;
+  if (choose || (want && tokenAccount && tokenAccount !== want)) forget();
   await loadGis();
   client ||= window.google.accounts.oauth2.initTokenClient({
     client_id: GOOGLE_OAUTH_CLIENT_ID,
-    scope: SCOPE,
+    scope: SCOPES,
     callback: (response) => settle(response),
     error_callback: () => settle(null),
   });
   const response = await new Promise((resolve) => {
     pending = resolve;
-    client.requestAccessToken({ prompt: "", hint: hint || undefined });
+    client.requestAccessToken({
+      prompt: choose ? "select_account" : "",
+      hint: choose ? undefined : want || undefined,
+    });
   });
   if (!response?.access_token || (response.scope && !response.scope.includes(SCOPE))) {
     throw new Error(t("Нужен доступ к Google Calendar. Разрешите его в окне Google."));
   }
+  const got = await accountOf(response.access_token);
+  if (!choose && want && got && got !== want) {
+    window.google?.accounts?.oauth2?.revoke?.(response.access_token, () => {});
+    const error = new Error(
+      t("Google выдал доступ для {got}, а для календаря выбран {want}. Нажмите «Сменить аккаунт» и выберите нужный.", {
+        got,
+        want,
+      })
+    );
+    error.reason = "wrongAccount";
+    error.got = got;
+    throw error;
+  }
   token = response.access_token;
   expiresAt = Date.now() + ((response.expires_in || 3600) - 120) * 1000;
+  tokenAccount = got || want || null;
+  if (choose && got) setCalendarAccount(got);
   return token;
 }
+
+// Google Calendar in the browser, opened on that account rather than whichever
+// account is first on the device.
+export const calendarWebUrl = (account) =>
+  `https://calendar.google.com/calendar/r${account ? `?authuser=${encodeURIComponent(account)}` : ""}`;
+
+// Only what the family marked goes to the calendar.
+export const syncsToCalendar = (item) => item?.gcal === true;
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -251,7 +337,7 @@ export async function pushTrip(trip, calendarId, onProgress) {
     .sort()
     .forEach((dayKey) => {
       (days[dayKey].sections || []).forEach((section) =>
-        (section.items || []).forEach((item) => {
+        (section.items || []).filter(syncsToCalendar).forEach((item) => {
           const id = eventOf.get(item.id) || eventIdFor(item.id);
           wanted.add(id);
           jobs.push({ id, exists: known.has(id), body: eventBody(trip, dayKey, section, item) });
@@ -263,7 +349,7 @@ export async function pushTrip(trip, calendarId, onProgress) {
   );
 
   const cal = encodeURIComponent(calendarId);
-  const result = { created: 0, updated: 0, removed: 0 };
+  const result = { created: 0, updated: 0, removed: 0, selected: jobs.length };
   let done = 0;
   const total = jobs.length + stale.length;
   const tick = () => onProgress?.(++done, total);
@@ -307,7 +393,7 @@ export async function findCalendarChanges(trip, calendarId, pushedAt) {
   const where = new Map();
   Object.entries(days).forEach(([dayKey, plan]) =>
     (plan.sections || []).forEach((section) =>
-      (section.items || []).forEach((item) => where.set(item.id, { dayKey, item }))
+      (section.items || []).filter(syncsToCalendar).forEach((item) => where.set(item.id, { dayKey, item }))
     )
   );
 
@@ -422,6 +508,7 @@ export async function applyCalendarChanges(trip, calendarId, changes) {
         cost: null,
         time: change.time || "",
         end_time: change.time ? change.endTime || "" : "",
+        gcal: true,
       };
       place(change.day, item);
       linked.push({ eventId: change.eventId, day: change.day, itemId: item.id });

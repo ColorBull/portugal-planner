@@ -25,6 +25,9 @@ import {
   Coffee,
   Plus,
   BedDouble,
+  CalendarCheck,
+  CalendarPlus,
+  CalendarX,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -733,7 +736,7 @@ export default function DayPlanModal({
                                   time / price row (30px) puts it at 19px / 15px */}
                               <span
                                 className={`absolute h-2.5 w-2.5 rounded-full ${
-                                  timeLabel(item) || parseCost(item.cost) !== null
+                                  timeLabel(item) || parseCost(item.cost) !== null || item.gcal === true
                                     ? "top-3.5 sm:top-2.5"
                                     : "top-3 sm:top-2"
                                 }`}
@@ -1190,6 +1193,16 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     { key: "text", icon: Pencil, label: t("Изменить название"), run: startText },
     { key: "cost", icon: Wallet, label: hasCost ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
     { key: "time", icon: Clock, label: item.time ? t("Изменить время") : t("Указать время"), run: () => setEditingTime(true) },
+    {
+      key: "gcal",
+      icon: item.gcal === true ? CalendarX : CalendarPlus,
+      label: item.gcal === true ? t("Убрать из Google Calendar") : t("Добавить в Google Calendar"),
+      run: () =>
+        onSavePatch({ gcal: item.gcal !== true }).catch((err) => {
+          console.error(err);
+          alert(t("Не удалось сохранить."));
+        }),
+    },
     ...(wakeAt
       ? [{ key: "alarm", icon: AlarmClock, label: t("Будильник на {time}", { time: wakeAt }), run: alarm }]
       : []),
@@ -1227,6 +1240,17 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
             }
           />
           <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope large />
+          {/* Marked for Google Calendar (api/gcal.js pushes only these). */}
+          {item.gcal === true && (
+            <span
+              className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full"
+              style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+              title={t("Будет в Google Calendar")}
+              aria-label={t("Будет в Google Calendar")}
+            >
+              <CalendarCheck className="h-4 w-4" />
+            </span>
+          )}
           </div>
           {/* Tap the title to edit it in place. */}
           <div
@@ -1356,6 +1380,7 @@ function cloneSection(section) {
       time: it.time || "",
       end_time: it.end_time || "",
       ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
+      ...(it.gcal === true ? { gcal: true } : {}),
     })),
   };
 }
@@ -1410,6 +1435,7 @@ function splitItem(it) {
     time: TIME_RE.test(it.time || "") ? it.time : "",
     end_time: TIME_RE.test(it.time || "") && TIME_RE.test(it.end_time || "") ? it.end_time : "",
     ...(typeof it.fixed === "boolean" ? { fixed: it.fixed } : {}),
+    ...(it.gcal === true ? { gcal: true } : {}),
   };
   const rest = parts
     .slice(1)

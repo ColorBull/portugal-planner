@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, Check, Download, ExternalLink, Loader2, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Check,
+  Download,
+  ExternalLink,
+  Loader2,
+  Upload,
+  UserRound,
+} from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { useAuth } from "@/lib/AuthContext";
 import { canSeeTrip } from "@/lib/tripLock";
@@ -8,12 +17,15 @@ import { countryLabel } from "@/lib/countries";
 import {
   applyCalendarChanges,
   calendarName,
+  calendarWebUrl,
   connectCalendar,
+  connectedCalendarAccount,
   deviceTimeZone,
   emailKey,
   ensureCalendar,
   explainCalendarError,
   findCalendarChanges,
+  getCalendarAccount,
   preloadCalendar,
   pushTrip,
   tripTimeZone,
@@ -70,6 +82,9 @@ export default function CalendarSettings({ onBack }) {
   const [progress, setProgress] = useState(null);
   const [status, setStatus] = useState(null); // { kind: "ok" | "error", text }
   const [changes, setChanges] = useState(null);
+  // The Google account the calendar lives in (api/gcal.js), chosen per device.
+  const [account, setAccount] = useState(() => getCalendarAccount(email));
+  const [connected, setConnected] = useState(() => connectedCalendarAccount());
 
   // Load Google's script now, so the consent window can open inside the click.
   useEffect(() => {
@@ -86,7 +101,22 @@ export default function CalendarSettings({ onBack }) {
   };
 
   const remember = (id, pushedAt) =>
-    saveTripGcal(trip.id, { ...(trip.gcal || {}), [emailKey(email)]: { id, pushedAt } });
+    saveTripGcal(trip.id, { ...(trip.gcal || {}), [emailKey(email)]: { id, pushedAt, account } });
+
+  // Always the chosen account; Google's answer for another one is refused.
+  const connect = async () => {
+    await connectCalendar({ account });
+    setConnected(connectedCalendarAccount());
+  };
+
+  const chooseAccount = () =>
+    guard("account", async () => {
+      await connectCalendar({ choose: true });
+      const picked = connectedCalendarAccount();
+      if (picked) setAccount(picked);
+      setConnected(picked);
+      setStatus({ kind: "ok", text: t("Календарь будет в аккаунте {email}.", { email: picked || account }) });
+    });
 
   const guard = async (kind, job) => {
     setBusy(kind);
@@ -107,23 +137,30 @@ export default function CalendarSettings({ onBack }) {
     guard("push", async () => {
       // A minute early: the calendar's clock and this device's may differ.
       const startedAt = new Date(Date.now() - 60000).toISOString();
-      await connectCalendar(email);
-      const { id } = await ensureCalendar(trip, email);
+      await connect();
+      // A calendar made in another Google account isn't reachable from this one.
+      const saved = mine && mine.account && mine.account !== account ? { ...trip, gcal: {} } : trip;
+      const { id } = await ensureCalendar(saved, email);
       const result = await pushTrip(trip, id, (done, total) => setProgress({ done, total }));
       await remember(id, startedAt);
       setStatus({
         kind: "ok",
-        text: t("Отправлено: создано {created}, обновлено {updated}, удалено {removed}.", result),
+        text: result.selected
+          ? t("Отправлено: создано {created}, обновлено {updated}, удалено {removed}.", result)
+          : t(
+              "Ни один пункт не отмечен для календаря. Откройте день, нажмите «⋯» у пункта и выберите «Добавить в Google Calendar».",
+              result
+            ) + (result.removed ? " " + t("Удалено из календаря: {removed}.", result) : ""),
       });
     });
 
   const pull = () =>
     guard("pull", async () => {
-      if (!mine?.id) {
+      if (!mine?.id || (mine.account && mine.account !== account)) {
         setStatus({ kind: "error", text: t("Календарь ещё не создан для этой поездки. Сначала отправьте расписание.") });
         return;
       }
-      await connectCalendar(email);
+      await connect();
       const found = await findCalendarChanges(trip, mine.id, mine.pushedAt);
       if (!found.length) setStatus({ kind: "ok", text: t("Изменений в календаре нет.") });
       else setChanges(found.map((c) => ({ ...c, on: true })));
@@ -132,7 +169,7 @@ export default function CalendarSettings({ onBack }) {
   const apply = () =>
     guard("apply", async () => {
       const chosen = changes.filter((c) => c.on);
-      await connectCalendar(email);
+      await connect();
       await applyCalendarChanges(trip, mine.id, chosen);
       await remember(mine.id, new Date().toISOString());
       setStatus({ kind: "ok", text: t("Применено: {n}.", { n: chosen.length }) });
@@ -153,7 +190,37 @@ export default function CalendarSettings({ onBack }) {
         <CalendarDays className="h-5 w-5" />
         {t("Синхронизация с Google Calendar")}
       </h3>
-      <p className="mt-1 text-sm text-stone-500">{t("Выберите поездку")}</p>
+      <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-stone-200">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+          {t("Аккаунт Google для календаря")}
+        </p>
+        <div className="mt-1.5 flex items-center gap-2">
+          <UserRound className="h-4 w-4 shrink-0 text-stone-400" />
+          <span dir="ltr" className="min-w-0 flex-1 truncate text-sm font-medium text-stone-700">
+            {account || "—"}
+          </span>
+          {connected && connected === account && (
+            <span className="inline-flex shrink-0 items-center gap-1 text-xs text-[#2f6b4f]">
+              <Check className="h-3.5 w-3.5" />
+              {t("подключён")}
+            </span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={chooseAccount}
+          disabled={!!busy}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-[#1d3b5c] ring-1 ring-stone-300 transition hover:bg-stone-100 disabled:opacity-50"
+        >
+          {busy === "account" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserRound className="h-4 w-4" />}
+          {t("Сменить аккаунт")}
+        </button>
+        <p className="mt-1.5 text-xs text-stone-400">
+          {t("Синхронизация идёт только с этим аккаунтом, даже если на устройстве их несколько.")}
+        </p>
+      </div>
+
+      <p className="mt-4 text-sm text-stone-500">{t("Выберите поездку")}</p>
 
       {visible.length === 0 ? (
         <p className="mt-3 text-sm text-stone-400">{t("Нет доступных поездок.")}</p>
@@ -188,8 +255,8 @@ export default function CalendarSettings({ onBack }) {
         <div className="mt-4 space-y-2">
           <p className="text-xs text-stone-500">
             {t(
-              "Календарь «{name}» появится в вашем Google Calendar: каждый пункт плана — событие. Пункт с указанным временем — в это время, остальные — на весь день.",
-              { name: calendarName(trip) }
+              "Календарь «{name}» появится в Google Calendar аккаунта {account}. В него попадают только пункты, отмеченные «Добавить в Google Calendar» (меню «⋯» у пункта): с временем — в это время, без времени — на весь день.",
+              { name: calendarName(trip), account }
             )}
           </p>
 
@@ -280,7 +347,7 @@ export default function CalendarSettings({ onBack }) {
 
       {status?.kind === "ok" && mine && (
         <a
-          href="https://calendar.google.com/calendar/u/0/r"
+          href={calendarWebUrl(account)}
           target="_blank"
           rel="noreferrer"
           className="mt-2 inline-flex items-center gap-1.5 text-sm text-blue-700 hover:text-blue-900"

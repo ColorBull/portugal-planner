@@ -189,7 +189,16 @@ inline styles; a new colour needs a line there. Pastel icon chips carry
 **Calendar** (`api/gcal.js`, `CalendarSettings.jsx`): per trip, a secondary
 calendar made by the app (scope `calendar.app.created` through the Google
 Identity Services token client, same `GOOGLE_OAUTH_CLIENT_ID`; its id is kept on
-the trip, per account, in `trip.gcal`). Push: every plan item is an event — a
+the trip, per account, in `trip.gcal`, with the Google `account` it lives in). **Which
+Google account** is chosen in the calendar settings ("Сменить аккаунт" opens Google's
+chooser; kept per device in `localStorage` `pp_gcal_account`, default = the sign-in
+e-mail). The token is requested with that account as the hint and checked against
+the account Google really issued it for (`email` scope + userinfo); a token for
+another account is revoked and refused, so a second account on the device is never
+used. "Open Google Calendar" links with `?authuser=<account>`. Push: **only items
+marked `gcal: true`** ("Добавить в Google Calendar" in the item's "⋯" menu, or the
+editor's checkbox; a calendar badge shows on the item) — events of unmarked items are
+removed on the next push, and pull ignores them. Each marked item is an event — a
 timed event from `time` to `end_time` (no end = one hour) when it has a start, in `trip.timezone` (picked in the
 calendar settings; default this device's zone), else all-day (id derived from
 the item id, the item id also in its private extended properties), so

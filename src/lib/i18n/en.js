@@ -465,4 +465,30 @@ export default {
     "The trip is over — give it a rating",
   "Оценка семьи: {avg} из 5 · оценили: {n}":
     "Family rating: {avg} out of 5 · rated by {n}",
+  "Google выдал доступ для {got}, а для календаря выбран {want}. Нажмите «Сменить аккаунт» и выберите нужный.":
+    "Google gave access for {got}, but {want} is chosen for the calendar. Tap “Change account” and pick the right one.",
+  "Календарь будет в аккаунте {email}.":
+    "The calendar will be in the {email} account.",
+  "Ни один пункт не отмечен для календаря. Откройте день, нажмите «⋯» у пункта и выберите «Добавить в Google Calendar».":
+    "No items are marked for the calendar. Open a day, tap “⋯” on an item and choose “Add to Google Calendar”.",
+  "Удалено из календаря: {removed}.":
+    "Removed from the calendar: {removed}.",
+  "Аккаунт Google для календаря":
+    "Google account for the calendar",
+  "подключён":
+    "connected",
+  "Сменить аккаунт":
+    "Change account",
+  "Синхронизация идёт только с этим аккаунтом, даже если на устройстве их несколько.":
+    "Syncing uses only this account, even if the device has several.",
+  "Календарь «{name}» появится в Google Calendar аккаунта {account}. В него попадают только пункты, отмеченные «Добавить в Google Calendar» (меню «⋯» у пункта): с временем — в это время, без времени — на весь день.":
+    "A calendar “{name}” will appear in the Google Calendar of {account}. Only items marked “Add to Google Calendar” (the item’s “⋯” menu) go there: at their time if they have one, otherwise all day.",
+  "Убрать из Google Calendar":
+    "Remove from Google Calendar",
+  "Добавить в Google Calendar":
+    "Add to Google Calendar",
+  "Будет в Google Calendar":
+    "Goes to Google Calendar",
+  "В Google Calendar":
+    "In Google Calendar",
 };

@@ -269,7 +269,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                             />
                                           ),
                                           time: (
-                                            <div className="flex shrink-0 gap-1.5">
+                                            <div className="flex shrink-0 flex-wrap items-end gap-1.5">
                                               <label className="block">
                                                 <span className={hint}>{t("Начало")}</span>
                                                 <TimeSelect
@@ -285,6 +285,18 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                                   value={item.end_time || ""}
                                                   onChange={(end_time) => patchItem(sIndex, iIndex, { end_time })}
                                                 />
+                                              </label>
+                                              {/* Only marked items go to Google Calendar (api/gcal.js). */}
+                                              <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-lg px-1.5 text-sm text-stone-600 sm:min-h-9">
+                                                <input
+                                                  type="checkbox"
+                                                  checked={item.gcal === true}
+                                                  onChange={(e) =>
+                                                    patchItem(sIndex, iIndex, { gcal: e.target.checked })
+                                                  }
+                                                  className="h-4 w-4 shrink-0 accent-[#1d3b5c]"
+                                                />
+                                                {t("В Google Calendar")}
                                               </label>
                                             </div>
                                           ),
