@@ -199,7 +199,7 @@ used. "Open Google Calendar" links with `?authuser=<account>`. Push: **only item
 marked `gcal: true`** ("Добавить в Google Calendar" in the item's "⋯" menu, or the
 editor's checkbox; a calendar badge shows on the item) — events of unmarked items are
 removed on the next push, and pull ignores them. Each marked item is an event — a
-timed event from `time` to `end_time` (no end = one hour) when it has a start, in `trip.timezone` (picked in the
+timed event from `time` to `end_time` (no end = one hour) when it has a start — `itemStart()`: the `time` field, else the first "21:00"-like time in its text, the same rule as the alarm button — in `trip.timezone` (picked in the
 calendar settings; default this device's zone), else all-day (id derived from
 the item id, the item id also in its private extended properties), so
 re-pushing updates in place and deletes what was removed. Pull: events edited

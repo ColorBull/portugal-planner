@@ -32,6 +32,7 @@ import { GOOGLE_OAUTH_CLIENT_ID } from "@/config";
 import { loadGis } from "@/api/googleToken";
 import { listDays, saveDay, uid } from "@/api/trips";
 import { t } from "@/lib/i18n";
+import { alarmTime } from "@/lib/alarm";
 import { parseCost, formatMoney, tripCurrency } from "@/lib/money";
 import { tripYearLabel, parseKey, toKey } from "@/lib/tripDays";
 
@@ -201,7 +202,19 @@ export const deviceTimeZone = () => Intl.DateTimeFormat().resolvedOptions().time
 // (`trip.timezone`), else this device's.
 export const tripTimeZone = (trip) => trip?.timezone || deviceTimeZone();
 
-const TIME = /^\d{2}:\d{2}$/;
+// "9:00" → "09:00"; anything else → "".
+const hhmm = (value) => {
+  const m = /^\s*(\d{1,2}):(\d{2})\s*$/.exec(value || "");
+  return m && +m[1] < 24 && +m[2] < 60 ? `${m[1].padStart(2, "0")}:${m[2]}` : "";
+};
+
+// When an item starts: its start time, else the first "21:00"-like time in its
+// text (the original itinerary has its times only there) — same rule as the
+// alarm button. "" = no time: an all-day event.
+export const itemStart = (item) => hhmm(item?.time) || alarmTime({ text: item?.text });
+
+// The end only counts with a start of its own (an end alone is refused in the app).
+const itemEnd = (item) => (hhmm(item?.time) ? hhmm(item?.end_time) : "");
 
 // Event ids allow only 0-9 a-v: the item id as base32hex.
 const eventIdFor = (itemId) =>
@@ -227,17 +240,21 @@ function hourLater(dayKey, time) {
   return { date: minutes >= 24 * 60 ? nextDay(dayKey) : dayKey, time: at };
 }
 
+// A timed event whenever the item has a time (default length one hour); all
+// day only when it has none.
 function eventTimes(trip, dayKey, item) {
-  if (!TIME.test(item.time || "")) {
+  const start = itemStart(item);
+  if (!start) {
     return { start: { date: dayKey }, end: { date: nextDay(dayKey) } };
   }
   const timeZone = tripTimeZone(trip);
+  const endTime = itemEnd(item);
   const end =
-    TIME.test(item.end_time || "") && item.end_time !== item.time
-      ? { date: item.end_time < item.time ? nextDay(dayKey) : dayKey, time: item.end_time }
-      : hourLater(dayKey, item.time);
+    endTime && endTime !== start
+      ? { date: endTime < start ? nextDay(dayKey) : dayKey, time: endTime }
+      : hourLater(dayKey, start);
   return {
-    start: { dateTime: `${dayKey}T${item.time}:00`, timeZone },
+    start: { dateTime: `${dayKey}T${start}:00`, timeZone },
     end: { dateTime: `${end.date}T${end.time}:00`, timeZone },
   };
 }
@@ -419,8 +436,9 @@ export async function findCalendarChanges(trip, calendarId, pushedAt) {
       // Hours: the end only counts when the item has one (else it is our hour).
       const time = timeOf(event);
       const endTime = endTimeOf(event);
-      const had = TIME.test(at.item.time || "") ? at.item.time : "";
-      const hadEnd = had && TIME.test(at.item.end_time || "") ? at.item.end_time : "";
+      // Compared with what was pushed: a time taken from the text counts too.
+      const had = itemStart(at.item);
+      const hadEnd = itemEnd(at.item);
       const pushedEnd = had ? hadEnd || eventTimes(trip, at.dayKey, at.item).end.dateTime.slice(11, 16) : "";
       if (time !== had || endTime !== pushedEnd) {
         changes.push({
