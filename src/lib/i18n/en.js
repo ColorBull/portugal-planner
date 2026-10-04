@@ -367,8 +367,8 @@ export default {
     "Flights",
   "Подготовка и прочее":
     "Preparations & other",
-  "Расход до поездки — не входит в итог дня":
-    "Pre-trip expense — not in the day’s total",
+  "Общий расход поездки — не входит в итог дня":
+    "General trip expense — not in the day’s total",
   "Время":
     "Time",
   "Указать время":
@@ -377,12 +377,12 @@ export default {
     "Change time",
   "Удалить время":
     "Remove time",
-  "Отнести к расходам до поездки":
-    "Count as a pre-trip expense",
-  "Перенести в расходы дня":
-    "Count as a daily expense",
-  "Расходы до поездки":
-    "Pre-trip expenses",
+  "Сделать общим расходом":
+    "Make it a general expense",
+  "Сделать расходом дня":
+    "Make it a daily expense",
+  "Общие расходы":
+    "General expenses",
   "Не входят в итог дня — учтены в итогах поездки":
     "Not in the day’s total — counted in the trip summary",
   "Новое время {time}: «{text}»":
@@ -393,12 +393,10 @@ export default {
     "Trip time zone",
   "Расходы поездки":
     "Trip expenses",
-  "До поездки":
-    "Before the trip",
-  "до поездки":
-    "pre-trip",
-  "Итого до поездки":
-    "Pre-trip total",
+  "общий расход":
+    "general",
+  "Итого общих расходов":
+    "General expenses total",
   "Расходы по дням":
     "Daily expenses",
   "Итого за поездку":
@@ -423,4 +421,48 @@ export default {
     "Set an alarm for {time}",
   "Будильник на {time}":
     "Alarm at {time}",
+  "Ночуем в":
+    "Staying overnight in",
+  "Город ночёвки":
+    "Overnight city",
+  "Ночуем: {city}":
+    "Overnight: {city}",
+  "Как учитывать расход":
+    "How to count this expense",
+  "Расход дня":
+    "Daily",
+  "Общий расход":
+    "General",
+  "По месту ночёвки: день переезда считается за город, где ночевали.":
+    "By where you slept: a travel day counts for the city you spent the night in.",
+  "ноч.":
+    "nights",
+  "по месту ночёвки":
+    "by overnight stay",
+  "Мелкие расходы":
+    "Extra expenses",
+  "Кофе, перекусы, мелкие покупки":
+    "Coffee, snacks, small purchases",
+  "Добавить":
+    "Add",
+  "Изменить или удалить":
+    "Change or delete",
+  "Общий":
+    "General",
+  "Укажите сумму.":
+    "Enter an amount.",
+  "На что: кофе, мороженое, такси…":
+    "What for: coffee, ice cream, a taxi…",
+  "Общий расход (жильё, аренда машины, страховка…) не входит в итог дня — он учтён в итогах поездки.":
+    "A general expense (lodging, car rental, insurance…) is left out of the day’s total and counted in the trip summary.",
+  "Расход дня входит в «Итого за день».":
+    "A daily expense is added to the day’s total.",
+  "Жильё":
+    "Lodging",
+  "Оценить":
+    "Rate",
+  "Поездка закончилась — поставьте ей оценку":
+    "The trip is over — give it a rating",
+  "Оценка семьи: {avg} из 5 · оценили: {n}":
+    "Family rating: {avg} out of 5 · rated by {n}",
 };

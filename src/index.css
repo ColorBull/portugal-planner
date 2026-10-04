@@ -219,6 +219,16 @@ html.dark .bg-red-50 {
 html.dark .bg-amber-50\/90 {
   background-color: rgba(70, 52, 20, 0.9) !important;
 }
+/* trip rating badge (TripRatingBadge.jsx) */
+html.dark .bg-\[\#fbf1e6\] {
+  background-color: #3a3122 !important;
+}
+html.dark .hover\:bg-\[\#f7e6d3\]:hover {
+  background-color: #4a3d28 !important;
+}
+html.dark .ring-\[\#f0dcc6\] {
+  --tw-ring-color: #5a4a30 !important;
+}
 html.dark .text-amber-800 {
   color: #f2c879 !important;
 }

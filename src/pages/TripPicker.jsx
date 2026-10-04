@@ -23,6 +23,7 @@ import { tripCountry, countryLabel } from "@/lib/countries";
 import { ownerName } from "@/lib/family";
 import SettingsButton from "@/components/SettingsButton";
 import PinnedCorner from "@/components/PinnedCorner";
+import TripRatingBadge from "@/components/TripRatingBadge";
 import { useAuth } from "@/lib/AuthContext";
 import { canSeeTrip, useTripLockChanges, PRIVATE_TRIP_LABEL } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
@@ -30,7 +31,7 @@ import { t } from "@/lib/i18n";
 const iconButton =
   "grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition disabled:opacity-50";
 
-function TripCard({ trip, hidden, muted, onOpen, children }) {
+function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
   const country = hidden ? null : tripCountry(trip);
   return (
     <div
@@ -46,11 +47,15 @@ function TripCard({ trip, hidden, muted, onOpen, children }) {
             <Lock className="h-3.5 w-3.5 text-[#1d3b5c]" aria-label={t("Закрыта PIN-кодом")} />
           )}
         </div>
-        <div
-          className="font-display text-2xl font-semibold mt-0.5"
-          style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
-        >
-          {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
+        {/* The family's score sits by the name, so it shows right in the list. */}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <span
+            className="font-display text-2xl font-semibold"
+            style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
+          >
+            {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
+          </span>
+          {!hidden && <TripRatingBadge trip={trip} onRate={onRate} />}
         </div>
         {/* Behind a PIN the place stays secret, but who made it and when is
             shown, so two private trips can be told apart. */}
@@ -183,6 +188,7 @@ export default function TripPicker() {
                     hidden={isHidden(trip)}
                     muted
                     onOpen={() => navigate(`/trip/${trip.id}`)}
+                    onRate={() => navigate(`/trip/${trip.id}?view=summary`)}
                   >
                     <button
                       type="button"
@@ -220,6 +226,7 @@ export default function TripPicker() {
                   trip={trip}
                   hidden={isHidden(trip)}
                   onOpen={() => navigate(`/trip/${trip.id}`)}
+                  onRate={() => navigate(`/trip/${trip.id}?view=summary`)}
                 >
                   {/* The edit form would show what the lock hides. */}
                   {!isHidden(trip) && (

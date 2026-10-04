@@ -3,8 +3,10 @@ import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { ICON_OPTIONS, iconFor, styleFor } from "@/data/planStyles";
 import AddressInput from "@/components/AddressInput";
 import TimeSelect from "@/components/TimeSelect";
+import ExpenseScope from "@/components/ExpenseScope";
 import { uid } from "@/api/trips";
-import { EXTRAS } from "@/lib/money";
+import { EXTRAS, isFixedItem, parseCost } from "@/lib/money";
+import { overnightCity } from "@/lib/tripSummary";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { t } from "@/lib/i18n";
 
@@ -102,6 +104,19 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
           value={value.city || ""}
           onChange={(e) => onChange({ ...value, city: e.target.value })}
           placeholder={t("Например, Порту")}
+        />
+      </div>
+
+      {/* Where the family sleeps: what the trip summary counts cities by. Left
+          empty, it is read from the city ("Порту → Лиссабон" = Лиссабон). */}
+      <div>
+        <label className={hint} htmlFor="day-stay">{t("Ночуем в")}</label>
+        <input
+          id="day-stay"
+          className={input}
+          value={value.stay || ""}
+          onChange={(e) => onChange({ ...value, stay: e.target.value })}
+          placeholder={overnightCity({ city: value.city }) || t("Город ночёвки")}
         />
       </div>
 
@@ -280,6 +295,15 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               onChange={(cost) => patchItem(sIndex, iIndex, { cost })}
                                             />
                                           ),
+                                          // Asked as soon as there is a price: the day's or the trip's.
+                                          scope:
+                                            parseCost(item.cost) !== null ? (
+                                              <ExpenseScope
+                                                className="w-full sm:w-auto"
+                                                value={isFixedItem(item, section)}
+                                                onChange={(fixed) => patchItem(sIndex, iIndex, { fixed })}
+                                              />
+                                            ) : null,
                                           trash: (
                                             <button
                                               type="button"
@@ -316,6 +340,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                               {grip}
                                               {fields.trash}
                                             </div>
+                                            {fields.scope && <div className="flex">{fields.scope}</div>}
                                           </div>
                                         ) : (
                                           <div className="flex items-start gap-2">
@@ -326,6 +351,7 @@ export default function DayPlanEditor({ value, onChange, currency, firstDay }) {
                                                 <div className="min-w-0 flex-1">{fields.address}</div>
                                                 {fields.cost}
                                               </div>
+                                              {fields.scope && <div className="flex justify-end">{fields.scope}</div>}
                                               {fields.time}
                                             </div>
                                             {fields.trash}

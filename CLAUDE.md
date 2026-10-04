@@ -84,14 +84,20 @@ guard against accidents, not security — `firestore.rules` is the real gate.
 Every plan item has an optional `cost` (a number, in the trip's `currency`,
 chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 (`{ company, cost }`) on its day doc; their documents are ordinary uploads with
-`item_id` `"insurance"` / `"sim"`. Spending is **fixed** (pre-trip: flights,
-insurance, SIM, preparations) or **daily**. Insurance / SIM are always fixed; a
+`item_id` `"insurance"` / `"sim"`. Spending is **fixed** — shown as "Общий расход"
+(general: flights, hotels, car rental, insurance, SIM, preparations) — or
+**daily** ("Расход дня"); `ExpenseScope.jsx` asks which whenever a price is
+entered (the inline price, the editor, the small-expense form). Insurance / SIM are always fixed; a
 plan item is fixed when `item.fixed === true`, or when it sits in a Plane
 ("Перелёт") block and `fixed` isn't `false` — toggled from the item's "⋯" menu,
-shown as a blue badge. The day view ends with "Итого за день" — `dayTotal()` in
-`src/lib/money.js`, daily only — plus a "Расходы до поездки" line for that day's
-fixed spending. The trip total (summary, export) is daily + fixed;
-`fixedReceipt()` groups the fixed part by kind (flights / insurance / sim / prep)
+shown as a blue badge. The day view ends with "Мелкие расходы" (`DayExpenses` in
+`DayPlanModal.jsx`): coffee, snacks… that aren't plan items, kept on the day doc as
+`expenses: [{ id, text, cost, fixed, at, by }]`; then "Итого за день" —
+`dayTotal()` in `src/lib/money.js`, daily items + daily small expenses — plus an
+"Общие расходы" line for that day's fixed spending. The trip total (summary, export) is daily + fixed;
+`fixedReceipt()` groups the fixed part by kind (flights / stay / transport /
+insurance / sim / prep — stay and transport by the block's icon; fixed small
+expenses are prep)
 for the receipt on the summary page. Items also have an optional start `time`
 and `end_time` ("HH:MM", labelled "Начало" / "Конец", from the "⋯" menu or the
 editor; an end without a start is refused, an end before the start = next day). Times are
@@ -110,7 +116,12 @@ After the last day tile the grid has one more tile, "Итоги" (trophy), which
 opens `TripSummaryModal` — not a day: no date, not counted. The last day's
 "next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
 tile in the 30-per-page pagination. Computed from the days: length (days /
-nights), cities with days and spend each (`plan.city || trip.city`), total
+nights), cities by **where the family sleeps** (`overnightCity()` in
+`lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" in the editor —
+else read from its city: "A → B" is B, "A — B" / "A, B" is A; names compared
+case-insensitively), so a transfer day is never a city of its own; each day but
+the last gives a night and its spend to that city, the last day's spend goes to
+where they woke up, total
 spend (daily + fixed, with a receipt-style breakdown of the fixed part), most
 expensive day (daily only). Entered afterwards, stored on
 the trip doc as `trip.summary`: `note`, `ratings_by` (per person, keyed by `emailKey`:
@@ -120,7 +131,10 @@ star to clear), `highlights` and
 `actions` (maps `id → { text, at, by[, done] }`). Saved by field path
 (`setTripSummary`, null deletes) with an optimistic local update and no
 refresh, so two people editing different entries don't clobber each other.
-The NotebookLM export ends with it.
+The NotebookLM export ends with it. The family average (`tripRating()`) is shown
+next to the trip's name — `TripRatingBadge.jsx` on the trip list cards, the trip
+header and the summary header; a finished trip nobody rated shows "Оценить",
+which opens the summary (`#/trip/:id?view=summary`).
 
 ## PIN lock
 

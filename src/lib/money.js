@@ -1,14 +1,18 @@
 // Costs on plan items, the first day's insurance / SIM card, and day totals.
 // A cost is stored as a plain number in the trip's currency (trip.currency).
 //
-// Two kinds of spending:
-//   fixed  — paid for the trip as a whole, usually before it: flights, the
-//            insurance and SIM card, other preparations. Counted in the trip's
-//            total (the summary's receipt), never in a day's total.
-//   daily  — everything else: meals, tickets, local transport, gifts… What a
-//            day's "Итого за день" adds up.
+// Two kinds of spending, picked whenever a price is entered:
+//   fixed  — "Общий расход": paid for the trip as a whole — flights, hotels, car
+//            rental, the insurance and SIM card, other preparations. Counted in
+//            the trip's total (the summary's receipt), never in a day's total.
+//   daily  — "Расход дня": everything else — meals, tickets, local transport,
+//            coffee, gifts… What a day's "Итого за день" adds up.
 // A plan item is fixed when `item.fixed === true`, or when it sits in a
 // "Перелёт" (Plane) block and nobody set `fixed: false` on it.
+//
+// Besides the plan items a day has small spending of its own, logged at the
+// foot of the day view: `plan.expenses = [{ id, text, cost, fixed, at, by }]`
+// (fixed only when `fixed === true`).
 
 import { localeTag } from "@/lib/i18n";
 
@@ -46,6 +50,8 @@ export const EXTRAS = [
 // Kinds of fixed spending, in receipt order. Russian titles are i18n keys.
 export const FIXED_KINDS = [
   { key: "flights", title: "Перелёты" },
+  { key: "stay", title: "Жильё" },
+  { key: "transport", title: "Транспорт" },
   { key: "insurance", title: "Страховка" },
   { key: "sim", title: "SIM-карта" },
   { key: "prep", title: "Подготовка и прочее" },
@@ -58,6 +64,20 @@ export function isFixedItem(item, section) {
   return section?.icon === "Plane";
 }
 
+const TRANSPORT_ICONS = new Set(["Car", "Bus", "Train", "TramFront", "Ship"]);
+
+// Which receipt line a fixed plan item lands on, by its block's icon.
+function fixedKind(section) {
+  if (section?.icon === "Plane") return "flights";
+  if (section?.icon === "BedDouble") return "stay";
+  if (TRANSPORT_ICONS.has(section?.icon)) return "transport";
+  return "prep";
+}
+
+// The day's own small spending (coffee, snacks…), only those with a price.
+export const dayExpenses = (plan) =>
+  (Array.isArray(plan?.expenses) ? plan.expenses : []).filter((e) => parseCost(e?.cost) !== null);
+
 // The fixed spending of one day: [{ kind, text, cost }] (only what has a price).
 export function fixedItems(plan) {
   const out = [];
@@ -69,9 +89,12 @@ export function fixedItems(plan) {
     (s.items || []).forEach((it) => {
       const cost = parseCost(it.cost);
       if (cost === null || !isFixedItem(it, s)) return;
-      out.push({ kind: s.icon === "Plane" ? "flights" : "prep", text: it.text || "", cost });
+      out.push({ kind: fixedKind(s), text: it.text || "", cost });
     })
   );
+  dayExpenses(plan).forEach((e) => {
+    if (e.fixed === true) out.push({ kind: "prep", text: e.text || "", cost: parseCost(e.cost) });
+  });
   return out;
 }
 
@@ -85,6 +108,9 @@ export function dayTotal(plan) {
       if (!isFixedItem(it, s)) sum += parseCost(it.cost) || 0;
     })
   );
+  dayExpenses(plan).forEach((e) => {
+    if (e.fixed !== true) sum += parseCost(e.cost);
+  });
   return round(sum);
 }
 

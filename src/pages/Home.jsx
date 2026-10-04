@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, ChevronLeft, ChevronRight, Lock, LockOpen, Trophy } from "lucide-react";
 import { useTrips } from "@/lib/TripContext";
 import { buildDays, tripYearLabel } from "@/lib/tripDays";
 import DayPlanModal from "@/components/DayPlanModal";
 import TripSummaryModal from "@/components/TripSummaryModal";
+import TripRatingBadge from "@/components/TripRatingBadge";
 import { SUMMARY_KEY } from "@/lib/tripSummary";
 import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
@@ -51,6 +52,9 @@ export default function Home() {
   const { user } = useAuth();
 
   const [selectedKey, setSelectedKey] = useState(null);
+  // "?view=summary" (the rating badge in the trip list) opens the summary page.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantSummary = searchParams.get("view") === "summary";
 
   useEffect(() => {
     openTrip(routeId);
@@ -90,6 +94,12 @@ export default function Home() {
   );
 
   const ready = trip && tripId === routeId && !daysLoading && !lockedOut;
+
+  useEffect(() => {
+    if (!ready || !wantSummary) return;
+    if (tripDays.length) setSelectedKey(SUMMARY_KEY);
+    setSearchParams({}, { replace: true });
+  }, [ready, wantSummary, tripDays.length, setSearchParams]);
 
   // The days, then one more tile for the summary page (not a day: no date).
   const pages = useMemo(
@@ -161,6 +171,14 @@ export default function Home() {
           >
             {!trip ? t("Загрузка…") : hidden ? t(PRIVATE_TRIP_LABEL) : `${trip.city} ${tripYearLabel(trip)}`}
           </h1>
+          {trip && !hidden && !lockedOut && (
+            <TripRatingBadge
+              trip={trip}
+              size="lg"
+              className="mt-1.5"
+              onRate={ready && tripDays.length ? () => setSelectedKey(SUMMARY_KEY) : undefined}
+            />
+          )}
           {trip && !hidden && (
             <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">
               {country && <CountryFlag code={country.code} width={20} />}

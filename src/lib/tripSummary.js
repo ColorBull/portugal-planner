@@ -32,17 +32,47 @@ export const RATING_QUESTIONS = [
   { key: "overall", label: "Общее впечатление" },
 ];
 
-// [{ city, days, cost }] in the order the cities were first reached. `cost` is
-// daily spending only: a flight is not the city's.
+// Where the family sleeps after a day: `plan.stay` when set (the editor's
+// "Ночуем в"), else worked out from the day's city. A transfer day such as
+// "Порту → Лиссабон" ends in Lisbon; "Лиссабон — Белем" (a trip out and back)
+// or "Лиссабон, Синтра" stays in the first place named.
+const ARROW = /\s*(?:→|->|—>|–>|⇒|➝|➔|=>)\s*/;
+export function overnightCity(plan, trip) {
+  const stay = (plan?.stay || "").trim();
+  if (stay) return stay;
+  const city = (plan?.city || trip?.city || "").trim();
+  if (!city) return "";
+  const parts = city.split(ARROW).map((x) => x.trim()).filter(Boolean);
+  const last = parts[parts.length - 1] || city;
+  return last.split(/\s+[—–-]\s+|\s*[,/;]\s*|\s+\+\s+/)[0].trim() || last;
+}
+
+// "Лиссабон", " лиссабон ", "Лиссабон." are one city.
+const cityKey = (name) =>
+  name.toLocaleLowerCase().replace(/ё/g, "е").replace(/[.\s]+$/, "").replace(/\s+/g, " ");
+
+// [{ city, nights, days, cost }] in the order the cities were first slept in —
+// one row per place the family stayed overnight, so a transfer day is not a
+// city of its own and a city is never counted twice. Each day but the last
+// gives a night (and its spending) to where it ends; the last day's spending
+// goes to where the family woke up. A one-day trip is just its city.
+// `cost` is daily spending only: a flight is not the city's.
 export function cityStats(tripDays, days, trip) {
   const byCity = new Map();
-  tripDays.forEach((d) => {
+  const row = (name) => {
+    const city = name || "—";
+    const key = cityKey(city);
+    if (!byCity.has(key)) byCity.set(key, { city, nights: 0, days: 0, cost: 0 });
+    return byCity.get(key);
+  };
+  const n = tripDays.length;
+  tripDays.forEach((d, i) => {
     const plan = days[d.key];
-    const city = (plan?.city || trip?.city || "").trim() || "—";
-    const row = byCity.get(city) || { city, days: 0, cost: 0 };
-    row.days += 1;
-    row.cost += dayTotal(plan);
-    byCity.set(city, row);
+    const last = i === n - 1 && n > 1;
+    const r = last ? row(overnightCity(days[tripDays[i - 1].key], trip)) : row(overnightCity(plan, trip));
+    if (!last) r.nights += 1;
+    r.days += 1;
+    r.cost = Math.round((r.cost + dayTotal(plan)) * 100) / 100;
   });
   return [...byCity.values()];
 }
@@ -105,4 +135,19 @@ export function questionStats(list, qKey) {
 // The family's overall score: each question's average, averaged.
 export function familyAverage(list) {
   return mean(RATING_QUESTIONS.map((q) => questionStats(list, q.key).avg).filter((v) => v !== null));
+}
+
+// The trip's score for its card and header: { avg, count } (avg null when
+// nobody has rated yet).
+export function tripRating(trip) {
+  const list = raters(trip?.summary);
+  return { avg: familyAverage(list), count: list.length };
+}
+
+// Over once its last day is behind (local date): time to rate it.
+export function tripIsOver(trip, today = new Date()) {
+  if (!trip?.endDate) return false;
+  const pad = (n) => String(n).padStart(2, "0");
+  const key = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  return trip.endDate < key;
 }

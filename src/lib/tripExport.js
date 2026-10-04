@@ -3,7 +3,7 @@
 // NotebookLM reads and keeps in sync (see api/drive.js → saveGoogleDoc).
 
 import { buildDays, tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
-import { EXTRAS, dayTotal, fixedReceipt, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
+import { EXTRAS, dayExpenses, dayTotal, fixedReceipt, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
 import { driveViewUrl } from "@/api/drive";
 import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
 import { countryLabel } from "@/lib/countries";
@@ -48,11 +48,11 @@ function summaryHtml(trip, list, days, currency, tripTotal) {
   const s = trip.summary || {};
   const out = [`<h2>${t("Итоги поездки")}</h2>`];
   const cities = cityStats(list, days, trip)
-    .map((c) => `<li>${esc(c.city)}: ${c.days}${c.cost ? `, ${esc(formatMoney(c.cost, currency))}` : ""}</li>`)
+    .map((c) => `<li>${esc(c.city)}: ${c.nights ? `${c.nights} ${t("ноч.")}` : c.days}${c.cost ? `, ${esc(formatMoney(c.cost, currency))}` : ""}</li>`)
     .join("");
   out.push(
     `<p>${t("Длительность")}: ${list.length}. ${t("Всего потрачено")}: ${esc(formatMoney(tripTotal, currency))}.</p>`,
-    `<h3>${t("Города")}</h3><ul>${cities}</ul>`
+    `<h3>${t("Города")} (${t("по месту ночёвки")})</h3><ul>${cities}</ul>`
   );
   const fixed = fixedReceipt(list.map((d) => days[d.key]));
   const daily = Math.round((tripTotal - fixed.total) * 100) / 100;
@@ -69,7 +69,7 @@ function summaryHtml(trip, list, days, currency, tripTotal) {
       .join("");
     out.push(
       `<h3>${t("Расходы поездки")}</h3><ul>${lines}` +
-        (fixed.lines.length ? `<li>${t("Итого до поездки")}: ${money(fixed.total)}</li>` : "") +
+        (fixed.lines.length ? `<li>${t("Итого общих расходов")}: ${money(fixed.total)}</li>` : "") +
         `<li>${t("Расходы по дням")}: ${money(daily)}</li><li><b>${t("Итого за поездку")}: ${money(tripTotal)}</b></li></ul>`
     );
   }
@@ -122,7 +122,8 @@ export function buildTripHtml({ trip, days, notes, photos }) {
     const used = new Set();
     const sections = plan?.sections || [];
     const hasExtras = day.dayNumber === 1 && EXTRAS.some(({ key }) => plan?.[key]?.company || plan?.[key]?.cost);
-    if (!sections.length && !hasExtras && !Object.keys(dayNotes).length) return;
+    const expenses = dayExpenses(plan);
+    if (!sections.length && !hasExtras && !expenses.length && !Object.keys(dayNotes).length) return;
 
     body.push(
       `<h2>${t("День")} ${day.dayNumber}: ${esc(day.label)} (${esc(day.weekday)}), ${esc(plan?.city || trip.city)} — ${esc(day.key)}</h2>`
@@ -153,7 +154,7 @@ export function buildTripHtml({ trip, days, notes, photos }) {
         const extra = [
           it.address && `📍 ${href ? link(href, it.address) : esc(it.address)}`,
           cost !== null &&
-            `<b>${esc(formatMoney(cost, currency))}</b>${isFixedItem(it, s) ? ` (${t("до поездки")})` : ""}`,
+            `<b>${esc(formatMoney(cost, currency))}</b>${isFixedItem(it, s) ? ` (${t("общий расход")})` : ""}`,
         ].filter(Boolean);
         const sub = [
           ...(dayNotes[it.id] || []).map(noteHtml),
@@ -166,6 +167,19 @@ export function buildTripHtml({ trip, days, notes, photos }) {
       });
       body.push("</ul>");
     });
+
+    if (expenses.length) {
+      body.push(
+        `<h3>${t("Мелкие расходы")}</h3><ul>${expenses
+          .map(
+            (e) =>
+              `<li>${esc(e.text || "—")}: <b>${esc(formatMoney(parseCost(e.cost), currency))}</b>${
+                e.fixed === true ? ` (${t("общий расход")})` : ""
+              }</li>`
+          )
+          .join("")}</ul>`
+      );
+    }
 
     // Notes / files whose plan item no longer exists (or that are day-wide).
     const loose = [

@@ -22,12 +22,18 @@ import {
   ChevronRight,
   Receipt,
   AlarmClock,
+  Coffee,
+  Plus,
+  BedDouble,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
 import PlanNoteBox from "@/components/PlanNoteBox";
 import AddressInput from "@/components/AddressInput";
 import TimeSelect from "@/components/TimeSelect";
+import ExpenseScope from "@/components/ExpenseScope";
+import { useAuth } from "@/lib/AuthContext";
+import { overnightCity } from "@/lib/tripSummary";
 import { alarmTime, setAlarm } from "@/lib/alarm";
 import DayPlanEditor, { emptySection } from "@/components/DayPlanEditor";
 import { iconFor, styleFor } from "@/data/planStyles";
@@ -37,22 +43,26 @@ import { tripYearLabel } from "@/lib/tripDays";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { useHoldMenu } from "@/lib/useHoldMenu";
 import { countryLabel } from "@/lib/countries";
-import { EXTRAS, dayTotal, fixedTotal, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
+import { EXTRAS, dayExpenses, dayTotal, fixedTotal, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
 import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
 // A price that can be set or changed right in the day view: tap the badge (or
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
-// `fixed`: a pre-trip expense (lib/money.js) — blue badge, not in the day's total.
-const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixed = false }, ref) {
+// `fixed`: a general trip expense (lib/money.js) — blue badge, not in the day's
+// total. With `scope`, the day / general choice is asked while the price is
+// typed, and `onSave(cost, fixed)` gets it too.
+const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixed = false, scope = false }, ref) {
   const amount = parseCost(cost);
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
+  const [fixedDraft, setFixedDraft] = useState(fixed);
   const [busy, setBusy] = useState(false);
 
   const start = () => {
     setValue(amount === null ? "" : String(amount).replace(".", ","));
+    setFixedDraft(fixed);
     setEditing(true);
   };
 
@@ -66,10 +76,10 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
 
   const commit = async () => {
     const next = parseCost(value);
-    if (next === amount) return setEditing(false);
+    if (next === amount && (!scope || next === null || fixedDraft === fixed)) return setEditing(false);
     setBusy(true);
     try {
-      await onSave(next);
+      await onSave(next, fixedDraft);
       setEditing(false);
     } catch (err) {
       console.error(err);
@@ -80,7 +90,7 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
   };
 
   if (editing) {
-    return (
+    const field = (
       <span className="ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-stone-600 ring-1 ring-stone-300 sm:px-2 sm:py-0.5 sm:text-xs">
         <input
           autoFocus
@@ -99,6 +109,13 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
         {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : currency}
       </span>
     );
+    if (!scope) return field;
+    return (
+      <span className="flex flex-col items-end gap-1.5">
+        {field}
+        <ExpenseScope value={fixedDraft} onChange={setFixedDraft} />
+      </span>
+    );
   }
 
   // No price yet: nothing to show — "Цена" in the item's "⋯" menu starts editing.
@@ -112,7 +129,7 @@ const InlineCost = forwardRef(function InlineCost({ cost, currency, onSave, fixe
       dir="ltr"
       {...bind}
       onClick={start}
-      title={fixed ? t("Расход до поездки — не входит в итог дня") : t("Изменить цену")}
+      title={fixed ? t("Общий расход поездки — не входит в итог дня") : t("Изменить цену")}
       className={`ms-2 inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums transition sm:px-2 sm:py-0.5 ${
         fixed ? "" : "bg-stone-200/70 text-stone-600 hover:bg-stone-300/70 active:bg-stone-300/70"
       }`}
@@ -135,8 +152,8 @@ const timeLabel = (item) =>
     ? `${item.time}${TIME_RE.test(item.end_time || "") ? `–${item.end_time}` : ""}`
     : "";
 
-// The chip on the first line, level with the timeline dot (26px = one line of
-// the title), with the title below it. Tap to change, hold (right-click) to
+// The chip on the first line, level with the timeline dot (30px tall, so the
+// hours read at a glance), with the title below it. Tap to change, hold (right-click) to
 // change or delete. The alarm-clock button beside it sets a device alarm (lib/alarm.js).
 function TimeChip({ item, onEdit, onClear, onAlarm }) {
   const { bind, menu } = useHoldMenu([
@@ -149,7 +166,7 @@ function TimeChip({ item, onEdit, onClear, onAlarm }) {
   return (
     <>
       {menu}
-      <span className="mb-1 flex h-[26px] items-center gap-1">
+      <span className="mb-1 flex h-[30px] items-center gap-1">
         <button
           type="button"
           dir="ltr"
@@ -159,9 +176,9 @@ function TimeChip({ item, onEdit, onClear, onAlarm }) {
             onEdit();
           }}
           title={t("Изменить время")}
-          className="flex h-full w-fit items-center gap-1 whitespace-nowrap rounded-full bg-stone-200/70 px-2.5 text-xs font-semibold tabular-nums text-stone-600 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2"
+          className="flex h-full w-fit items-center gap-1.5 whitespace-nowrap rounded-full bg-stone-200/70 px-3 text-[15px] font-bold tabular-nums text-stone-700 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2.5"
         >
-          <Clock className="h-3 w-3 shrink-0" />
+          <Clock className="h-4 w-4 shrink-0" />
           {label}
         </button>
         <button
@@ -172,9 +189,9 @@ function TimeChip({ item, onEdit, onClear, onAlarm }) {
           }}
           title={t("Поставить будильник на {time}", { time: item.time })}
           aria-label={t("Поставить будильник на {time}", { time: item.time })}
-          className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/70 hover:text-stone-700 active:bg-stone-200/70"
+          className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/70 hover:text-stone-700 active:bg-stone-200/70"
         >
-          <AlarmClock className="h-3.5 w-3.5" />
+          <AlarmClock className="h-4 w-4" />
         </button>
       </span>
     </>
@@ -463,6 +480,7 @@ export default function DayPlanModal({
     setSaveError(null);
     setDraft({
       city: plan?.city || trip?.city || "",
+      stay: plan?.stay || "",
       sections: seed && !hasPlan ? [emptySection()] : sections.map(cloneSection),
       ...(firstDay
         ? Object.fromEntries(EXTRAS.map(({ key }) => [key, cloneExtra(plan?.[key])]))
@@ -476,14 +494,21 @@ export default function DayPlanModal({
     setDraft(null);
   };
 
-  // Inline price edits save just the changed field (saveDay merges).
-  const saveItemCost = (itemId, cost) =>
+  // Inline price edits save just the changed fields (saveDay merges): the price,
+  // and whether it is the day's or a general one when that was changed with it.
+  const saveItemCost = (itemId, cost, fixedNow, fixedWas) =>
     onSave({
       sections: sections.map((s) => ({
         ...s,
-        items: (s.items || []).map((it) => (it.id === itemId ? { ...it, cost } : it)),
+        items: (s.items || []).map((it) =>
+          it.id === itemId
+            ? { ...it, cost, ...(cost !== null && fixedNow !== fixedWas ? { fixed: fixedNow } : {}) }
+            : it
+        ),
       })),
     });
+
+  const saveExpenses = (expenses) => onSave({ expenses });
 
   const saveItemPatch = (itemId, patch) =>
     onSave({
@@ -512,6 +537,10 @@ export default function DayPlanModal({
   };
 
   const headerCity = plan?.city || trip?.city || "";
+  // Where the night is spent, shown when the day's city doesn't say it plainly
+  // (a transfer "Порту → Лиссабон", or a "Ночуем в" set in the editor).
+  const stayCity = overnightCity(plan, trip);
+  const showStay = !!stayCity && stayCity.trim() !== headerCity.trim();
 
   return (
     <motion.div
@@ -579,6 +608,12 @@ export default function DayPlanModal({
             )}
             {dayInfo?.weekday}, {dayInfo?.label}
           </div>
+          {showStay && !editing && (
+            <div className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
+              <BedDouble className="h-4 w-4 shrink-0" />
+              {t("Ночуем: {city}", { city: stayCity })}
+            </div>
+          )}
           </div>
         </div>
 
@@ -684,9 +719,12 @@ export default function DayPlanModal({
                             <li key={item.id} className="relative min-w-0">
                               {/* centred on the 2px rule and on the first text line: the
                                   title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
-                                  line's middle is 17px down there and 13px from sm up */}
+                                  line's middle is 17px down there and 13px from sm up; a
+                                  time chip (30px) puts it at 19px / 15px */}
                               <span
-                                className="absolute top-3 h-2.5 w-2.5 rounded-full sm:top-2"
+                                className={`absolute h-2.5 w-2.5 rounded-full ${
+                                  timeLabel(item) ? "top-3.5 sm:top-2.5" : "top-3 sm:top-2"
+                                }`}
                                 style={{
                                   insetInlineStart: "-30px",
                                   backgroundColor: style.bar,
@@ -701,7 +739,9 @@ export default function DayPlanModal({
                                 bar={style.bar}
                                 photos={photosByItem[item.id] || []}
                                 onChanged={loadPhotos}
-                                onSaveCost={(cost) => saveItemCost(item.id, cost)}
+                                onSaveCost={(cost, fixedNow) =>
+                                  saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
+                                }
                                 onSavePatch={(patch) => saveItemPatch(item.id, patch)}
                               />
                             </li>
@@ -731,8 +771,14 @@ export default function DayPlanModal({
                   </button>
                 </div>
               )}
+              <DayExpenses
+                expenses={dayExpenses(plan)}
+                all={Array.isArray(plan?.expenses) ? plan.expenses : []}
+                currency={currency}
+                onSave={saveExpenses}
+              />
               {(total > 0 || fixed > 0) && (
-                <div className="mt-8 space-y-2">
+                <div className="mt-3 space-y-2">
                   {total > 0 && (
                     <div
                       className="flex items-center justify-between rounded-2xl px-4 py-3"
@@ -752,7 +798,7 @@ export default function DayPlanModal({
                       <span className="inline-flex min-w-0 items-start gap-2">
                         <Receipt className="mt-0.5 h-4 w-4 shrink-0" />
                         <span>
-                          {t("Расходы до поездки")}
+                          {t("Общие расходы")}
                           <span className="block text-xs text-stone-400">
                             {t("Не входят в итог дня — учтены в итогах поездки")}
                           </span>
@@ -822,6 +868,192 @@ export default function DayPlanModal({
         )}
       </motion.div>
     </motion.div>
+  );
+}
+
+// Small spending of the day that isn't a plan item — coffee, a snack, a bus
+// ticket, a souvenir — logged at the foot of the day, next to its total. Each
+// is the day's or a general one (ExpenseScope); stored as `plan.expenses`
+// (lib/money.js). Tap a line to change or delete it.
+function DayExpenses({ expenses, all, currency, onSave }) {
+  const { user } = useAuth();
+  const [form, setForm] = useState(null); // { id?, text, cost, fixed }
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
+  const formRef = useRef(null);
+
+  useEffect(() => {
+    if (!form) return;
+    const timer = setTimeout(() => formRef.current?.scrollIntoView({ block: "center", behavior: "smooth" }), 300);
+    return () => clearTimeout(timer);
+  }, [!!form]);
+
+  const open = (e) => {
+    setError(null);
+    setForm(
+      e
+        ? { id: e.id, text: e.text || "", cost: String(parseCost(e.cost)).replace(".", ","), fixed: e.fixed === true }
+        : { text: "", cost: "", fixed: false }
+    );
+  };
+
+  const persist = async (next) => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onSave(next);
+      setForm(null);
+    } catch (err) {
+      console.error(err);
+      setError(t("Не удалось сохранить."));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const submit = () => {
+    const cost = parseCost(form.cost);
+    if (cost === null) return setError(t("Укажите сумму."));
+    const entry = { text: form.text.trim(), cost, fixed: form.fixed };
+    persist(
+      form.id
+        ? all.map((e) => (e.id === form.id ? { ...e, ...entry } : e))
+        : [...all, { id: uid("exp"), ...entry, at: Date.now(), by: user?.email || null }]
+    );
+  };
+
+  const remove = () => persist(all.filter((e) => e.id !== form.id));
+
+  const field =
+    "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm";
+
+  return (
+    <div className="mt-8 rounded-2xl border bg-white/70 p-4" style={{ borderColor: "#ece3d4" }}>
+      <div className="flex items-center gap-2">
+        <span
+          className="plan-chip grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+          style={{ backgroundColor: "#f0e8e2", color: "#7a5a3a" }}
+        >
+          <Coffee className="h-4 w-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold leading-tight text-stone-700">{t("Мелкие расходы")}</span>
+          <span className="block text-xs text-stone-400">{t("Кофе, перекусы, мелкие покупки")}</span>
+        </span>
+        {!form && (
+          <button
+            type="button"
+            onClick={() => open(null)}
+            className="ms-auto inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full bg-stone-800 px-3.5 text-[13px] font-medium text-white transition hover:bg-stone-700 sm:min-h-0 sm:py-1.5 sm:text-xs"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t("Добавить")}
+          </button>
+        )}
+      </div>
+
+      {expenses.length > 0 && (
+        <ul className="mt-3 divide-y divide-stone-200/70">
+          {expenses.map((e) => (
+            <li key={e.id}>
+              <button
+                type="button"
+                onClick={() => open(e)}
+                title={t("Изменить или удалить")}
+                className="flex w-full items-center gap-3 rounded-lg py-2.5 text-start transition hover:bg-stone-200/40 sm:py-2"
+              >
+                <span className="min-w-0 flex-1 break-words text-stone-700">{e.text || t("Без названия")}</span>
+                {e.fixed === true && (
+                  <span
+                    className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                    style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+                    title={t("Общий расход поездки — не входит в итог дня")}
+                  >
+                    <Receipt className="h-3 w-3" />
+                    {t("Общий")}
+                  </span>
+                )}
+                <span dir="ltr" className="shrink-0 font-semibold tabular-nums text-stone-600">
+                  {formatMoney(parseCost(e.cost), currency)}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {form && (
+        <div ref={formRef} data-no-swipe className="mt-3 space-y-2.5">
+          <input
+            autoFocus
+            value={form.text}
+            onChange={(e) => setForm((f) => ({ ...f, text: e.target.value }))}
+            onKeyDown={(e) => e.key === "Enter" && submit()}
+            placeholder={t("На что: кофе, мороженое, такси…")}
+            className={field}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="relative w-32 shrink-0">
+              <input
+                inputMode="decimal"
+                value={form.cost}
+                onChange={(e) => setForm((f) => ({ ...f, cost: e.target.value }))}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder="0"
+                aria-label={t("Стоимость")}
+                className={`${field} pe-9 text-end tabular-nums`}
+              />
+              <span className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-sm text-stone-400">
+                {currency}
+              </span>
+            </div>
+            <ExpenseScope
+              value={form.fixed}
+              onChange={(fixed) => setForm((f) => ({ ...f, fixed }))}
+              className="flex-1 sm:flex-none"
+            />
+          </div>
+          <p className="text-xs text-stone-400">
+            {error ? (
+              <span className="text-[#a8451f]">{error}</span>
+            ) : form.fixed ? (
+              t("Общий расход (жильё, аренда машины, страховка…) не входит в итог дня — он учтён в итогах поездки.")
+            ) : (
+              t("Расход дня входит в «Итого за день».")
+            )}
+          </p>
+          <div className="flex items-center justify-end gap-2">
+            {form.id && (
+              <button
+                type="button"
+                onClick={remove}
+                disabled={busy}
+                className="me-auto inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-[#a8451f] transition hover:bg-[#f7e9e3] sm:px-3 sm:py-1.5 sm:text-xs"
+              >
+                <Trash2 className="h-3.5 w-3.5" /> {t("Удалить")}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setForm(null)}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
+              <X className="h-3.5 w-3.5" /> {t("Отмена")}
+            </button>
+            <button
+              type="button"
+              onClick={submit}
+              disabled={busy}
+              className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+              {t("Сохранить")}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -952,7 +1184,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     {
       key: "fixed",
       icon: Receipt,
-      label: fixed ? t("Перенести в расходы дня") : t("Отнести к расходам до поездки"),
+      label: fixed ? t("Сделать расходом дня") : t("Сделать общим расходом"),
       run: () =>
         onSavePatch({ fixed: !fixed }).catch((err) => {
           console.error(err);
@@ -990,7 +1222,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
           {item.text}
         </div>
         <span className="flex shrink-0 items-center">
-          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} />
+          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope />
           <ActionMenu actions={actions} />
         </span>
       </div>
@@ -1130,6 +1362,7 @@ function cleanPlan(draft, firstDay) {
   return {
     ...extras,
     city: (draft.city || "").trim(),
+    stay: (draft.stay || "").trim(),
     sections: (draft.sections || [])
       .map((s) => ({
         id: s.id,

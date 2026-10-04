@@ -19,6 +19,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { uid } from "@/api/trips";
+import TripRatingBadge from "@/components/TripRatingBadge";
 import { useAuth } from "@/lib/AuthContext";
 import { personName } from "@/lib/family";
 import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
@@ -106,7 +107,10 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
     if ((dx > 0) === (getLang() !== "he")) onNavigate(lastDay.key);
   };
 
-  const maxCityDays = Math.max(1, ...cities.map((c) => c.days));
+  // Cities are counted by where the family slept (lib/tripSummary.js); the bar
+  // is nights, or days on a trip with no night away.
+  const cityLength = (c) => c.nights || c.days;
+  const maxCityLength = Math.max(1, ...cities.map(cityLength));
   // Ratings are per person: everyone sets their own stars and sees the family average.
   const me = emailKey(user?.email);
   const mine = summary.ratings_by?.[me] || {};
@@ -155,6 +159,7 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
             <h2 className="mt-1.5 max-w-[calc(100%-3.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:text-4xl">
               {trip ? `${trip.city} ${tripYearLabel(trip)}` : ""}
             </h2>
+            {avg !== null && <TripRatingBadge trip={trip} size="lg" className="mt-2" />}
             <div className="mt-1.5 flex items-center gap-1.5 text-sm text-white/75">
               {trip?.country && (
                 <>
@@ -207,13 +212,16 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
 
             {/* Cities */}
             <Section Icon={Building2} title={t("Города")}>
+              <p className="-mt-1 mb-3 text-xs text-stone-400">
+                {t("По месту ночёвки: день переезда считается за город, где ночевали.")}
+              </p>
               <ul className="space-y-2.5">
                 {cities.map((c) => (
                   <li key={c.city} className="min-w-0">
                     <div className="flex items-baseline justify-between gap-3">
                       <span className="min-w-0 break-words font-medium text-stone-700">{c.city}</span>
                       <span className="shrink-0 text-sm tabular-nums text-stone-500">
-                        {daysLabel(c.days)}
+                        {c.nights ? nightsLabel(c.nights) : daysLabel(c.days)}
                         {c.cost > 0 && (
                           <>
                             <span className="mx-1.5 text-stone-300">·</span>
@@ -225,7 +233,7 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
                     <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-stone-200/70">
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${(c.days / maxCityDays) * 100}%`, backgroundColor: "#3a7ca5" }}
+                        style={{ width: `${(cityLength(c) / maxCityLength) * 100}%`, backgroundColor: "#3a7ca5" }}
                       />
                     </div>
                   </li>
@@ -371,7 +379,7 @@ function ReceiptView({ costs, currency }) {
       {costs.fixed.lines.length > 0 && (
         <>
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-            {t("До поездки")}
+            {t("Общие расходы")}
           </p>
           <ul className="space-y-2">
             {costs.fixed.lines.map((line) => (
@@ -394,7 +402,7 @@ function ReceiptView({ costs, currency }) {
             ))}
           </ul>
           <div className={`${row} mt-2 border-t border-dashed border-stone-300 pt-2 text-stone-500`}>
-            <span>{t("Итого до поездки")}</span>
+            <span>{t("Итого общих расходов")}</span>
             {money(costs.fixed.total)}
           </div>
         </>
