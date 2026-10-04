@@ -47,16 +47,14 @@ function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
             <Lock className="h-3.5 w-3.5 text-[#1d3b5c]" aria-label={t("Закрыта PIN-кодом")} />
           )}
         </div>
-        {/* The family's score sits by the name, so it shows right in the list. */}
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-          <span
-            className="font-display text-2xl font-semibold"
-            style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
-          >
-            {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
-          </span>
-          {!hidden && <TripRatingBadge trip={trip} onRate={onRate} />}
+        <div
+          className="mt-0.5 font-display text-2xl font-semibold"
+          style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
+        >
+          {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
         </div>
+        {/* The family's score, always on its own line under the name. */}
+        {!hidden && <TripRatingBadge trip={trip} onRate={onRate} className="mt-1.5" />}
         {/* Behind a PIN the place stays secret, but who made it and when is
             shown, so two private trips can be told apart. */}
         {hidden && ownerName(trip) && (
