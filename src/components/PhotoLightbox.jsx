@@ -22,9 +22,15 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
     };
   }, [src, previewSrc]);
 
-  const [scale, setScale] = useState(1);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [scale, setScaleState] = useState(1);
+  const [pos, setPosState] = useState({ x: 0, y: 0 });
+  // Mirrors of the state, so pointer handlers never read a stale render.
+  const scaleRef = useRef(1);
+  const posRef = useRef({ x: 0, y: 0 });
+  const setScale = (s) => setScaleState((scaleRef.current = s));
+  const setPos = (p) => setPosState((posRef.current = p));
 
+  const box = useRef(null);
   const pointers = useRef(new Map());
   const pinch = useRef({ dist: 0, scale: 1, mid: { x: 0, y: 0 }, pos: { x: 0, y: 0 } });
   const pan = useRef({ x: 0, y: 0 });
@@ -35,21 +41,28 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
     setPos({ x: 0, y: 0 });
   };
 
-  const onPointerDown = (e) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    moved.current = false;
+  // Re-anchor the gesture to the fingers now on screen, so adding or lifting
+  // a finger never makes the photo jump.
+  const anchor = () => {
     const pts = [...pointers.current.values()];
-    if (pts.length === 2) {
+    if (pts.length >= 2) {
       pinch.current = {
         dist: Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y),
-        scale,
+        scale: scaleRef.current,
         mid: { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 },
-        pos
+        pos: posRef.current
       };
     } else if (pts.length === 1) {
-      pan.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
+      pan.current = { x: pts[0].x - posRef.current.x, y: pts[0].y - posRef.current.y };
     }
+  };
+
+  const onPointerDown = (e) => {
+    if (e.target.closest("button")) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    if (pointers.current.size === 0) moved.current = false;
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    anchor();
   };
 
   const onPointerMove = (e) => {
@@ -58,48 +71,50 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
     const pts = [...pointers.current.values()];
 
     if (pts.length >= 2) {
+      const p = pinch.current;
       const dist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
       const mid = { x: (pts[0].x + pts[1].x) / 2, y: (pts[0].y + pts[1].y) / 2 };
       const newScale = Math.min(
-        Math.max(pinch.current.scale * (dist / (pinch.current.dist || 1)), MIN_SCALE),
+        Math.max(p.scale * (dist / (p.dist || 1)), MIN_SCALE),
         MAX_SCALE
       );
+      // Zoom around the point between the fingers: the spot of the photo that
+      // was under them stays under them (the photo is scaled about its centre).
+      const r = box.current.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const k = newScale / p.scale;
       setScale(newScale);
       setPos({
-        x: pinch.current.pos.x + (mid.x - pinch.current.mid.x),
-        y: pinch.current.pos.y + (mid.y - pinch.current.mid.y)
+        x: mid.x - cx - k * (p.mid.x - cx - p.pos.x),
+        y: mid.y - cy - k * (p.mid.y - cy - p.pos.y)
       });
       moved.current = true;
-    } else if (pts.length === 1) {
-      if (scale > 1) {
-        setPos({ x: e.clientX - pan.current.x, y: e.clientY - pan.current.y });
-        moved.current = true;
-      } else if (
-        Math.abs(e.clientX - pts[0].x) > 8 ||
-        Math.abs(e.clientY - pts[0].y) > 8
-      ) {
-        moved.current = true;
-      }
+    } else if (scaleRef.current > 1) {
+      setPos({ x: e.clientX - pan.current.x, y: e.clientY - pan.current.y });
+      moved.current = true;
     }
   };
 
   const onPointerUp = (e) => {
-    pointers.current.delete(e.pointerId);
-    if (pointers.current.size < 2) pinch.current.dist = 0;
+    if (!pointers.current.delete(e.pointerId)) return;
+    anchor();
+    // A tap on a zoomed photo zooms back out; nothing here closes the viewer —
+    // only the × does.
     if (pointers.current.size === 0) {
-      if (!moved.current) {
-        if (scale > 1) reset();
-        else onClose();
-      } else if (scale <= MIN_SCALE) {
-        reset();
-      }
+      if (!moved.current ? scaleRef.current > 1 : scaleRef.current <= MIN_SCALE) reset();
     }
   };
 
   return (
     <div
+      ref={box}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 overflow-hidden"
-      onClick={onClose}
+      style={{ touchAction: "none" }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       <button
         onClick={(e) => {
@@ -116,15 +131,9 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
         src={shown}
         alt={t("Просмотр фото")}
         draggable={false}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
-        onClick={(e) => e.stopPropagation()}
         style={{
           transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
           transformOrigin: "center center",
-          touchAction: "none",
           maxWidth: "92vw",
           maxHeight: "90vh",
           objectFit: "contain",
@@ -133,7 +142,7 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
           WebkitTouchCallout: "none",
           willChange: "transform"
         }}
-        className="rounded-lg shadow-2xl pointer-events-auto"
+        className="rounded-lg shadow-2xl pointer-events-none"
       />
     </div>
   );
