@@ -109,6 +109,7 @@ export default function PhotoLightbox({ src, previewSrc, onClose }) {
   return (
     <div
       ref={box}
+      data-no-swipe
       className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-950/90 overflow-hidden"
       style={{ touchAction: "none" }}
       onPointerDown={onPointerDown}
