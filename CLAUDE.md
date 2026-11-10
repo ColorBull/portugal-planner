@@ -240,7 +240,7 @@ scrolling list inside the scrolling sheet fights for every swipe) and float from
 `sm` up. In the reading view each plan item has one "⋯" menu (`ActionMenu` in
 `DayPlanModal.jsx`, a bottom sheet on phones) instead of add-buttons: price,
 address, photo, document, note. The menu drives the children through refs
-(`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument`,
+(`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument/startRecording`,
 `PlanNoteBox.open`). Press-and-hold (right-click on a computer) on a price
 badge, an address link or a note opens a change / delete menu (`useHoldMenu`,
 same gesture as photos); tapping an item's title edits it in place. What is already set (price badge, address link, photos,

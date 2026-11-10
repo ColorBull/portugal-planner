@@ -28,7 +28,7 @@ const warmedImages = new Set();
 async function warmImages(photos) {
   if (!navigator.serviceWorker?.controller) return;
   for (const p of photos) {
-    if (p.kind === "document" || !p.drive_file_id) continue;
+    if (p.kind === "document" || p.kind === "audio" || !p.drive_file_id) continue;
     const url = driveImageUrl(p.drive_file_id, 600);
     if (warmedImages.has(url)) continue;
     warmedImages.add(url);

@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Loader2, Trash2, FileText, FileType, File } from "lucide-react";
+import { Loader2, Trash2, FileText, FileType, File, Mic, Square, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TripPhoto } from "@/api/entities";
 import {
@@ -21,6 +21,14 @@ import { t } from "@/lib/i18n";
 const LONG_PRESS_MS = 450;
 
 const isDocument = (p) => p.kind === "document";
+const isAudio = (p) => p.kind === "audio";
+
+// Link-shared Drive file streamed straight into <audio> (media needs no CORS).
+const driveAudioUrl = (id) => `https://drive.google.com/uc?export=download&id=${id}`;
+
+const audioExt = (type = "") => (type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm");
+
+const clock = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 const fileExt = (name = "") => {
   const m = /\.([a-z0-9]+)$/i.exec(name);
@@ -39,7 +47,8 @@ const openDocument = (record) => {
 };
 
 // The add-photo / add-document buttons live in the item's "⋯" menu (DayPlanModal);
-// it reaches them through this ref: ref.current.pickPhoto() / .pickDocument().
+// it reaches them through this ref: ref.current.pickPhoto() / .pickDocument() /
+// .startRecording().
 const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   { itemId, dayKey, photos = [], onChanged },
   ref
@@ -53,13 +62,16 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   const [lightbox, setLightbox] = useState(null);
   const [menuFor, setMenuFor] = useState(null);
   const [menuPos, setMenuPos] = useState({ x: 0, y: 0 });
+  const [recSeconds, setRecSeconds] = useState(null); // null = not recording
+  const recRef = useRef(null); // { recorder, stream, timer, cancelled }
 
   const timerRef = useRef(null);
   const movedRef = useRef(false);
   const menuTriggeredRef = useRef(false);
   const startRef = useRef({ x: 0, y: 0 });
 
-  const images = photos.filter((p) => !isDocument(p));
+  const images = photos.filter((p) => !isDocument(p) && !isAudio(p));
+  const audios = photos.filter(isAudio);
   const docs = photos.filter(isDocument);
   const activeRecord = photos.find((p) => p.id === menuFor);
 
@@ -82,6 +94,9 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   }, [menuFor]);
 
   useEffect(() => unlockSelection, []);
+
+  // Leaving the day mid-recording drops it and releases the microphone.
+  useEffect(() => () => stopRecording(true), []);
 
   const startPress = (e, record) => {
     const t = e.touches ? e.touches[0] : e;
@@ -155,9 +170,63 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
     ref.current?.click();
   };
 
+  const startRecording = async () => {
+    if (recRef.current) return;
+    if (!isOnline()) {
+      alert(t("Нет подключения к интернету. Загрузить файл можно, когда появится сеть."));
+      return;
+    }
+    if (!hasDriveAccess()) {
+      const ok = await ensureDriveAccess();
+      if (!ok) return;
+    }
+    if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
+      alert(t("Этот браузер не умеет записывать звук."));
+      return;
+    }
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch (err) {
+      console.error(err);
+      alert(t("Нет доступа к микрофону. Разрешите его в настройках браузера."));
+      return;
+    }
+    setTapAgain(false);
+    const recorder = new MediaRecorder(stream);
+    const chunks = [];
+    const rec = { recorder, stream, cancelled: false };
+    recorder.ondataavailable = (e) => e.data.size && chunks.push(e.data);
+    recorder.onstop = () => {
+      stream.getTracks().forEach((tr) => tr.stop());
+      clearInterval(rec.timer);
+      recRef.current = null;
+      setRecSeconds(null);
+      if (rec.cancelled || !chunks.length) return;
+      const type = recorder.mimeType || chunks[0].type || "audio/webm";
+      const now = new Date();
+      const stamp = `${now.getHours()}-${String(now.getMinutes()).padStart(2, "0")}`;
+      const file = new window.File(chunks, `${t("Запись")} ${dayKey} ${stamp}.${audioExt(type)}`, { type });
+      uploadFile(file, "audio");
+    };
+    const started = Date.now();
+    rec.timer = setInterval(() => setRecSeconds(Math.floor((Date.now() - started) / 1000)), 500);
+    recRef.current = rec;
+    setRecSeconds(0);
+    recorder.start();
+  };
+
+  function stopRecording(cancel = false) {
+    const rec = recRef.current;
+    if (!rec) return;
+    rec.cancelled = cancel;
+    if (rec.recorder.state !== "inactive") rec.recorder.stop();
+  }
+
   useImperativeHandle(ref, () => ({
     pickPhoto: () => pickFile(imgInputRef),
     pickDocument: () => pickFile(docInputRef),
+    startRecording,
   }));
 
   const uploadFile = async (file, kind) => {
@@ -173,7 +242,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
         drive_file_id: fileId,
         drive_folder_id: folderId,
         kind,
-        file_name: kind === "document" ? file.name : undefined,
+        file_name: kind !== "photo" ? file.name : undefined,
       });
       onChanged();
     } catch (err) {
@@ -198,7 +267,63 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
   };
 
   return (
-    <div className={docs.length || images.length || uploading || tapAgain ? "mt-3 ms-1" : ""}>
+    <div className={docs.length || images.length || audios.length || uploading || tapAgain || recSeconds !== null ? "mt-3 ms-1" : ""}>
+      {audios.length > 0 && (
+        <div className="flex flex-col gap-2 mb-2.5">
+          {audios.map((a) => (
+            <div key={a.id} className="flex flex-wrap items-center gap-2 select-none">
+              {/* Hold (right-click) the label to delete; tap opens it in Drive. */}
+              <button
+                type="button"
+                onTouchStart={(e) => startPress(e, a)}
+                onTouchMove={movePress}
+                onTouchEnd={(e) => endPress(e, a, false)}
+                onTouchCancel={cancelPress}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  setMenuFor(a.id);
+                }}
+                onClick={() => {
+                  if (menuTriggeredRef.current) {
+                    menuTriggeredRef.current = false;
+                    return;
+                  }
+                  openDocument(a);
+                }}
+                className="no-long-press grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-50 text-amber-800 touch-pan-y"
+                aria-label={a.file_name || t("Голосовая запись")}
+                title={a.file_name || t("Голосовая запись")}
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+              <audio controls preload="none" src={driveAudioUrl(a.drive_file_id)} className="h-9 min-w-0 max-w-full flex-1" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {recSeconds !== null && (
+        <div className="mb-2.5 inline-flex items-center gap-2 rounded-full bg-red-50 px-3 py-1.5 text-[13px] font-medium text-red-600 ring-1 ring-stone-200">
+          <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
+          {t("Запись")} {clock(recSeconds)}
+          <button
+            type="button"
+            onClick={() => stopRecording(false)}
+            className="inline-flex items-center gap-1 rounded-full bg-red-600 px-3 py-1.5 text-white transition hover:bg-red-700"
+          >
+            <Square className="h-3 w-3 fill-current" /> {t("Стоп и сохранить")}
+          </button>
+          <button
+            type="button"
+            onClick={() => stopRecording(true)}
+            className="grid h-7 w-7 place-items-center rounded-full text-red-600 transition hover:bg-red-50"
+            aria-label={t("Отмена")}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {docs.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-2.5">
           {docs.map((d) => {
