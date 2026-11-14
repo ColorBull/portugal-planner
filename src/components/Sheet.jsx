@@ -133,6 +133,8 @@ export function SheetSwitch({ label, checked, onChange }) {
   );
 }
 
-// The big digits field of a PIN / passcode, on its own white card.
+// The big digits field of a PIN / passcode, on its own white card. The focus
+// ring is drawn inside (ring-inset): outside, the sheet's scrolling body clipped
+// its top edge.
 export const pinInput =
-  "w-full rounded-2xl bg-white px-4 py-4 text-center text-3xl tabular-nums tracking-[0.6em] text-stone-900 outline-none placeholder:text-stone-300 focus:ring-2 focus:ring-[#3a7ca5]";
+  "w-full rounded-2xl bg-white px-4 py-4 text-center text-3xl tabular-nums tracking-[0.6em] text-stone-900 outline-none placeholder:text-stone-300 focus:ring-2 focus:ring-inset focus:ring-[#3a7ca5]";
