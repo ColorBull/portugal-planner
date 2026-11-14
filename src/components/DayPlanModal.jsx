@@ -927,7 +927,7 @@ const newItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "", cos
 const newSection = () => ({ id: uid("sec"), title: "", icon: "MapPin", mapUrl: "", items: [] });
 
 // A textarea that grows with its text (one row to start).
-function GrowText({ value, onChange, onKeyDown, placeholder, className = "", autoFocus = false }) {
+function GrowText({ value, onChange, onKeyDown, onBlur, placeholder, className = "", autoFocus = false }) {
   const ref = useRef(null);
   useLayoutEffect(() => {
     const el = ref.current;
@@ -943,8 +943,9 @@ function GrowText({ value, onChange, onKeyDown, placeholder, className = "", aut
       autoFocus={autoFocus}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={onKeyDown}
+      onBlur={onBlur}
       placeholder={placeholder}
-      className={`block w-full resize-none bg-transparent py-2 text-base leading-snug text-stone-800 outline-none placeholder:text-stone-400 ${className}`}
+      className={`block w-full resize-none bg-transparent text-base leading-snug text-stone-800 outline-none placeholder:text-stone-400 ${className || "py-2"}`}
     />
   );
 }
@@ -1518,13 +1519,35 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
           />
         )}
         <div className="min-w-0 flex-1 py-2.5">
-          <div
-            className={`break-words text-[17px] leading-[23px] ${
-              done ? "text-stone-400 line-through decoration-stone-400" : "text-stone-900"
-            }`}
-          >
-            {item.text}
-          </div>
+          {editingText ? (
+            // Edited where it stands, like the price: Enter / tap away saves, Esc cancels.
+            <div data-no-swipe className="-mx-2 rounded-lg bg-stone-100 px-2 ring-2 ring-inset ring-[#3a7ca5]">
+              <GrowText
+                autoFocus
+                value={textDraft}
+                onChange={setTextDraft}
+                onBlur={commitText}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.currentTarget.blur();
+                  } else if (e.key === "Escape") {
+                    setTextDraft(item.text || ""); // a blur after this saves nothing
+                    setEditingText(false);
+                  }
+                }}
+                className="py-0 text-[17px] leading-[23px] text-stone-900"
+              />
+            </div>
+          ) : (
+            <div
+              className={`break-words text-[17px] leading-[23px] ${
+                done ? "text-stone-400 line-through decoration-stone-400" : "text-stone-900"
+              }`}
+            >
+              {item.text}
+            </div>
+          )}
           <div className={done ? "opacity-60" : undefined}>
           {/* Price, calendar mark and alarm under the title; empty → no line. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
@@ -1552,36 +1575,6 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
               </button>
             )}
           </div>
-      {editingText && (
-        <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
-          <textarea
-            autoFocus
-            rows={3}
-            value={textDraft}
-            onChange={(e) => setTextDraft(e.target.value)}
-            className="w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm"
-          />
-          <div className="mt-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setEditingText(false)}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-[13px] font-medium text-stone-500 transition hover:text-stone-700 sm:px-3 sm:py-1.5 sm:text-xs"
-            >
-              <X className="h-3.5 w-3.5" /> {t("Отмена")}
-            </button>
-            <button
-              type="button"
-              onClick={commitText}
-              disabled={busy}
-              className="inline-flex items-center gap-1 rounded-full bg-[#1d3b5c] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#2c5f8a] disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
-            >
-              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
-              {t("Сохранить")}
-            </button>
-          </div>
-        </div>
-      )}
       {editingTime && <TimeEditor item={item} onSave={onSavePatch} onClose={() => setEditingTime(false)} />}
       <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSavePatch} />
       <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
