@@ -55,6 +55,36 @@ import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 
+// The day view is an iOS "inset grouped" list: a heading per block (a coloured
+// square with a white glyph, as in Settings), then a white card of rows divided
+// by hairlines that start where the text does.
+const groupCard = "overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
+
+function SectionHeader({ icon: Icon, color, title, subtitle, trailing }) {
+  return (
+    <div className="mb-2 flex min-h-11 items-center gap-2.5 px-1">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ backgroundColor: color }}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h3 className="break-words text-[20px] font-bold leading-tight tracking-tight text-stone-900">{title}</h3>
+        {subtitle && <p className="text-[13px] leading-snug text-stone-500">{subtitle}</p>}
+      </div>
+      {trailing}
+    </div>
+  );
+}
+
+// One row of a card; `inset` = where its top hairline starts (the text's edge).
+function Row({ divided, inset = 16, children }) {
+  return (
+    <div className="relative">
+      {divided && <div className="absolute end-0 top-0 h-px bg-stone-200" style={{ insetInlineStart: inset }} />}
+      {children}
+    </div>
+  );
+}
+
 // A price that can be set or changed right in the day view: tap the badge (or
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
 // `fixed`: a general trip expense (lib/money.js) — blue badge, not in the day's
@@ -104,7 +134,7 @@ const InlineCost = forwardRef(function InlineCost(
     const field = (
       <span
         className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-white font-semibold text-stone-600 ring-1 ring-stone-300 ${
-          large ? "h-[30px] px-3 text-[15px]" : "ms-2 px-2.5 py-1 text-sm sm:px-2 sm:py-0.5 sm:text-xs"
+          large ? "h-7 px-2.5 text-[15px]" : "ms-2 px-2.5 py-1 text-sm sm:px-2 sm:py-0.5 sm:text-xs"
         }`}
       >
         <input
@@ -146,13 +176,13 @@ const InlineCost = forwardRef(function InlineCost(
       onClick={start}
       title={fixed ? t("Общий расход поездки — не входит в итог дня") : t("Изменить цену")}
       className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full font-semibold tabular-nums transition ${
-        large ? "h-[30px] gap-1.5 px-3 text-[15px] font-bold sm:px-2.5" : "ms-2 px-2.5 py-1 text-xs sm:px-2 sm:py-0.5"
+        large ? "h-6 px-2 text-[13px]" : "ms-2 px-2.5 py-1 text-xs sm:px-2 sm:py-0.5"
       } ${
-        fixed ? "" : "bg-stone-200/70 text-stone-600 hover:bg-stone-300/70 active:bg-stone-300/70"
+        fixed ? "" : "bg-stone-100 text-stone-700 hover:bg-stone-200"
       }`}
       style={fixed ? { backgroundColor: "#e8eef5", color: "#1d3b5c" } : undefined}
     >
-      {fixed && <Receipt className={`${large ? "h-4 w-4" : "h-3 w-3"} shrink-0`} />}
+      {fixed && <Receipt className="h-3 w-3 shrink-0" />}
       {formatMoney(amount, currency)}
     </button>
     </>
@@ -169,48 +199,38 @@ const timeLabel = (item) =>
     ? `${item.time}${TIME_RE.test(item.end_time || "") ? `–${item.end_time}` : ""}`
     : "";
 
-// The chip on the first line, level with the timeline dot (30px tall, so the
-// hours read at a glance), with the title below it. Tap to change, hold (right-click) to
-// change or delete. The alarm-clock button beside it sets a device alarm (lib/alarm.js).
-function TimeChip({ item, onEdit, onClear, onAlarm }) {
+// The leading column of a timed row, as in Apple's Calendar: the start in bold,
+// the end under it. Tap to change, hold (right-click) to change or delete; an
+// event without a time has its block's dot here instead.
+function TimeColumn({ item, bar, onEdit, onClear, onAlarm }) {
   const { bind, menu } = useHoldMenu([
     { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
     { key: "alarm", label: t("Поставить будильник"), icon: AlarmClock, run: onAlarm },
     { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: onClear },
   ]);
-  const label = timeLabel(item);
-  if (!label) return null;
+  if (!TIME_RE.test(item.time || "")) {
+    return (
+      <span className="w-[72px] shrink-0 ps-4 pt-[10px]">
+        <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: bar }} />
+      </span>
+    );
+  }
   return (
     <>
       {menu}
-      <span className="flex h-[30px] items-center gap-1">
-        <button
-          type="button"
-          dir="ltr"
-          {...bind}
-          onClick={(e) => {
-            e.stopPropagation();
-            onEdit();
-          }}
-          title={t("Изменить время")}
-          className="flex h-full w-fit items-center gap-1.5 whitespace-nowrap rounded-full bg-stone-200/70 px-3 text-[15px] font-bold tabular-nums text-stone-700 transition hover:bg-stone-300/70 active:bg-stone-300/70 sm:px-2.5"
-        >
-          <Clock className="h-4 w-4 shrink-0" />
-          {label}
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAlarm();
-          }}
-          title={t("Поставить будильник на {time}", { time: item.time })}
-          aria-label={t("Поставить будильник на {time}", { time: item.time })}
-          className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/70 hover:text-stone-700 active:bg-stone-200/70"
-        >
-          <AlarmClock className="h-4 w-4" />
-        </button>
-      </span>
+      <button
+        type="button"
+        dir="ltr"
+        {...bind}
+        onClick={onEdit}
+        title={t("Изменить время")}
+        className="w-[72px] shrink-0 ps-4 pe-2 text-start tabular-nums"
+      >
+        <span className="block text-[15px] font-semibold leading-[23px] text-stone-900">{item.time}</span>
+        {TIME_RE.test(item.end_time || "") && (
+          <span className="block text-[13px] leading-tight text-stone-500">{item.end_time}</span>
+        )}
+      </button>
     </>
   );
 }
@@ -575,10 +595,10 @@ export default function DayPlanModal({
   const stayCity = overnightCity(plan, trip);
   const showStay = !!stayCity && stayCity.trim() !== headerCity.trim();
 
-  const pill =
-    "inline-flex h-11 items-center justify-center rounded-full px-4 text-[15px] font-semibold transition sm:h-9 sm:text-sm";
+  const textButton =
+    "inline-flex h-11 items-center justify-center rounded-full px-3 text-[17px] text-[#2c5f8a] transition hover:bg-black/5 sm:h-9";
   const headerField =
-    "w-full rounded-xl bg-white/15 px-3 py-2 text-white outline-none ring-1 ring-white/30 placeholder:text-white/50 focus:ring-white/70";
+    "w-full rounded-xl bg-white px-3 py-2 text-stone-900 outline-none ring-1 ring-stone-200 placeholder:text-stone-400 focus:ring-2 focus:ring-[#3a7ca5]";
 
   return (
     <motion.div
@@ -593,32 +613,27 @@ export default function DayPlanModal({
       />
 
       <motion.div
-        className="relative flex h-dvh w-full flex-col overflow-hidden"
-        style={{ backgroundColor: "#fbf7f0" }}
+        className="relative flex h-dvh w-full flex-col overflow-hidden bg-stone-100"
         initial={false}
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
       >
         {/* Header band */}
-        <div
-          className="shrink-0 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6 sm:pt-7"
-          style={{
-            background:
-              "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)",
-          }}
-        >
+        {/* iOS large-title header on the page itself; the buttons keep the spot
+            the action sheet's ✕ is matched to (components/ActionMenu.jsx). */}
+        <div className="shrink-0 bg-stone-100 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-4 sm:pt-7">
           <div className="relative mx-auto w-full max-w-3xl">
           <div className="absolute end-0 top-0 flex gap-2">
             {editing ? (
               <>
-                <button type="button" onClick={() => setDraft(null)} disabled={saving} className={`${pill} text-white/85 hover:bg-white/15`}>
+                <button type="button" onClick={() => setDraft(null)} disabled={saving} className={textButton}>
                   {t("Отменить")}
                 </button>
                 <button
                   type="button"
                   onClick={finishEditing}
                   disabled={saving}
-                  className={`${pill} gap-1.5 bg-white text-[#1d3b5c] shadow-sm disabled:opacity-70`}
+                  className={`${textButton} gap-1.5 font-semibold disabled:opacity-60`}
                 >
                   {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                   {t("Готово")}
@@ -626,12 +641,12 @@ export default function DayPlanModal({
               </>
             ) : (
               <>
-                <button type="button" onClick={() => startEditing(true)} className={`${pill} bg-white/15 text-white hover:bg-white/25`}>
+                <button type="button" onClick={() => startEditing(true)} className={textButton}>
                   {t("Изменить")}
                 </button>
                 <button
                   onClick={onClose}
-                  className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
+                  className="grid h-11 w-11 place-items-center rounded-full bg-stone-200 text-stone-600 transition hover:bg-stone-300 sm:h-9 sm:w-9"
                   aria-label={t("Закрыть")}
                 >
                   <X className="h-5 w-5" />
@@ -640,15 +655,14 @@ export default function DayPlanModal({
             )}
           </div>
 
-          <div className="flex items-center gap-2 text-white/70 text-xs font-semibold tracking-widest uppercase">
-            <CalendarDays className="h-4 w-4" />
-            {t("День")} {dayInfo?.dayNumber ?? "—"}
+          <div className="flex min-h-11 items-center pe-32 text-[13px] font-semibold uppercase tracking-wide text-stone-500 sm:min-h-9">
+            {t("День")} {dayInfo?.dayNumber ?? "—"} · {dayInfo?.weekday}, {dayInfo?.label}
           </div>
 
           {editing ? (
             <div data-no-swipe className="mt-3 grid gap-2 sm:grid-cols-2">
               <label className="block">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/60">{t("Город этого дня")}</span>
+                <span className="mb-1 block px-1 text-[13px] text-stone-500">{t("Город этого дня")}</span>
                 <input
                   value={draft.city}
                   onChange={(e) => setDraft({ ...draft, city: e.target.value })}
@@ -657,7 +671,7 @@ export default function DayPlanModal({
                 />
               </label>
               <label className="block">
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/60">{t("Ночуем в")}</span>
+                <span className="mb-1 block px-1 text-[13px] text-stone-500">{t("Ночуем в")}</span>
                 <input
                   value={draft.stay}
                   onChange={(e) => setDraft({ ...draft, stay: e.target.value })}
@@ -668,25 +682,23 @@ export default function DayPlanModal({
             </div>
           ) : (
             <>
-              <h2 className="mt-1.5 max-w-[calc(100%-9.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:max-w-none sm:text-4xl">
+              <h2 className="break-words text-[32px] font-bold leading-[1.15] tracking-tight text-stone-900 sm:text-4xl">
                 {headerCity || t("План скоро появится")}
               </h2>
-              <div className="mt-1.5 flex items-center gap-1.5 text-white/75 text-sm">
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-stone-500">
                 {trip?.country && (
-                  <>
-                    <MapPin className="h-4 w-4" />
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="h-4 w-4 shrink-0" />
                     {countryLabel(trip)}
-                    <span className="mx-1.5 text-white/30">·</span>
-                  </>
+                  </span>
                 )}
-                {dayInfo?.weekday}, {dayInfo?.label}
+                {showStay && (
+                  <span className="inline-flex items-center gap-1">
+                    <BedDouble className="h-4 w-4 shrink-0" />
+                    {t("Ночуем: {city}", { city: stayCity })}
+                  </span>
+                )}
               </div>
-              {showStay && (
-                <div className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
-                  <BedDouble className="h-4 w-4 shrink-0" />
-                  {t("Ночуем: {city}", { city: stayCity })}
-                </div>
-              )}
             </>
           )}
           </div>
@@ -705,56 +717,43 @@ export default function DayPlanModal({
           ) : (
             <>
               {firstDay && (
-                <div className="mb-7 grid gap-3 sm:grid-cols-2">
-                  {EXTRAS.map(({ key, title }) => {
-                    const Icon = EXTRA_ICONS[key];
-                    const extra = plan?.[key] || {};
-                    return (
-                      <div
-                        key={key}
-                        className="min-w-0 rounded-2xl border bg-white/70 p-4"
-                        style={{ borderColor: "#ece3d4" }}
-                      >
+                <section className="mb-7">
+                  <SectionHeader icon={ShieldCheck} color="#1d3b5c" title={t("Перед поездкой")} />
+                  <div className={groupCard}>
+                    {EXTRAS.map(({ key, title }, i) => (
+                      <Row key={key} divided={i > 0} inset={60}>
                         <ExtraTools
                           title={title}
-                          Icon={Icon}
+                          Icon={EXTRA_ICONS[key]}
                           itemKey={key}
-                          extra={extra}
+                          extra={plan?.[key] || {}}
                           dayKey={dayInfo.key}
                           currency={currency}
                           photos={photosByItem[key] || []}
                           onChanged={loadPhotos}
                           onSaveCost={(cost) => saveExtraCost(key, cost)}
                         />
-                      </div>
-                    );
-                  })}
-                </div>
+                      </Row>
+                    ))}
+                  </div>
+                </section>
               )}
               {hasPlan ? (
                 <div className="space-y-7">
                   {sections.map((section, i) => {
-                    const Icon = iconFor(section.icon);
                     const style = styleFor(section.icon);
-
+                    const items = section.items || [];
+                    // A time column only where some event has a time, so titles
+                    // line up under each other within the block.
+                    const timed = items.some((it) => timeLabel(it));
                     return (
-                      <div key={section.id || section.title || i}>
-                        <div className="flex items-center gap-3 mb-3.5">
-                          <span
-                            className="plan-chip grid h-10 w-10 place-items-center rounded-xl shrink-0"
-                            style={{ backgroundColor: style.bg, color: style.fg }}
-                          >
-                            <Icon className="h-5 w-5" />
-                          </span>
-                          <div className="min-w-0">
-                            <h3 className="font-heading text-lg font-semibold text-stone-800 leading-tight">
-                              {section.title}
-                            </h3>
-                            <span
-                              className="block h-0.5 w-10 rounded-full mt-1"
-                              style={{ backgroundColor: style.bar }}
-                            />
-                            {section.mapUrl && (
+                      <section key={section.id || section.title || i}>
+                        <SectionHeader
+                          icon={iconFor(section.icon)}
+                          color={style.bar}
+                          title={section.title}
+                          trailing={
+                            section.mapUrl && (
                               <a
                                 href={section.mapUrl}
                                 target="_blank"
@@ -763,74 +762,51 @@ export default function DayPlanModal({
                                   e.preventDefault();
                                   openMapUrl(section.mapUrl);
                                 }}
-                                className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
+                                className="inline-flex items-center gap-1 text-[15px] font-medium text-[#2c5f8a]"
                               >
-                                <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
-                                <span className="underline decoration-dotted underline-offset-2">
-                                  {t("Открыть на карте")}
-                                </span>
-                                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                                <MapPin className="h-4 w-4" />
+                                {t("Карта")}
                               </a>
-                            )}
+                            )
+                          }
+                        />
+                        {items.length > 0 && (
+                          <div className={groupCard}>
+                            {items.map((item, iIndex) => (
+                              <Row key={item.id} divided={iIndex > 0} inset={timed ? 72 : 36}>
+                                <ItemBlock
+                                  item={item}
+                                  timed={timed}
+                                  fixed={isFixedItem(item, section)}
+                                  dayKey={dayInfo.key}
+                                  currency={currency}
+                                  bar={style.bar}
+                                  photos={photosByItem[item.id] || []}
+                                  onChanged={loadPhotos}
+                                  onSaveCost={(cost, fixedNow) =>
+                                    saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
+                                  }
+                                  onSavePatch={(patch) => saveItemPatch(item.id, patch)}
+                                  onDelete={() => deleteItem(item.id)}
+                                />
+                              </Row>
+                            ))}
                           </div>
-                        </div>
-
-                        <ul
-                          className="ms-2 sm:ms-5 ps-6 border-s-2 space-y-4 sm:space-y-3"
-                          style={{ borderColor: style.bar }}
-                        >
-                          {(section.items || []).map((item) => (
-                            <li key={item.id} className="relative min-w-0">
-                              {/* centred on the 2px rule and on the first text line: the
-                                  title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
-                                  line's middle is 17px down there and 13px from sm up; a
-                                  time / price row (30px) puts it at 19px / 15px */}
-                              <span
-                                className={`absolute h-2.5 w-2.5 rounded-full ${
-                                  timeLabel(item) || parseCost(item.cost) !== null || item.gcal === true
-                                    ? "top-3.5 sm:top-2.5"
-                                    : "top-3 sm:top-2"
-                                }`}
-                                style={{
-                                  insetInlineStart: "-30px",
-                                  backgroundColor: style.bar,
-                                  boxShadow: `0 0 0 4px ${style.bg}`,
-                                }}
-                              />
-                              <ItemBlock
-                                item={item}
-                                fixed={isFixedItem(item, section)}
-                                dayKey={dayInfo.key}
-                                currency={currency}
-                                bar={style.bar}
-                                photos={photosByItem[item.id] || []}
-                                onChanged={loadPhotos}
-                                onSaveCost={(cost, fixedNow) =>
-                                  saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
-                                }
-                                onSavePatch={(patch) => saveItemPatch(item.id, patch)}
-                                onDelete={() => deleteItem(item.id)}
-                              />
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
+                        )}
+                      </section>
                     );
                   })}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <span
-                    className="grid h-14 w-14 place-items-center rounded-2xl mb-4"
-                    style={{ backgroundColor: "#e8ddd0", color: "#1d3b5c" }}
-                  >
+                  <span className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-white text-stone-400 shadow-sm">
                     <CalendarDays className="h-7 w-7" />
                   </span>
-                  <p className="text-stone-600 font-medium">{t("План на этот день ещё не составлен")}</p>
+                  <p className="text-[17px] font-semibold text-stone-800">{t("План на этот день ещё не составлен")}</p>
                   <button
                     type="button"
                     onClick={() => startEditing(true)}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition"
+                    className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full px-5 font-semibold text-white shadow-sm"
                     style={{ backgroundColor: "#1d3b5c" }}
                   >
                     <Plus className="h-4 w-4" />
@@ -845,36 +821,29 @@ export default function DayPlanModal({
                 onSave={saveExpenses}
               />
               {(total > 0 || fixed > 0) && (
-                <div className="mt-3 space-y-2">
+                <div className={`${groupCard} mt-4`}>
                   {total > 0 && (
-                    <div
-                      className="flex items-center justify-between rounded-2xl px-4 py-3"
-                      style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-                    >
-                      <span className="inline-flex items-center gap-2 font-semibold">
-                        <Wallet className="h-5 w-5" />
-                        {t("Итого за день")}
-                      </span>
-                      <span dir="ltr" className="font-display text-xl font-semibold tabular-nums">
+                    <div className="flex min-h-[52px] items-center justify-between gap-3 px-4">
+                      <span className="text-[17px] font-semibold text-stone-900">{t("Итого за день")}</span>
+                      <span dir="ltr" className="text-[17px] font-semibold tabular-nums text-stone-900">
                         {formatMoney(total, currency)}
                       </span>
                     </div>
                   )}
                   {fixed > 0 && (
-                    <div className="flex items-start justify-between gap-3 px-4 text-sm text-stone-500">
-                      <span className="inline-flex min-w-0 items-start gap-2">
-                        <Receipt className="mt-0.5 h-4 w-4 shrink-0" />
-                        <span>
-                          {t("Общие расходы")}
-                          <span className="block text-xs text-stone-400">
+                    <Row divided={total > 0}>
+                      <div className="flex items-start justify-between gap-3 py-3 pe-4 ps-4">
+                        <span className="min-w-0">
+                          <span className="block text-[15px] text-stone-700">{t("Общие расходы")}</span>
+                          <span className="block text-[13px] text-stone-500">
                             {t("Не входят в итог дня — учтены в итогах поездки")}
                           </span>
                         </span>
-                      </span>
-                      <span dir="ltr" className="shrink-0 font-semibold tabular-nums">
-                        {formatMoney(fixed, currency)}
-                      </span>
-                    </div>
+                        <span dir="ltr" className="shrink-0 text-[15px] tabular-nums text-stone-700">
+                          {formatMoney(fixed, currency)}
+                        </span>
+                      </div>
+                    </Row>
                   )}
                 </div>
               )}
@@ -886,8 +855,7 @@ export default function DayPlanModal({
         {/* Footer: no day-to-day moves while editing. */}
         {!editing && (
           <div
-            className="shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
-            style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
+            className="shrink-0 border-t border-stone-200 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
           >
             <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
             <DayNavButton day={prevDay} dir="prev" onNavigate={onNavigate} />
@@ -1078,8 +1046,8 @@ function DayEditor({ draft, setDraft, firstDay }) {
                               <button
                                 type="button"
                                 onClick={() => setPickingIcon(pickingIcon === section.id ? null : section.id)}
-                                className="plan-chip grid h-9 w-9 shrink-0 place-items-center rounded-xl"
-                                style={{ backgroundColor: style.bg, color: style.fg }}
+                                className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-white"
+                                style={{ backgroundColor: style.bar }}
                                 aria-label={t("Изменить иконку")}
                                 title={t("Изменить иконку")}
                               >
@@ -1107,8 +1075,8 @@ function DayEditor({ draft, setDraft, firstDay }) {
                                       patchSection(section.id, { icon: o.value });
                                       setPickingIcon(null);
                                     }}
-                                    className={`plan-chip grid h-10 w-10 place-items-center rounded-xl ${o.value === section.icon ? "ring-2 ring-stone-400" : ""}`}
-                                    style={{ backgroundColor: os.bg, color: os.fg }}
+                                    className={`grid h-10 w-10 place-items-center rounded-xl text-white ${o.value === section.icon ? "ring-2 ring-stone-400 ring-offset-2" : ""}`}
+                                    style={{ backgroundColor: os.bar }}
                                     title={t(o.label)}
                                     aria-label={t(o.label)}
                                   >
@@ -1258,41 +1226,38 @@ function DayExpenses({ expenses, all, currency, onSave }) {
     "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-base text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm";
 
   return (
-    <div className="mt-8 rounded-2xl border bg-white/70 p-4" style={{ borderColor: "#ece3d4" }}>
-      <div className="flex items-center gap-2">
-        <span
-          className="plan-chip grid h-8 w-8 shrink-0 place-items-center rounded-lg"
-          style={{ backgroundColor: "#f0e8e2", color: "#7a5a3a" }}
-        >
-          <Coffee className="h-4 w-4" />
-        </span>
-        <span className="min-w-0">
-          <span className="block font-semibold leading-tight text-stone-700">{t("Мелкие расходы")}</span>
-          <span className="block text-xs text-stone-400">{t("Кофе, перекусы, мелкие покупки")}</span>
-        </span>
-        {!form && (
-          <button
-            type="button"
-            onClick={() => open(null)}
-            className="ms-auto inline-flex min-h-10 shrink-0 items-center gap-1 rounded-full bg-stone-800 px-3.5 text-[13px] font-medium text-white transition hover:bg-stone-700 sm:min-h-0 sm:py-1.5 sm:text-xs"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {t("Добавить")}
-          </button>
-        )}
-      </div>
-
+    <section className="mt-8">
+      <SectionHeader
+        icon={Coffee}
+        color="#a0785a"
+        title={t("Мелкие расходы")}
+        subtitle={t("Кофе, перекусы, мелкие покупки")}
+        trailing={
+          !form && (
+            <button
+              type="button"
+              onClick={() => open(null)}
+              className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-full px-2 text-[17px] text-[#2c5f8a] transition hover:bg-black/5"
+            >
+              <Plus className="h-4 w-4" />
+              {t("Добавить")}
+            </button>
+          )
+        }
+      />
+      {(expenses.length > 0 || form) && (
+      <div className={groupCard}>
       {expenses.length > 0 && (
-        <ul className="mt-3 divide-y divide-stone-200/70">
+        <ul className="divide-y divide-stone-200 ps-4">
           {expenses.map((e) => (
             <li key={e.id}>
               <button
                 type="button"
                 onClick={() => open(e)}
                 title={t("Изменить или удалить")}
-                className="flex w-full items-center gap-3 rounded-lg py-2.5 text-start transition hover:bg-stone-200/40 sm:py-2"
+                className="flex min-h-11 w-full items-center gap-3 py-2.5 pe-4 text-start"
               >
-                <span className="min-w-0 flex-1 break-words text-stone-700">{e.text || t("Без названия")}</span>
+                <span className="min-w-0 flex-1 break-words text-[17px] text-stone-900">{e.text || t("Без названия")}</span>
                 {e.fixed === true && (
                   <span
                     className="inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold"
@@ -1303,7 +1268,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
                     {t("Общий")}
                   </span>
                 )}
-                <span dir="ltr" className="shrink-0 font-semibold tabular-nums text-stone-600">
+                <span dir="ltr" className="shrink-0 text-[17px] tabular-nums text-stone-500">
                   {formatMoney(parseCost(e.cost), currency)}
                 </span>
               </button>
@@ -1313,7 +1278,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
       )}
 
       {form && (
-        <div ref={formRef} data-no-swipe className="mt-3 space-y-2.5">
+        <div ref={formRef} data-no-swipe className={`space-y-2.5 p-4 ${expenses.length ? "border-t border-stone-200" : ""}`}>
           <input
             autoFocus
             value={form.text}
@@ -1383,7 +1348,9 @@ function DayExpenses({ expenses, all, currency, onSave }) {
           </div>
         </div>
       )}
-    </div>
+      </div>
+      )}
+    </section>
   );
 }
 
@@ -1391,7 +1358,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
+function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1475,38 +1442,46 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
 
   return (
     <>
-      <div className="flex items-start justify-between gap-1">
-        <div className="min-w-0 flex-1 pt-1 sm:pt-0">
-          {/* Time and price share the first row, same size; empty → no row. */}
-          <div className="mb-1 flex flex-wrap items-center gap-1.5 empty:hidden">
-          <TimeChip
+      <div className="flex items-start py-2.5 pe-1.5">
+        {timed ? (
+          <TimeColumn
             item={item}
+            bar={bar}
             onAlarm={alarm}
             onEdit={() => setEditingTime(true)}
-            onClear={() =>
-              onSavePatch({ time: "", end_time: "" }).catch((err) => {
-                console.error(err);
-                alert(t("Не удалось сохранить."));
-              })
-            }
+            onClear={() => onSavePatch({ time: "", end_time: "" }).catch(failed)}
           />
-          <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope large />
-          {/* Marked for Google Calendar (api/gcal.js pushes only these). */}
-          {item.gcal === true && (
-            <span
-              className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-full"
-              style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-              title={t("Будет в Google Calendar")}
-              aria-label={t("Будет в Google Calendar")}
-            >
-              <CalendarCheck className="h-4 w-4" />
-            </span>
-          )}
+        ) : (
+          <span className="ms-4 me-3 mt-[10px] h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: bar }} />
+        )}
+        <div className="min-w-0 flex-1 pt-0.5">
+          <div className="break-words text-[17px] leading-[23px] text-stone-900">{item.text}</div>
+          {/* Price, calendar mark and alarm under the title; empty → no line. */}
+          <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+            <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope large />
+            {/* Marked for Google Calendar (api/gcal.js pushes only these). */}
+            {item.gcal === true && (
+              <span
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-full"
+                style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+                title={t("Будет в Google Calendar")}
+                aria-label={t("Будет в Google Calendar")}
+              >
+                <CalendarCheck className="h-3.5 w-3.5" />
+              </span>
+            )}
+            {wakeAt && (
+              <button
+                type="button"
+                onClick={alarm}
+                title={t("Поставить будильник на {time}", { time: wakeAt })}
+                aria-label={t("Поставить будильник на {time}", { time: wakeAt })}
+                className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-stone-100 text-stone-500 transition hover:bg-stone-200"
+              >
+                <AlarmClock className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
-          <div className="break-words leading-relaxed text-stone-700">{item.text}</div>
-        </div>
-        <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
-      </div>
       {editingText && (
         <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
           <textarea
@@ -1541,6 +1516,11 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
       <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSavePatch} />
       <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
       <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
+        </div>
+        <div className="-mt-1.5 shrink-0">
+          <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
+        </div>
+      </div>
     </>
   );
 }
@@ -1558,26 +1538,27 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
       : []),
   ];
   return (
-    <>
-      <div className="flex items-center gap-2">
-        <span
-          className="grid h-8 w-8 shrink-0 place-items-center rounded-lg"
-          style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-        >
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{t(title)}</span>
-        {/* -me-[17px]: through the card's padding and border, so this ⋯ lines up with the events' ⋯ */}
-        <span className="-me-[17px] ms-auto flex items-center">
-          <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} />
-          <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
-        </span>
+    <div className="flex items-start py-2.5 pe-1.5">
+      <span
+        className="ms-4 me-3 grid h-8 w-8 shrink-0 place-items-center rounded-lg"
+        style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
+      >
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="break-words text-[17px] leading-[23px] text-stone-900">
+          {extra.company || <span className="text-stone-400">{t("Не указано")}</span>}
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[13px] text-stone-500">
+          {t(title)}
+          <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} large />
+        </div>
+        <PlanPhotoGrid ref={gridRef} itemId={itemKey} dayKey={dayKey} photos={photos} onChanged={onChanged} />
       </div>
-      <div className="mt-2 break-words font-medium text-stone-700">
-        {extra.company || <span className="text-sm font-normal text-stone-400">{t("Не указано")}</span>}
+      <div className="-mt-0.5 shrink-0">
+        <ActionMenu actions={actions} label={t("Цена, фото, документ")} />
       </div>
-      <PlanPhotoGrid ref={gridRef} itemId={itemKey} dayKey={dayKey} photos={photos} onChanged={onChanged} />
-    </>
+    </div>
   );
 }
 
@@ -1590,7 +1571,7 @@ function DayNavButton({ day, dir, onNavigate }) {
     <button
       type="button"
       onClick={() => onNavigate(day.key)}
-      className={`inline-flex min-h-11 w-24 shrink-0 items-center gap-1 rounded-xl px-2 text-sm font-medium text-stone-600 transition hover:bg-stone-200/60 active:bg-stone-200/60 ${
+      className={`inline-flex min-h-11 w-24 shrink-0 items-center gap-1 rounded-xl px-2 text-[15px] text-[#2c5f8a] transition hover:bg-stone-100 ${
         dir === "prev" ? "justify-start" : "justify-end"
       }`}
       aria-label={dir === "prev" ? t("Предыдущий день") : t("Следующий день")}

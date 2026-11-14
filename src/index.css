@@ -359,3 +359,8 @@ button:not(:disabled):active,
     scroll-behavior: auto !important;
   }
 }
+
+/* The iOS-style accent (text buttons, links) is lighter on the dark theme. */
+html.dark .text-\[\#2c5f8a\] {
+  color: #8cbde6;
+}

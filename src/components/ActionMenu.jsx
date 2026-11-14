@@ -100,7 +100,7 @@ export default function ActionMenu({ actions, label, corner = "header" }) {
                     <button
                       type="button"
                       onClick={() => setOpen(false)}
-                      className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90"
+                      className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-stone-200 text-stone-600"
                       aria-label={t("Закрыть")}
                     >
                       <X className="h-5 w-5" />

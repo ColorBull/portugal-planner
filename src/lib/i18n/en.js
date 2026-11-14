@@ -516,4 +516,7 @@ export default {
   "Событие": "Event",
   "Не указано": "Not set",
   "Перетащите ≡, чтобы поменять порядок. Цены, адреса, фото и заметки — в меню «⋯» каждого события.": "Drag ≡ to reorder. Prices, addresses, photos and notes are in each event’s “⋯” menu.",
+  "Перед поездкой": "Before the trip",
+  "Карта": "Map",
+  "Цена, фото, документ": "Price, photo, document",
 };
