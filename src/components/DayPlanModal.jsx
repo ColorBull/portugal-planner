@@ -1,4 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { motion } from "framer-motion";
@@ -30,8 +30,8 @@ import {
   CalendarPlus,
   CalendarX,
   Mic,
-  GripVertical,
-  Palette,
+  Minus,
+  Menu,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -53,99 +53,6 @@ import { EXTRAS, dayExpenses, dayTotal, fixedTotal, formatMoney, isFixedItem, pa
 import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
-
-const inlineInput =
-  "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2 text-base font-normal text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20 sm:text-sm";
-
-// Text edited where it is shown: tap it, type, Enter or tap away saves, Esc
-// cancels. `keepOpen` clears the field after each Enter for the next entry (new
-// events); `startOpen` begins in the field; `display` is shown instead of the
-// value when not editing.
-function InlineText({ value = "", display, placeholder, onSave, onClose, startOpen = false, keepOpen = false, className = "", inputClassName = "" }) {
-  const [draft, setDraft] = useState(startOpen ? value : null);
-  const open = useRef(startOpen);
-  const close = () => {
-    open.current = false;
-    setDraft(null);
-    onClose?.();
-  };
-  const commit = (fromEnter) => {
-    if (!open.current) return;
-    const v = (draft || "").trim();
-    if (fromEnter && keepOpen && v) setDraft("");
-    else close();
-    if (v === value.trim()) return;
-    Promise.resolve(onSave(v)).catch((err) => {
-      console.error(err);
-      alert(t("Не удалось сохранить."));
-    });
-  };
-  if (draft !== null)
-    return (
-      <input
-        autoFocus
-        data-no-swipe
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            commit(true);
-          } else if (e.key === "Escape") close();
-        }}
-        onBlur={() => commit(false)}
-        placeholder={placeholder}
-        enterKeyHint={keepOpen ? "next" : "done"}
-        className={inputClassName}
-      />
-    );
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        open.current = true;
-        setDraft(value);
-      }}
-      className={`cursor-text rounded-md transition hover:bg-stone-500/10 ${className}`}
-    >
-      {display ?? (value || <span className="font-normal italic opacity-60">{placeholder}</span>)}
-    </button>
-  );
-}
-
-// Grip to drag an event or a block (@hello-pangea/dnd: on a phone, hold it a moment).
-function DragHandle({ props, label = t("Переместить") }) {
-  if (!props) return null;
-  return (
-    <span
-      {...props}
-      data-no-swipe
-      className="grid h-9 w-7 shrink-0 cursor-grab touch-none place-items-center rounded-lg text-stone-300 transition hover:bg-stone-200/60 hover:text-stone-600 active:cursor-grabbing"
-      aria-label={label}
-      title={label}
-    >
-      <GripVertical className="h-5 w-5" />
-    </span>
-  );
-}
-
-function AddButton({ onClick, children, strong = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={
-        strong
-          ? "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition"
-          : "inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[13px] font-medium text-stone-400 transition hover:bg-stone-200/50 hover:text-stone-700 sm:py-1.5"
-      }
-      style={strong ? { backgroundColor: "#1d3b5c" } : undefined}
-    >
-      <Plus className="h-4 w-4" />
-      {children}
-    </button>
-  );
-}
 
 // A price that can be set or changed right in the day view: tap the badge (or
 // "+ цена" when there is none), type, Enter or tap away to save, Esc to cancel.
@@ -521,11 +428,13 @@ export default function DayPlanModal({
   const bodyRef = useRef(null);
   const swipeRef = useRef(null);
   const [photosByItem, setPhotosByItem] = useState({});
-  const [addingItemTo, setAddingItemTo] = useState(null); // section id
-  const [addingBlock, setAddingBlock] = useState(false);
-  const [pickingIcon, setPickingIcon] = useState(null); // section id
-  // The newest sections, ahead of the saved copy: two quick edits in a row (add,
-  // add) must not each start from the same old list.
+  // Edit mode (the "Изменить" button): the day is edited where it is shown, as a
+  // copy — "Готово" saves it in one go, "Отменить" drops it (as in Apple's apps).
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const editing = draft !== null;
+  // The newest sections, ahead of the saved copy: two quick changes in a row
+  // from the "⋯" menus must not each start from the same old list.
   const latest = useRef(sections);
   useEffect(() => {
     latest.current = sections;
@@ -548,10 +457,11 @@ export default function DayPlanModal({
 
   useEffect(() => {
     loadPhotos();
+    setDraft(null);
     bodyRef.current?.scrollTo({ top: 0 });
   }, [dayInfo?.key]);
 
-  // Swipe sideways (reading mode only) for the previous / next day. It has to
+  // Swipe sideways (not while editing) for the previous / next day. It has to
   // be long and mostly horizontal, so it never steals a scroll.
   const swipeStart = (e) => {
     // Not from a field: selecting text by dragging must not turn the page.
@@ -565,7 +475,7 @@ export default function DayPlanModal({
   const swipeEnd = (e) => {
     const from = swipeRef.current;
     swipeRef.current = null;
-    if (!from || !onNavigate) return;
+    if (!from || editing || !onNavigate) return;
     const t = e.changedTouches[0];
     const dx = t.clientX - from.x;
     const dy = t.clientY - from.y;
@@ -592,16 +502,11 @@ export default function DayPlanModal({
 
   // Inline price edits save just the changed fields (saveDay merges): the price,
   // and whether it is the day's or a general one when that was changed with it.
-  const saveFailed = (err) => {
-    console.error(err);
-    alert(t("Не удалось сохранить."));
-  };
   const setSections = (next) => {
     latest.current = next;
     return onSave({ sections: next });
   };
   const mapItems = (fn) => setSections(latest.current.map((s) => ({ ...s, items: fn(s.items || [], s) })));
-  const patchSection = (id, patch) => setSections(latest.current.map((s) => (s.id === id ? { ...s, ...patch } : s)));
 
   const saveItemCost = (itemId, cost, fixedNow, fixedWas) =>
     mapItems((items) =>
@@ -617,61 +522,62 @@ export default function DayPlanModal({
   const saveItemPatch = (itemId, patch) =>
     mapItems((items) => items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)));
 
-  // Its photos and notes stay in Firestore / Drive, as when the editor deletes one.
+  // Its photos and notes stay in Firestore / Drive.
   const deleteItem = (itemId) => mapItems((items) => items.filter((it) => it.id !== itemId));
-
-  // One line per event: a pasted list becomes several.
-  const addItems = (sectionId, text) =>
-    mapItems((items, s) =>
-      s.id !== sectionId
-        ? items
-        : [
-            ...items,
-            ...text
-              .split(/\n+/)
-              .map((x) => x.trim())
-              .filter(Boolean)
-              .map((x) => ({ id: uid("item"), text: x, address: "", mapUrl: "", cost: null, time: "", end_time: "" })),
-          ]
-    );
-
-  const addSection = (title) =>
-    setSections([...latest.current, { id: uid("sec"), title, icon: "MapPin", mapUrl: "", items: [] }]);
-
-  const deleteSection = (section) => {
-    if (!confirm(t("Удалить блок «{name}» со всеми его событиями?", { name: section.title || t("Без названия") }))) return;
-    setSections(latest.current.filter((s) => s.id !== section.id)).catch(saveFailed);
-  };
-
-  // Blocks (type "section") and events (type "item", droppableId = its block's id).
-  const onDragEnd = ({ source, destination, type }) => {
-    if (!destination) return;
-    if (source.droppableId === destination.droppableId && source.index === destination.index) return;
-    const list = latest.current.map((s) => ({ ...s, items: [...(s.items || [])] }));
-    if (type === "section") {
-      const [moved] = list.splice(source.index, 1);
-      list.splice(destination.index, 0, moved);
-    } else {
-      const from = list.find((s) => s.id === source.droppableId);
-      const to = list.find((s) => s.id === destination.droppableId);
-      if (!from || !to) return;
-      const [moved] = from.items.splice(source.index, 1);
-      to.items.splice(destination.index, 0, moved);
-    }
-    setSections(list).catch(saveFailed);
-  };
-
-  const saveExtraCompany = (key, company) =>
-    onSave({ [key]: { company, cost: parseCost(plan?.[key]?.cost) } });
 
   const saveExtraCost = (key, cost) =>
     onSave({ [key]: { company: plan?.[key]?.company || "", cost } });
 
+  const startEditing = (seed = false) =>
+    setDraft({
+      city: plan?.city || "",
+      stay: plan?.stay || "",
+      companies: Object.fromEntries(EXTRAS.map(({ key }) => [key, plan?.[key]?.company || ""])),
+      sections:
+        seed && !hasPlan
+          ? [{ ...newSection(), items: [newItem()] }]
+          : sections.map((s) => ({ ...s, items: [...(s.items || [])] })),
+    });
+
+  const finishEditing = async () => {
+    setSaving(true);
+    try {
+      await onSave({
+        city: draft.city.trim(),
+        stay: draft.stay.trim(),
+        ...(firstDay
+          ? Object.fromEntries(
+              EXTRAS.map(({ key }) => [key, { company: draft.companies[key].trim(), cost: parseCost(plan?.[key]?.cost) }])
+            )
+          : {}),
+        // Blank rows go; a block stays if it has a name or anything in it.
+        sections: draft.sections
+          .map((s) => ({
+            ...s,
+            title: (s.title || "").trim(),
+            items: s.items.map((it) => ({ ...it, text: (it.text || "").trim() })).filter((it) => it.text),
+          }))
+          .filter((s) => s.title || s.items.length),
+      });
+      setDraft(null);
+    } catch (err) {
+      console.error(err);
+      alert(t("Не удалось сохранить. Попробуйте ещё раз."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const headerCity = plan?.city || trip?.city || "";
   // Where the night is spent, shown when the day's city doesn't say it plainly
-  // (a transfer "Порту → Лиссабон", or a "Ночуем в" set in the editor).
+  // (a transfer "Порту → Лиссабон", or a "Ночуем в" set in edit mode).
   const stayCity = overnightCity(plan, trip);
   const showStay = !!stayCity && stayCity.trim() !== headerCity.trim();
+
+  const pill =
+    "inline-flex h-11 items-center justify-center rounded-full px-4 text-[15px] font-semibold transition sm:h-9 sm:text-sm";
+  const headerField =
+    "w-full rounded-xl bg-white/15 px-3 py-2 text-white outline-none ring-1 ring-white/30 placeholder:text-white/50 focus:ring-white/70";
 
   return (
     <motion.div
@@ -682,7 +588,7 @@ export default function DayPlanModal({
     >
       <div
         className="absolute inset-0 bg-stone-950/60 animate-in fade-in duration-200"
-        onClick={onClose}
+        onClick={editing ? undefined : onClose}
       />
 
       <motion.div
@@ -702,13 +608,35 @@ export default function DayPlanModal({
         >
           <div className="relative mx-auto w-full max-w-3xl">
           <div className="absolute end-0 top-0 flex gap-2">
-            <button
-              onClick={onClose}
-              className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
-              aria-label={t("Закрыть")}
-            >
-              <X className="h-5 w-5" />
-            </button>
+            {editing ? (
+              <>
+                <button type="button" onClick={() => setDraft(null)} disabled={saving} className={`${pill} text-white/85 hover:bg-white/15`}>
+                  {t("Отменить")}
+                </button>
+                <button
+                  type="button"
+                  onClick={finishEditing}
+                  disabled={saving}
+                  className={`${pill} gap-1.5 bg-white text-[#1d3b5c] shadow-sm disabled:opacity-70`}
+                >
+                  {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {t("Готово")}
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={() => startEditing(true)} className={`${pill} bg-white/15 text-white hover:bg-white/25`}>
+                  {t("Изменить")}
+                </button>
+                <button
+                  onClick={onClose}
+                  className="grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
+                  aria-label={t("Закрыть")}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </>
+            )}
           </div>
 
           <div className="flex items-center gap-2 text-white/70 text-xs font-semibold tracking-widest uppercase">
@@ -716,38 +644,50 @@ export default function DayPlanModal({
             {t("День")} {dayInfo?.dayNumber ?? "—"}
           </div>
 
-          <h2 className="mt-1.5 max-w-[calc(100%-6.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:max-w-none sm:text-4xl">
-            {/* Tap to rename the day's city. */}
-            <InlineText
-              value={plan?.city || ""}
-              display={headerCity || undefined}
-              placeholder={t("Город этого дня")}
-              onSave={(city) => onSave({ city })}
-              className="max-w-full text-start"
-              inputClassName="w-full rounded-xl bg-white/15 px-3 py-1 text-white outline-none ring-1 ring-white/40 placeholder:text-white/50"
-            />
-          </h2>
-          <div className="mt-1.5 flex items-center gap-1.5 text-white/75 text-sm">
-            {trip?.country && (
-              <>
-                <MapPin className="h-4 w-4" />
-                {countryLabel(trip)}
-                <span className="mx-1.5 text-white/30">·</span>
-              </>
-            )}
-            {dayInfo?.weekday}, {dayInfo?.label}
-          </div>
-          <div className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
-            <BedDouble className="h-4 w-4 shrink-0" />
-            <InlineText
-              value={plan?.stay || ""}
-              display={showStay ? t("Ночуем: {city}", { city: stayCity }) : undefined}
-              placeholder={t("Ночуем в…")}
-              onSave={(stay) => onSave({ stay })}
-              className="text-start"
-              inputClassName="w-56 max-w-full rounded-lg bg-white/15 px-2.5 py-1 text-base text-white outline-none ring-1 ring-white/40 placeholder:text-white/50 sm:text-sm"
-            />
-          </div>
+          {editing ? (
+            <div data-no-swipe className="mt-3 grid gap-2 sm:grid-cols-2">
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/60">{t("Город этого дня")}</span>
+                <input
+                  value={draft.city}
+                  onChange={(e) => setDraft({ ...draft, city: e.target.value })}
+                  placeholder={trip?.city || ""}
+                  className={`${headerField} text-lg font-semibold`}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-white/60">{t("Ночуем в")}</span>
+                <input
+                  value={draft.stay}
+                  onChange={(e) => setDraft({ ...draft, stay: e.target.value })}
+                  placeholder={overnightCity({ ...plan, stay: "" }, trip) || ""}
+                  className={`${headerField} text-base sm:text-lg`}
+                />
+              </label>
+            </div>
+          ) : (
+            <>
+              <h2 className="mt-1.5 max-w-[calc(100%-9.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:max-w-none sm:text-4xl">
+                {headerCity || t("План скоро появится")}
+              </h2>
+              <div className="mt-1.5 flex items-center gap-1.5 text-white/75 text-sm">
+                {trip?.country && (
+                  <>
+                    <MapPin className="h-4 w-4" />
+                    {countryLabel(trip)}
+                    <span className="mx-1.5 text-white/30">·</span>
+                  </>
+                )}
+                {dayInfo?.weekday}, {dayInfo?.label}
+              </div>
+              {showStay && (
+                <div className="mt-1 flex items-center gap-1.5 text-sm text-white/75">
+                  <BedDouble className="h-4 w-4 shrink-0" />
+                  {t("Ночуем: {city}", { city: stayCity })}
+                </div>
+              )}
+            </>
+          )}
           </div>
         </div>
 
@@ -759,6 +699,9 @@ export default function DayPlanModal({
           className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 sm:px-7 sm:py-6"
         >
           <div className="mx-auto w-full max-w-3xl">
+          {editing ? (
+            <DayEditor draft={draft} setDraft={setDraft} firstDay={firstDay} />
+          ) : (
             <>
               {firstDay && (
                 <div className="mb-7 grid gap-3 sm:grid-cols-2">
@@ -781,204 +724,119 @@ export default function DayPlanModal({
                           photos={photosByItem[key] || []}
                           onChanged={loadPhotos}
                           onSaveCost={(cost) => saveExtraCost(key, cost)}
-                          onSaveCompany={(company) => saveExtraCompany(key, company)}
                         />
                       </div>
                     );
                   })}
                 </div>
               )}
-              <DragDropContext onDragEnd={onDragEnd}>
-                <Droppable droppableId="day" type="section">
-                  {(dropSections) => (
-                    <div ref={dropSections.innerRef} {...dropSections.droppableProps}>
-                      {sections.map((section, i) => {
-                        const Icon = iconFor(section.icon);
-                        const style = styleFor(section.icon);
-                        const blockActions = [
-                          { key: "add", icon: Plus, label: t("Добавить событие"), run: () => setAddingItemTo(section.id) },
-                          { key: "icon", icon: Palette, label: t("Изменить иконку"), run: () => setPickingIcon(section.id) },
-                          { key: "del", icon: Trash2, danger: true, label: t("Удалить блок"), run: () => deleteSection(section) },
-                        ];
-                        return (
-                          <Draggable key={section.id} draggableId={section.id} index={i}>
-                            {(dragSection, snap) => (
-                              <div
-                                ref={dragSection.innerRef}
-                                {...dragSection.draggableProps}
-                                className={`pb-7 ${snap.isDragging ? "rounded-2xl bg-[#fbf7f0] shadow-xl" : ""}`}
-                              >
-                                <div className="mb-3.5 flex items-center gap-3">
-                                  <button
-                                    type="button"
-                                    onClick={() => setPickingIcon(pickingIcon === section.id ? null : section.id)}
-                                    className="plan-chip grid h-10 w-10 shrink-0 place-items-center rounded-xl"
-                                    style={{ backgroundColor: style.bg, color: style.fg }}
-                                    aria-label={t("Изменить иконку")}
-                                  >
-                                    <Icon className="h-5 w-5" />
-                                  </button>
-                                  <div className="min-w-0 flex-1">
-                                    <h3 className="font-heading text-lg font-semibold leading-tight text-stone-800">
-                                      <InlineText
-                                        value={section.title || ""}
-                                        placeholder={t("Название блока")}
-                                        onSave={(title) => patchSection(section.id, { title })}
-                                        className="max-w-full text-start"
-                                        inputClassName={inlineInput}
-                                      />
-                                    </h3>
-                                    <span className="mt-1 block h-0.5 w-10 rounded-full" style={{ backgroundColor: style.bar }} />
-                                    {section.mapUrl && (
-                                      <a
-                                        href={section.mapUrl}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        onClick={(e) => {
-                                          e.preventDefault();
-                                          openMapUrl(section.mapUrl);
-                                        }}
-                                        className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-stone-500 transition hover:text-stone-800"
-                                      >
-                                        <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
-                                        <span className="underline decoration-dotted underline-offset-2">{t("Открыть на карте")}</span>
-                                        <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
-                                      </a>
-                                    )}
-                                  </div>
-                                  <DragHandle props={dragSection.dragHandleProps} label={t("Переместить блок")} />
-                                  <ActionMenu actions={blockActions} />
-                                </div>
-                                {pickingIcon === section.id && (
-                                  <div data-no-swipe className="mb-3.5 flex flex-wrap gap-1.5 rounded-2xl bg-white/70 p-2 ring-1 ring-stone-200">
-                                    {ICON_OPTIONS.map((o) => {
-                                      const OIcon = iconFor(o.value);
-                                      const os = styleFor(o.value);
-                                      return (
-                                        <button
-                                          key={o.value}
-                                          type="button"
-                                          onClick={() => {
-                                            setPickingIcon(null);
-                                            if (o.value !== section.icon) patchSection(section.id, { icon: o.value }).catch(saveFailed);
-                                          }}
-                                          className={`plan-chip grid h-10 w-10 place-items-center rounded-xl ${o.value === section.icon ? "ring-2 ring-stone-700" : ""}`}
-                                          style={{ backgroundColor: os.bg, color: os.fg }}
-                                          title={t(o.label)}
-                                          aria-label={t(o.label)}
-                                        >
-                                          <OIcon className="h-5 w-5" />
-                                        </button>
-                                      );
-                                    })}
-                                  </div>
-                                )}
+              {hasPlan ? (
+                <div className="space-y-7">
+                  {sections.map((section, i) => {
+                    const Icon = iconFor(section.icon);
+                    const style = styleFor(section.icon);
 
-                                <Droppable droppableId={section.id} type="item">
-                                  {(dropItems) => (
-                                    <ul
-                                      ref={dropItems.innerRef}
-                                      {...dropItems.droppableProps}
-                                      className="ms-2 min-h-[0.5rem] border-s-2 ps-6 sm:ms-5"
-                                      style={{ borderColor: style.bar }}
-                                    >
-                                      {(section.items || []).map((item, iIndex) => (
-                                        <Draggable key={item.id} draggableId={item.id} index={iIndex}>
-                                          {(dragItem, itemSnap) => (
-                                            <li
-                                              ref={dragItem.innerRef}
-                                              {...dragItem.draggableProps}
-                                              className={`relative min-w-0 pb-4 sm:pb-3 ${itemSnap.isDragging ? "rounded-xl bg-white shadow-lg" : ""}`}
-                                            >
-                                              {/* centred on the 2px rule and on the first text line: the
-                                                  title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
-                                                  line's middle is 17px down there and 13px from sm up; a
-                                                  time / price row (30px) puts it at 19px / 15px */}
-                                              <span
-                                                className={`absolute h-2.5 w-2.5 rounded-full ${
-                                                  timeLabel(item) || parseCost(item.cost) !== null || item.gcal === true
-                                                    ? "top-3.5 sm:top-2.5"
-                                                    : "top-3 sm:top-2"
-                                                }`}
-                                                style={{
-                                                  insetInlineStart: "-30px",
-                                                  backgroundColor: style.bar,
-                                                  boxShadow: `0 0 0 4px ${style.bg}`,
-                                                }}
-                                              />
-                                              <ItemBlock
-                                                item={item}
-                                                fixed={isFixedItem(item, section)}
-                                                dayKey={dayInfo.key}
-                                                currency={currency}
-                                                bar={style.bar}
-                                                photos={photosByItem[item.id] || []}
-                                                onChanged={loadPhotos}
-                                                onSaveCost={(cost, fixedNow) =>
-                                                  saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
-                                                }
-                                                onSavePatch={(patch) => saveItemPatch(item.id, patch)}
-                                                onDelete={() => deleteItem(item.id)}
-                                                dragHandle={dragItem.dragHandleProps}
-                                              />
-                                            </li>
-                                          )}
-                                        </Draggable>
-                                      ))}
-                                      {dropItems.placeholder}
-                                    </ul>
-                                  )}
-                                </Droppable>
-                                <div className="ms-2 border-s-2 ps-6 sm:ms-5" style={{ borderColor: style.bar }}>
-                                  {addingItemTo === section.id ? (
-                                    <InlineText
-                                      startOpen
-                                      keepOpen
-                                      placeholder={t("Новое событие — Enter, чтобы добавить")}
-                                      onSave={(text) => addItems(section.id, text)}
-                                      onClose={() => setAddingItemTo(null)}
-                                      inputClassName={inlineInput}
-                                    />
-                                  ) : (
-                                    <AddButton onClick={() => setAddingItemTo(section.id)}>{t("Добавить событие")}</AddButton>
-                                  )}
-                                </div>
-                              </div>
+                    return (
+                      <div key={section.id || section.title || i}>
+                        <div className="flex items-center gap-3 mb-3.5">
+                          <span
+                            className="plan-chip grid h-10 w-10 place-items-center rounded-xl shrink-0"
+                            style={{ backgroundColor: style.bg, color: style.fg }}
+                          >
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-heading text-lg font-semibold text-stone-800 leading-tight">
+                              {section.title}
+                            </h3>
+                            <span
+                              className="block h-0.5 w-10 rounded-full mt-1"
+                              style={{ backgroundColor: style.bar }}
+                            />
+                            {section.mapUrl && (
+                              <a
+                                href={section.mapUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  openMapUrl(section.mapUrl);
+                                }}
+                                className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-800 transition"
+                              >
+                                <MapPin className="h-4 w-4 shrink-0" style={{ color: style.bar }} />
+                                <span className="underline decoration-dotted underline-offset-2">
+                                  {t("Открыть на карте")}
+                                </span>
+                                <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                              </a>
                             )}
-                          </Draggable>
-                        );
-                      })}
-                      {dropSections.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-              {!hasPlan && !addingBlock && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
+                          </div>
+                        </div>
+
+                        <ul
+                          className="ms-2 sm:ms-5 ps-6 border-s-2 space-y-4 sm:space-y-3"
+                          style={{ borderColor: style.bar }}
+                        >
+                          {(section.items || []).map((item) => (
+                            <li key={item.id} className="relative min-w-0">
+                              {/* centred on the 2px rule and on the first text line: the
+                                  title has pt-1 on a phone (sm:pt-0) and 26px lines, so the
+                                  line's middle is 17px down there and 13px from sm up; a
+                                  time / price row (30px) puts it at 19px / 15px */}
+                              <span
+                                className={`absolute h-2.5 w-2.5 rounded-full ${
+                                  timeLabel(item) || parseCost(item.cost) !== null || item.gcal === true
+                                    ? "top-3.5 sm:top-2.5"
+                                    : "top-3 sm:top-2"
+                                }`}
+                                style={{
+                                  insetInlineStart: "-30px",
+                                  backgroundColor: style.bar,
+                                  boxShadow: `0 0 0 4px ${style.bg}`,
+                                }}
+                              />
+                              <ItemBlock
+                                item={item}
+                                fixed={isFixedItem(item, section)}
+                                dayKey={dayInfo.key}
+                                currency={currency}
+                                bar={style.bar}
+                                photos={photosByItem[item.id] || []}
+                                onChanged={loadPhotos}
+                                onSaveCost={(cost, fixedNow) =>
+                                  saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
+                                }
+                                onSavePatch={(patch) => saveItemPatch(item.id, patch)}
+                                onDelete={() => deleteItem(item.id)}
+                              />
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
                   <span
-                    className="mb-4 grid h-14 w-14 place-items-center rounded-2xl"
+                    className="grid h-14 w-14 place-items-center rounded-2xl mb-4"
                     style={{ backgroundColor: "#e8ddd0", color: "#1d3b5c" }}
                   >
                     <CalendarDays className="h-7 w-7" />
                   </span>
-                  <p className="font-medium text-stone-600">{t("План на этот день ещё не составлен")}</p>
+                  <p className="text-stone-600 font-medium">{t("План на этот день ещё не составлен")}</p>
+                  <button
+                    type="button"
+                    onClick={() => startEditing(true)}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition"
+                    style={{ backgroundColor: "#1d3b5c" }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {t("Составить план")}
+                  </button>
                 </div>
               )}
-              <div className={hasPlan ? "" : "flex justify-center"}>
-                {addingBlock ? (
-                  <InlineText
-                    startOpen
-                    placeholder={t("Название блока — например, «Утро»")}
-                    onSave={(title) => addSection(title)}
-                    onClose={() => setAddingBlock(false)}
-                    inputClassName={inlineInput}
-                  />
-                ) : (
-                  <AddButton onClick={() => setAddingBlock(true)} strong={!hasPlan}>
-                    {t("Добавить блок")}
-                  </AddButton>
-                )}
-              </div>
               <DayExpenses
                 expenses={dayExpenses(plan)}
                 all={Array.isArray(plan?.expenses) ? plan.expenses : []}
@@ -1020,10 +878,12 @@ export default function DayPlanModal({
                 </div>
               )}
             </>
+          )}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Footer: no day-to-day moves while editing. */}
+        {!editing && (
           <div
             className="shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
             style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
@@ -1039,8 +899,304 @@ export default function DayPlanModal({
             <DayNavButton day={nextDay} dir="next" onNavigate={onNavigate} />
             </div>
           </div>
+        )}
       </motion.div>
     </motion.div>
+  );
+}
+
+const newItem = () => ({ id: uid("item"), text: "", address: "", mapUrl: "", cost: null, time: "", end_time: "" });
+const newSection = () => ({ id: uid("sec"), title: "", icon: "MapPin", mapUrl: "", items: [] });
+
+// A textarea that grows with its text (one row to start).
+function GrowText({ value, onChange, onKeyDown, placeholder, className = "", autoFocus = false }) {
+  const ref = useRef(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+  return (
+    <textarea
+      ref={ref}
+      rows={1}
+      value={value}
+      autoFocus={autoFocus}
+      onChange={(e) => onChange(e.target.value)}
+      onKeyDown={onKeyDown}
+      placeholder={placeholder}
+      className={`block w-full resize-none bg-transparent py-2 text-base leading-snug text-stone-800 outline-none placeholder:text-stone-400 ${className}`}
+    />
+  );
+}
+
+// One row of the edit list, as in iOS: the red minus in front (tap → a "Удалить"
+// button takes the grip's place), the content, the grip at the end — the same
+// place on every row, block or event.
+function EditRow({ armed, onArm, onDelete, handle, children, className = "" }) {
+  return (
+    <div className={`flex min-h-[52px] items-center gap-2.5 ps-3 pe-1 ${className}`}>
+      <button
+        type="button"
+        onClick={onArm}
+        className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white transition"
+        style={{ backgroundColor: "#e5484d", transform: armed ? "rotate(90deg)" : undefined }}
+        aria-label={t("Удалить")}
+      >
+        <Minus className="h-4 w-4" strokeWidth={3} />
+      </button>
+      <div className="min-w-0 flex-1">{children}</div>
+      {armed ? (
+        <button
+          type="button"
+          onClick={onDelete}
+          className="me-1.5 shrink-0 rounded-lg px-3.5 py-2 text-sm font-semibold text-white"
+          style={{ backgroundColor: "#e5484d" }}
+        >
+          {t("Удалить")}
+        </button>
+      ) : (
+        <span
+          {...handle}
+          data-no-swipe
+          className="grid h-11 w-11 shrink-0 cursor-grab touch-none place-items-center text-stone-400 active:cursor-grabbing"
+          aria-label={t("Переместить")}
+        >
+          <Menu className="h-5 w-5" />
+        </span>
+      )}
+    </div>
+  );
+}
+
+// Edit mode of the day: each block an inset card — its name, then its events,
+// then "Добавить событие"; drag by ≡ (events also between blocks, on a phone
+// after a short hold); Enter in an event starts the next one below it.
+function DayEditor({ draft, setDraft, firstDay }) {
+  const [armed, setArmed] = useState(null); // id of the row showing "Удалить"
+  const [focusId, setFocusId] = useState(null); // new row to put the cursor in
+  const [pickingIcon, setPickingIcon] = useState(null); // section id
+  const sections = draft.sections;
+
+  const setSections = (fn) => setDraft((d) => ({ ...d, sections: fn(d.sections) }));
+  const patchSection = (id, patch) => setSections((list) => list.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const patchItem = (sid, iid, patch) =>
+    setSections((list) =>
+      list.map((s) => (s.id === sid ? { ...s, items: s.items.map((it) => (it.id === iid ? { ...it, ...patch } : it)) } : s))
+    );
+  const addItem = (sid, afterIndex) => {
+    const item = newItem();
+    setSections((list) =>
+      list.map((s) => {
+        if (s.id !== sid) return s;
+        const items = [...s.items];
+        items.splice(afterIndex ?? items.length, 0, item);
+        return { ...s, items };
+      })
+    );
+    setFocusId(item.id);
+  };
+  const removeItem = (sid, iid) =>
+    setSections((list) => list.map((s) => (s.id === sid ? { ...s, items: s.items.filter((it) => it.id !== iid) } : s)));
+  const addSection = () => {
+    const s = newSection();
+    setSections((list) => [...list, s]);
+    setFocusId(s.id);
+  };
+  const arm = (id) => setArmed((a) => (a === id ? null : id));
+
+  const onDragEnd = ({ source, destination, type }) => {
+    if (!destination) return;
+    setSections((list) => {
+      const next = list.map((s) => ({ ...s, items: [...s.items] }));
+      if (type === "section") {
+        const [moved] = next.splice(source.index, 1);
+        next.splice(destination.index, 0, moved);
+        return next;
+      }
+      const from = next.find((s) => s.id === source.droppableId);
+      const to = next.find((s) => s.id === destination.droppableId);
+      if (!from || !to) return list;
+      const [moved] = from.items.splice(source.index, 1);
+      to.items.splice(destination.index, 0, moved);
+      return next;
+    });
+  };
+
+  const card = "overflow-hidden rounded-2xl bg-white ring-1 ring-stone-200";
+  const divider = "border-t border-stone-200";
+
+  return (
+    <div data-no-swipe>
+      {firstDay && (
+        <div className={`${card} mb-6`}>
+          {EXTRAS.map(({ key, title }, i) => {
+            const Icon = EXTRA_ICONS[key];
+            return (
+              <label key={key} className={`flex min-h-[52px] items-center gap-3 px-3 ${i ? divider : ""}`}>
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg" style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}>
+                  <Icon className="h-4 w-4" />
+                </span>
+                <span className="w-24 shrink-0 text-sm text-stone-500">{t(title)}</span>
+                <input
+                  value={draft.companies[key]}
+                  onChange={(e) => setDraft((d) => ({ ...d, companies: { ...d.companies, [key]: e.target.value } }))}
+                  placeholder={t("Компания")}
+                  className="min-w-0 flex-1 bg-transparent py-2 text-base text-stone-800 outline-none placeholder:text-stone-400"
+                />
+              </label>
+            );
+          })}
+        </div>
+      )}
+
+      <DragDropContext onDragEnd={onDragEnd}>
+        <Droppable droppableId="day" type="section">
+          {(dropSections) => (
+            <div ref={dropSections.innerRef} {...dropSections.droppableProps}>
+              {sections.map((section, sIndex) => {
+                const Icon = iconFor(section.icon);
+                const style = styleFor(section.icon);
+                return (
+                  <Draggable key={section.id} draggableId={section.id} index={sIndex}>
+                    {(dragSection, snap) => (
+                      <div ref={dragSection.innerRef} {...dragSection.draggableProps} className="pb-5">
+                        <div className={`${card} ${snap.isDragging ? "shadow-xl" : ""}`}>
+                          <EditRow
+                            armed={armed === section.id}
+                            onArm={() => arm(section.id)}
+                            onDelete={() => {
+                              setArmed(null);
+                              setSections((list) => list.filter((s) => s.id !== section.id));
+                            }}
+                            handle={dragSection.dragHandleProps}
+                            className="py-1"
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <button
+                                type="button"
+                                onClick={() => setPickingIcon(pickingIcon === section.id ? null : section.id)}
+                                className="plan-chip grid h-9 w-9 shrink-0 place-items-center rounded-xl"
+                                style={{ backgroundColor: style.bg, color: style.fg }}
+                                aria-label={t("Изменить иконку")}
+                                title={t("Изменить иконку")}
+                              >
+                                <Icon className="h-5 w-5" />
+                              </button>
+                              <input
+                                value={section.title}
+                                autoFocus={focusId === section.id}
+                                onChange={(e) => patchSection(section.id, { title: e.target.value })}
+                                placeholder={t("Название блока")}
+                                className="min-w-0 flex-1 bg-transparent py-2 font-heading text-lg font-semibold text-stone-800 outline-none placeholder:font-normal placeholder:text-stone-400"
+                              />
+                            </div>
+                          </EditRow>
+                          {pickingIcon === section.id && (
+                            <div className={`${divider} flex flex-wrap gap-1.5 px-3 py-2.5`}>
+                              {ICON_OPTIONS.map((o) => {
+                                const OIcon = iconFor(o.value);
+                                const os = styleFor(o.value);
+                                return (
+                                  <button
+                                    key={o.value}
+                                    type="button"
+                                    onClick={() => {
+                                      patchSection(section.id, { icon: o.value });
+                                      setPickingIcon(null);
+                                    }}
+                                    className={`plan-chip grid h-10 w-10 place-items-center rounded-xl ${o.value === section.icon ? "ring-2 ring-stone-400" : ""}`}
+                                    style={{ backgroundColor: os.bg, color: os.fg }}
+                                    title={t(o.label)}
+                                    aria-label={t(o.label)}
+                                  >
+                                    <OIcon className="h-5 w-5" />
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                          <Droppable droppableId={section.id} type="item">
+                            {(dropItems) => (
+                              <div ref={dropItems.innerRef} {...dropItems.droppableProps}>
+                                {section.items.map((item, iIndex) => (
+                                  <Draggable key={item.id} draggableId={item.id} index={iIndex}>
+                                    {(dragItem, itemSnap) => (
+                                      <div
+                                        ref={dragItem.innerRef}
+                                        {...dragItem.draggableProps}
+                                        className={`${divider} bg-white ${itemSnap.isDragging ? "rounded-xl shadow-lg" : ""}`}
+                                      >
+                                        <EditRow
+                                          armed={armed === item.id}
+                                          onArm={() => arm(item.id)}
+                                          onDelete={() => {
+                                            setArmed(null);
+                                            removeItem(section.id, item.id);
+                                          }}
+                                          handle={dragItem.dragHandleProps}
+                                        >
+                                          <div className="flex items-start gap-2.5">
+                                            <span className="mt-[15px] h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: style.bar }} />
+                                            <GrowText
+                                              value={item.text}
+                                              autoFocus={focusId === item.id}
+                                              onChange={(text) => patchItem(section.id, item.id, { text })}
+                                              onKeyDown={(e) => {
+                                                if (e.key === "Enter" && !e.shiftKey) {
+                                                  e.preventDefault();
+                                                  addItem(section.id, iIndex + 1);
+                                                }
+                                              }}
+                                              placeholder={t("Событие")}
+                                            />
+                                          </div>
+                                        </EditRow>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                ))}
+                                {dropItems.placeholder}
+                              </div>
+                            )}
+                          </Droppable>
+                          <button
+                            type="button"
+                            onClick={() => addItem(section.id)}
+                            className={`${divider} flex min-h-[52px] w-full items-center gap-2.5 ps-3 text-start text-[15px] text-stone-600 transition hover:bg-stone-100`}
+                          >
+                            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: "#30a46c" }}>
+                              <Plus className="h-4 w-4" strokeWidth={3} />
+                            </span>
+                            {t("Добавить событие")}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </Draggable>
+                );
+              })}
+              {dropSections.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+
+      <button
+        type="button"
+        onClick={addSection}
+        className={`${card} flex min-h-[52px] w-full items-center gap-2.5 ps-3 text-start text-[15px] font-medium text-stone-700 transition hover:bg-stone-100`}
+      >
+        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-white" style={{ backgroundColor: "#30a46c" }}>
+          <Plus className="h-4 w-4" strokeWidth={3} />
+        </span>
+        {t("Добавить блок")}
+      </button>
+      <p className="mt-3 px-1 text-xs text-stone-400">
+        {t("Перетащите ≡, чтобы поменять порядок. Цены, адреса, фото и заметки — в меню «⋯» каждого события.")}
+      </p>
+    </div>
   );
 }
 
@@ -1233,6 +1389,21 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // One "⋯" button instead of a row of add-buttons. On a phone the actions come up
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
+function MenuRow({ action: a, onClick, divided = false, compact = false }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 text-start transition hover:bg-stone-100 active:bg-stone-100 ${
+        compact ? "rounded-xl px-3 py-2.5 text-sm" : "px-4 py-3.5 text-[16px]"
+      } ${divided ? "border-t border-stone-200" : ""} ${a.danger ? "text-red-600" : "text-stone-800"}`}
+    >
+      <a.icon className={`h-5 w-5 shrink-0 ${compact ? "sm:h-4 sm:w-4" : ""} ${a.danger ? "text-red-500" : "text-stone-400"}`} />
+      {a.label}
+    </button>
+  );
+}
+
 function ActionMenu({ actions }) {
   const phone = useIsPhone();
   const [open, setOpen] = useState(false);
@@ -1249,8 +1420,8 @@ function ActionMenu({ actions }) {
   const toggle = () => {
     if (!open && btnRef.current) {
       const r = btnRef.current.getBoundingClientRect();
-      const w = 232;
-      const h = actions.length * 44 + 12;
+      const w = 248;
+      const h = Math.min(actions.length * 40 + 24, window.innerHeight - 16);
       setPos({
         left: Math.min(Math.max(r.right - w, 8), window.innerWidth - w - 8),
         top: r.bottom + h + 8 > window.innerHeight ? Math.max(r.top - h - 4, 8) : r.bottom + 4,
@@ -1258,6 +1429,9 @@ function ActionMenu({ actions }) {
     }
     setOpen((o) => !o);
   };
+
+  const plain = actions.filter((a) => !a.danger);
+  const danger = actions.filter((a) => a.danger);
 
   // Run inside the tap itself: a file picker only opens from a user gesture.
   const choose = (action) => {
@@ -1284,28 +1458,47 @@ function ActionMenu({ actions }) {
             className={`fixed inset-0 z-[70] ${phone ? "bg-stone-950/40" : ""}`}
             onClick={() => setOpen(false)}
           >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className={
-                phone
-                  ? "absolute inset-x-0 bottom-0 rounded-t-3xl bg-white p-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-2xl"
-                  : "absolute w-[232px] rounded-2xl bg-white p-1.5 shadow-2xl ring-1 ring-stone-200"
-              }
-              style={phone ? undefined : { left: pos.left, top: pos.top }}
-            >
-              {phone && <div className="mx-auto mb-1 mt-1 h-1 w-10 rounded-full bg-stone-200" />}
-              {actions.map((a) => (
+            {phone ? (
+              // iOS action sheet: the actions, the removals in their own group, then
+              // "Отмена" on its own; never taller than the screen, so the dimmed
+              // strip above always stays to tap away.
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-2 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+              >
+                {[plain, danger].map(
+                  (group, gi) =>
+                    group.length > 0 && (
+                      <div key={gi} className="shrink-0 overflow-hidden rounded-2xl bg-white">
+                        {group.map((a, i) => (
+                          <MenuRow key={a.key} action={a} onClick={() => choose(a)} divided={i > 0} />
+                        ))}
+                      </div>
+                    )
+                )}
                 <button
-                  key={a.key}
                   type="button"
-                  onClick={() => choose(a)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-start text-[15px] transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm ${a.danger ? "text-red-600" : "text-stone-700"}`}
+                  onClick={() => setOpen(false)}
+                  className="shrink-0 rounded-2xl bg-white py-4 text-[17px] font-semibold text-stone-800 active:bg-stone-100"
                 >
-                  <a.icon className={`h-5 w-5 shrink-0 sm:h-4 sm:w-4 ${a.danger ? "text-red-500" : "text-stone-400"}`} />
-                  {a.label}
+                  {t("Отмена")}
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="absolute w-[248px] overflow-y-auto rounded-2xl bg-white p-1.5 shadow-2xl ring-1 ring-stone-200"
+                style={{ left: pos.left, top: pos.top, maxHeight: "calc(100dvh - 16px)" }}
+              >
+                {plain.map((a) => (
+                  <MenuRow key={a.key} action={a} onClick={() => choose(a)} compact />
+                ))}
+                {danger.length > 0 && <div className="my-1 border-t border-stone-200" />}
+                {danger.map((a) => (
+                  <MenuRow key={a.key} action={a} onClick={() => choose(a)} compact />
+                ))}
+              </div>
+            )}
           </div>,
           document.body
         )}
@@ -1314,7 +1507,7 @@ function ActionMenu({ actions }) {
 }
 
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete, dragHandle }) {
+function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1426,18 +1619,8 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
             </span>
           )}
           </div>
-          {/* Tap the title to edit it in place. */}
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => !window.getSelection()?.toString() && startText()}
-            onKeyDown={(e) => e.key === "Enter" && startText()}
-            className="cursor-text break-words rounded-md leading-relaxed text-stone-700 transition hover:bg-stone-200/40"
-          >
-            {item.text}
-          </div>
+          <div className="break-words leading-relaxed text-stone-700">{item.text}</div>
         </div>
-        <DragHandle props={dragHandle} label={t("Переместить событие")} />
         <ActionMenu actions={actions} />
       </div>
       {editingText && (
@@ -1479,7 +1662,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
 }
 
 // Insurance / SIM card of the first day: price, photo, document.
-function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onChanged, onSaveCost, onSaveCompany }) {
+function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onChanged, onSaveCost }) {
   const costRef = useRef(null);
   const gridRef = useRef(null);
   const actions = [
@@ -1506,13 +1689,7 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
         </span>
       </div>
       <div className="mt-2 break-words font-medium text-stone-700">
-        <InlineText
-          value={extra.company || ""}
-          placeholder={t("Не указано — добавить")}
-          onSave={onSaveCompany}
-          className="max-w-full text-start"
-          inputClassName={inlineInput}
-        />
+        {extra.company || <span className="text-sm font-normal text-stone-400">{t("Не указано")}</span>}
       </div>
       <PlanPhotoGrid ref={gridRef} itemId={itemKey} dayKey={dayKey} photos={photos} onChanged={onChanged} />
     </>
