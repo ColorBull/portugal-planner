@@ -19,6 +19,7 @@ import { isOnline } from "@/api/offline";
 import { driveImageUrl } from "@/api/drive";
 import { syncTripFolder } from "@/api/tripFolders";
 import { useOnline } from "@/lib/useOnline";
+import { seedDemoTrips } from "@/lib/demoTrip";
 import { t } from "@/lib/i18n";
 
 // Photo thumbnails already requested this session. Fetching one through the
@@ -150,6 +151,19 @@ export function TripProvider({ children }) {
       setDaysLoading(false);
     }
   }, []);
+
+  // One-off: fill the family's test trip with demo content (lib/demoTrip.js),
+  // then reload the list and, if it is open, its days.
+  const demoTried = useRef(false);
+  useEffect(() => {
+    if (loading || demoTried.current || !trips.length) return;
+    demoTried.current = true;
+    seedDemoTrips(trips).then((seeded) => {
+      if (!seeded) return;
+      refresh();
+      if (tripId) openTrip(tripId);
+    });
+  }, [loading, trips, tripId, refresh, openTrip]);
 
   // Persist one day's plan and keep the local copy in sync.
   const saveDayPlan = useCallback(

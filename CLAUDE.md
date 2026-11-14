@@ -173,6 +173,15 @@ photo record; files Drive refuses are remembered in `pp_drive_unmovable` and
 left alone (e.g. the Base44-era uploads stay in the root). The app itself never
 needs folder access — files are link-shared and shown by link.
 
+## Demo trip (temporary)
+
+`src/lib/demoTrip.js`, called once per session from `TripContext` after the trip
+list loads: a trip whose city reads "TECT Drive" / "ТЕСТ Drive" (Cyrillic or
+Latin) in 2027 and has no `demo_seeded` flag gets a full 8-day Italy road trip
+written into its days (replacing them), 8 notes, and the flag — so it runs once,
+on the first device that opens the app. No photos. Remove the file and its call
+once the demo is in.
+
 ## Look and feel (Apple-like)
 
 - **Day view** (`DayPlanModal.jsx`) is an iOS inset grouped list on `bg-stone-100`:
