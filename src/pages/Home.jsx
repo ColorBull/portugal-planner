@@ -359,10 +359,15 @@ export default function Home() {
         />
       )}
 
+      {/* One frame for the day view and the Summary: moving between them swaps
+          the content inside it at once. As two separate presences, the one
+          leaving faded and shrank over the one arriving — two scrims, a flash.
+          The closing animation runs only when the frame itself goes. */}
       <AnimatePresence>
-        {selectedKey === SUMMARY_KEY && ready && (
+        {((selectedKey === SUMMARY_KEY && ready) || (selectedDay && !lockedOut)) && (
+        <motion.div key="sheet" exit={{ opacity: 1 }} transition={{ duration: 0.25 }}>
+        {selectedKey === SUMMARY_KEY && ready ? (
           <TripSummaryModal
-            key={SUMMARY_KEY}
             trip={trip}
             tripDays={tripDays}
             days={days}
@@ -371,10 +376,8 @@ export default function Home() {
             lastDay={lastDay}
             onNavigate={setSelectedKey}
           />
-        )}
-        {selectedDay && !lockedOut && (
+        ) : (
           <DayPlanModal
-            key="day"
             plan={selectedPlan}
             dayInfo={selectedDay}
             trip={trip}
@@ -384,6 +387,8 @@ export default function Home() {
             nextDay={tripDays[selectedIndex + 1] || summaryLink}
             onNavigate={setSelectedKey}
           />
+        )}
+        </motion.div>
         )}
       </AnimatePresence>
     </div>
