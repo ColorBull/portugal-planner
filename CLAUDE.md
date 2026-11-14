@@ -113,7 +113,9 @@ insurance/SIM on the old first date.
 
 After the last day tile the grid has one more tile, "Итоги" (trophy), which
 opens `TripSummaryModal` — not a day: no date, not counted. The last day's
-"next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
+"next" button / swipe leads to it (`selectedKey === "summary"`); it and the day view share one
+`AnimatePresence` frame in `Home.jsx`, so moving between them swaps the content
+at once (two separate presences overlapped while one faded out: a flash); it counts as a
 tile in the 30-per-page pagination. Computed from the days: length (days /
 nights), cities by **where the family sleeps** (`overnightCity()` in
 `lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" in edit mode —
