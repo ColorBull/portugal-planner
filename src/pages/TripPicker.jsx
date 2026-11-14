@@ -126,7 +126,7 @@ export default function TripPicker() {
     // address-bar handling never gets involved. The settings and sign-out buttons
     // are at the top of the page and scroll away with it.
     <div className="fixed inset-0 z-10 overflow-y-auto overscroll-contain">
-    <div className="relative flex min-h-full w-full flex-col items-center justify-center px-4 pb-12 pt-20">
+    <div className="relative flex min-h-full w-full flex-col items-center justify-center px-4 pb-12 pt-16 sm:pt-20">
       <SettingsButton calendar />
       <PinnedCorner side="right">
         <button
@@ -140,22 +140,25 @@ export default function TripPicker() {
         </button>
       </PinnedCorner>
       <div className="relative z-10 w-full max-w-3xl">
-        <div className="mx-auto mb-10 w-fit rounded-3xl bg-white/85 px-8 py-6 text-center shadow-sm ring-1 ring-black/5">
+        {/* One compact row on a phone (icon beside the title); centred and large from sm up. */}
+        <div className="mx-auto mb-5 flex w-fit items-center gap-3 rounded-2xl bg-white/85 px-4 py-3 shadow-sm ring-1 ring-black/5 sm:mb-10 sm:flex-col sm:gap-0 sm:rounded-3xl sm:px-8 sm:py-6 sm:text-center">
           <span
-            className="inline-grid h-14 w-14 place-items-center rounded-2xl mb-4 shadow-sm"
+            className="grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-sm sm:mb-4 sm:h-14 sm:w-14 sm:rounded-2xl"
             style={{ backgroundColor: "#1d3b5c", color: "white" }}
           >
-            {showArchive ? <Archive className="h-7 w-7" /> : <Plane className="h-7 w-7" />}
+            {showArchive ? <Archive className="h-5 w-5 sm:h-7 sm:w-7" /> : <Plane className="h-5 w-5 sm:h-7 sm:w-7" />}
           </span>
-          <h1
-            className="font-display text-4xl sm:text-5xl font-semibold tracking-tight"
-            style={{ color: "#1d3b5c" }}
-          >
-            {showArchive ? t("Архив") : t("Куда летим?")}
-          </h1>
-          <p className="text-stone-500 mt-2">
-            {showArchive ? t("Поездки, убранные в архив") : t("Выберите поездку")}
-          </p>
+          <div className="min-w-0">
+            <h1
+              className="font-display text-xl font-semibold leading-tight tracking-tight sm:text-5xl"
+              style={{ color: "#1d3b5c" }}
+            >
+              {showArchive ? t("Архив") : t("Куда летим?")}
+            </h1>
+            <p className="text-sm text-stone-500 sm:mt-2 sm:text-base">
+              {showArchive ? t("Поездки, убранные в архив") : t("Выберите поездку")}
+            </p>
+          </div>
         </div>
 
         {loading ? (

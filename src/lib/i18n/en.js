@@ -502,4 +502,12 @@ export default {
   "Удалить событие": "Delete event",
   "Удалить «{name}» из плана?": "Delete “{name}” from the plan?",
   "Удалить этот файл?": "Delete this file?",
+  "Добавить событие": "Add event",
+  "Изменить иконку": "Change icon",
+  "Удалить блок «{name}» со всеми его событиями?": "Delete the block “{name}” with all its events?",
+  "Название блока": "Block name",
+  "Новое событие — Enter, чтобы добавить": "New event — Enter to add",
+  "Ночуем в…": "Staying in…",
+  "Переместить": "Move",
+  "Переместить событие": "Move event",
 };

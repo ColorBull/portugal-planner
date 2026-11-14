@@ -3,8 +3,8 @@
 A private family trip planner. It started as one hard-coded Portugal itinerary
 (30 Oct – 6 Nov 2026) and is now **multi-trip**: the welcome screen lists trips
 (country / city / year), you pick one, confirm, and land on that trip's
-dashboard. Every day plan is editable in the app — add / edit / delete blocks
-and items, and drag them to reorder. Behind everything sits one vector world
+dashboard. Every day plan is edited right in the day view (there is no separate
+edit screen) — add / rename / delete blocks and items, and drag them to reorder. Behind everything sits one vector world
 map: the trip list shows the whole world, opening a trip zooms into that
 country's continent and tints the country.
 Originally a Base44 app; now a plain **Vite + React** app with its own backend.
@@ -56,7 +56,6 @@ Originally a Base44 app; now a plain **Vite + React** app with its own backend.
 | `src/pages/Home.jsx` | one trip's dashboard (`#/trip/:tripId`) |
 | `src/components/TripSummaryModal.jsx` | the "Итоги" page after the last day |
 | `src/lib/tripSummary.js` | rating questions, per-city / cost stats for it |
-| `src/components/DayPlanEditor.jsx` | edit mode: add/delete/drag blocks & items |
 | `src/components/MapBackdrop.jsx` | the one map layer, above the router so it survives navigation |
 | `src/components/WorldMapBackground.jsx` | draws the map; world ↔ continent is a CSS transform |
 | `src/components/CountrySelect.jsx` | type-to-search country picker with flags |
@@ -87,7 +86,7 @@ chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 `item_id` `"insurance"` / `"sim"`. Spending is **fixed** — shown as "Общий расход"
 (general: flights, hotels, car rental, insurance, SIM, preparations) — or
 **daily** ("Расход дня"); `ExpenseScope.jsx` asks which whenever a price is
-entered (the inline price, the editor, the small-expense form). Insurance / SIM are always fixed; a
+entered (the inline price, the small-expense form). Insurance / SIM are always fixed; a
 plan item is fixed when `item.fixed === true`, or when it sits in a Plane
 ("Перелёт") block and `fixed` isn't `false` — toggled from the item's "⋯" menu,
 shown as a blue badge. The day view ends with "Мелкие расходы" (`DayExpenses` in
@@ -99,8 +98,7 @@ shown as a blue badge. The day view ends with "Мелкие расходы" (`Da
 insurance / sim / prep — stay and transport by the block's icon; fixed small
 expenses are prep)
 for the receipt on the summary page. Items also have an optional start `time`
-and `end_time` ("HH:MM", labelled "Начало" / "Конец", from the "⋯" menu or the
-editor; an end without a start is refused, an end before the start = next day). Times are
+and `end_time` ("HH:MM", labelled "Начало" / "Конец", from the "⋯" menu; an end without a start is refused, an end before the start = next day). Times are
 picked with `TimeSelect.jsx` (hour + minute `<select>`s), never `<input type="time">`:
 Chrome's Android clock dialog clips its "Set" button with a large system font. An
 item with a time (or an "8:00" in its text) has an alarm-clock button / menu entry
@@ -117,7 +115,7 @@ opens `TripSummaryModal` — not a day: no date, not counted. The last day's
 "next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
 tile in the 30-per-page pagination. Computed from the days: length (days /
 nights), cities by **where the family sleeps** (`overnightCity()` in
-`lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" in the editor —
+`lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" under the day's date in the header —
 else read from its city: "A → B" is B, "A — B" / "A, B" is A; names compared
 case-insensitively), so a transfer day is never a city of its own; each day but
 the last gives a night and its spend to that city, the last day's spend goes to
@@ -196,8 +194,7 @@ e-mail). The token is requested with that account as the hint and checked agains
 the account Google really issued it for (`email` scope + userinfo); a token for
 another account is revoked and refused, so a second account on the device is never
 used. "Open Google Calendar" links with `?authuser=<account>`. Push: **only items
-marked `gcal: true`** ("Добавить в Google Calendar" in the item's "⋯" menu, or the
-editor's checkbox; a calendar badge shows on the item) — events of unmarked items are
+marked `gcal: true`** ("Добавить в Google Calendar" in the item's "⋯" menu; a calendar badge shows on the item) — events of unmarked items are
 removed on the next push, and pull ignores them. Each marked item is an event — a
 timed event from `time` to `end_time` (no end = one hour) when it has a start — `itemStart()`: the `time` field, else the first "21:00"-like time in its text, the same rule as the alarm button — in `trip.timezone` (picked in the
 calendar settings; default this device's zone), else all-day (id derived from
@@ -233,9 +230,7 @@ The day view is a full-page sheet on every screen size (`h-dvh`; header, body
 and footer content sit in a centred `max-w-3xl` column). Below Tailwind's `sm`
 (640px) it also has safe-area padding, big touch targets, 16px inputs so iOS
 doesn't zoom, and
-‹ / › day buttons in the footer and a sideways swipe. The editor stacks each item
-into one column; `useIsPhone()` switches the card markup, because the drag handle
-may exist only once per card. Address suggestions are in the flow on phones (a
+‹ / › day buttons in the footer and a sideways swipe. Address suggestions are in the flow on phones (a
 scrolling list inside the scrolling sheet fights for every swipe) and float from
 `sm` up. In the reading view each plan item has one "⋯" menu (`ActionMenu` in
 `DayPlanModal.jsx`, a bottom sheet on phones) instead of add-buttons: price,
@@ -338,7 +333,17 @@ Each device keeps its own copy, so a trip opens with no signal.
 - Day docs are keyed by date (`days/2026-10-30`), and item ids are preserved
   when seeding, so existing notes & photos (which key off `day_key` +
   `item_id`) still line up with the migrated plans.
-- Dragging uses `@hello-pangea/dnd`. It positions the dragged clone with
+- **Editing the day in place** (`DayPlanModal.jsx`): `InlineText` — tap the text,
+  Enter / tap away saves, Esc cancels — for the day's city, "Ночуем в", block
+  titles and the insurance / SIM company; "+ Добавить событие" under each block
+  (Enter adds and keeps the field open; a pasted list = one event per line) and
+  "+ Добавить блок" at the end; a block's "⋯" changes its icon or deletes it
+  (tapping the icon chip opens the picker too). Every change saves at once with
+  `onSave({ sections })`, built from the `latest` ref so quick edits in a row
+  don't start from the same old list.
+- Dragging uses `@hello-pangea/dnd`: a grip (`DragHandle`) on each event and
+  block; events move between blocks too; on a phone, hold the grip a moment. The
+  grips carry `data-no-swipe` so a drag never turns the day. It positions the dragged clone with
   `position: fixed`, which breaks if an ancestor has a CSS transform. The modal
   no longer animates on open (see the black-flash gotcha), so there is no
   transform to wait out — but don't add one to the modal shell.
