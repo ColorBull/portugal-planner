@@ -248,7 +248,9 @@ does not play in an `<audio>` on our origin. The menu drives the children throug
 (`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument/startRecording`,
 `PlanNoteBox.open`). Press-and-hold (right-click on a computer) on a price
 badge, an address link or a note opens a change / delete menu (`useHoldMenu`,
-same gesture as photos); tapping an item's title edits it in place. What is already set (price badge, address link, photos,
+same gesture as photos); tapping an item's title edits it in place. Deleting is also visible: a trash button on
+every photo, document and recording (with a confirm), and red "Удалить …" entries at
+the end of the "⋯" menu for what is set (price, time, address) plus the item itself. What is already set (price badge, address link, photos,
 note) still shows. `formatMoney` joins amount and currency with a non-breaking space so
 they never wrap apart.
 

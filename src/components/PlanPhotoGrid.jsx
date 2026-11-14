@@ -295,6 +295,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
 
   const handleDelete = async (record) => {
     setMenuFor(null);
+    if (!confirm(t("Удалить этот файл?"))) return;
     try {
       await TripPhoto.delete(record.id);
       deleteFromDrive(record.drive_file_id);
@@ -335,6 +336,15 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                 <Mic className="h-4 w-4" />
               </button>
               <AudioPlayer fileId={a.drive_file_id} />
+              <button
+                  type="button"
+                  onClick={() => handleDelete(a)}
+                  className=" grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-red-50 hover:text-red-600"
+                  aria-label={t("Удалить")}
+                  title={t("Удалить")}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
             </div>
           ))}
         </div>
@@ -367,7 +377,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
           {docs.map((d) => {
             const Icon = docIconFor(d.file_name);
             return (
-              <div key={d.id} className="relative select-none">
+              <div key={d.id} className="relative flex items-center select-none">
                 <button
                   type="button"
                   onTouchStart={(e) => startPress(e, d)}
@@ -398,6 +408,15 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                       {fileExt(d.file_name) || t("файл")}
                     </span>
                   </span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(d)}
+                  className=" grid h-8 w-8 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-red-50 hover:text-red-600"
+                  aria-label={t("Удалить")}
+                  title={t("Удалить")}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             );
@@ -436,6 +455,15 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                     className="h-full w-full object-cover pointer-events-none select-none"
                     fittingType="fill"
                   />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(p)}
+                  className="absolute end-1 top-1 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white transition hover:bg-red-600"
+                  aria-label={t("Удалить")}
+                  title={t("Удалить")}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
             </div>
