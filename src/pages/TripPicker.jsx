@@ -40,22 +40,19 @@ function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
   const country = hidden ? null : tripCountry(trip);
   return (
     <div
-      className={`relative rounded-2xl p-5 text-start shadow-sm transition ring-2 ring-transparent hover:ring-[#c4623a] hover:bg-white ${
-        muted ? "bg-white/55" : "bg-white/70"
+      className={`relative rounded-[22px] p-5 text-start shadow-sm ring-1 ring-black/5 transition hover:bg-white ${
+        muted ? "bg-white/60" : "bg-white/90"
       }`}
     >
       <button type="button" onClick={onOpen} className="block w-full text-start pe-10">
-        <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400">
+        <div className="flex items-center gap-1.5 text-[13px] font-medium uppercase tracking-wide text-stone-500">
           {country && <CountryFlag code={country.code} width={18} />}
           {hidden ? t("PIN-код") : countryLabel(trip)}
           {trip.pin_hash && (
             <Lock className="h-3.5 w-3.5 text-[#1d3b5c]" aria-label={t("Закрыта PIN-кодом")} />
           )}
         </div>
-        <div
-          className="mt-0.5 font-display text-2xl font-semibold"
-          style={{ color: muted ? "#5b6b7c" : "#1d3b5c" }}
-        >
+        <div className={`mt-0.5 text-[24px] font-bold leading-tight tracking-tight ${muted ? "text-stone-500" : "text-stone-900"}`}>
           {hidden ? t(PRIVATE_TRIP_LABEL) : trip.city}
         </div>
         {/* The family's score, always on its own line under the name. */}
@@ -67,7 +64,7 @@ function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
             {t("От: {name}", { name: ownerName(trip) })}
           </div>
         )}
-        <div className="flex items-center gap-1.5 text-sm text-stone-500 mt-1.5">
+        <div className="mt-1.5 flex items-center gap-1.5 text-[15px] text-stone-500">
           <MapPin className="h-3.5 w-3.5" />
           {tripYearLabel(trip)}
           {tripRangeLabel(trip) && (
@@ -138,14 +135,14 @@ export default function TripPicker() {
           onClick={signOut}
           title={t("Выйти")}
           aria-label={t("Выйти")}
-          className="grid h-10 w-10 place-items-center rounded-full bg-white/85 text-stone-500 shadow-sm ring-1 ring-stone-200 transition hover:text-stone-800"
+          className="grid h-10 w-10 place-items-center rounded-full bg-white/90 text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:bg-white"
         >
           <LogOut className="h-4 w-4" />
         </button>
       </PinnedCorner>
       <div className="relative z-10 w-full max-w-3xl">
         {/* One compact row on a phone (icon beside the title); centred and large from sm up. */}
-        <div className="mx-auto mb-5 flex w-fit items-center gap-3 rounded-2xl bg-white/85 px-4 py-3 shadow-sm ring-1 ring-black/5 sm:mb-10 sm:flex-col sm:gap-0 sm:rounded-3xl sm:px-8 sm:py-6 sm:text-center">
+        <div className="mx-auto mb-5 flex w-fit items-center gap-3 rounded-[22px] bg-white/90 px-4 py-3 shadow-sm ring-1 ring-black/5 sm:mb-10 sm:flex-col sm:gap-0 sm:rounded-[28px] sm:px-8 sm:py-6 sm:text-center">
           <span
             className="grid h-10 w-10 shrink-0 place-items-center rounded-xl shadow-sm sm:mb-4 sm:h-14 sm:w-14 sm:rounded-2xl"
             style={{ backgroundColor: "#1d3b5c", color: "white" }}
@@ -153,13 +150,10 @@ export default function TripPicker() {
             {showArchive ? <Archive className="h-5 w-5 sm:h-7 sm:w-7" /> : <Plane className="h-5 w-5 sm:h-7 sm:w-7" />}
           </span>
           <div className="min-w-0">
-            <h1
-              className="font-display text-xl font-semibold leading-tight tracking-tight sm:text-5xl"
-              style={{ color: "#1d3b5c" }}
-            >
+            <h1 className="text-[22px] font-bold leading-tight tracking-tight text-stone-900 sm:text-5xl">
               {showArchive ? t("Архив") : t("Куда летим?")}
             </h1>
-            <p className="text-sm text-stone-500 sm:mt-2 sm:text-base">
+            <p className="text-[15px] text-stone-500 sm:mt-2 sm:text-lg">
               {showArchive ? t("Поездки, убранные в архив") : t("Выберите поездку")}
             </p>
           </div>
@@ -174,9 +168,9 @@ export default function TripPicker() {
             <button
               type="button"
               onClick={() => setShowArchive(false)}
-              className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/80 px-4 py-2 text-sm font-medium text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:text-[#1d3b5c]"
+              className="mb-4 inline-flex h-10 items-center gap-0.5 rounded-full bg-white/90 pe-3.5 ps-2 text-[17px] text-[#2c5f8a] shadow-sm ring-1 ring-black/5 transition hover:bg-white"
             >
-              <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+              <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
               {t("К поездкам")}
             </button>
 
@@ -255,7 +249,7 @@ export default function TripPicker() {
             <button
               type="button"
               onClick={() => setShowArchive(true)}
-              className="mx-auto mt-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white/70 px-5 text-[15px] font-medium text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:bg-white hover:text-[#1d3b5c]"
+              className="mx-auto mt-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white/90 px-5 text-[15px] font-medium text-[#2c5f8a] shadow-sm ring-1 ring-black/5 transition hover:bg-white"
             >
               <Archive className="h-5 w-5" />
               <span className="font-medium">{t("Архив")}</span>

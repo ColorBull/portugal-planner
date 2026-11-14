@@ -41,7 +41,7 @@ function NoteText({ text }) {
       {(overflows || expanded) && (
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mt-1 text-xs font-medium text-blue-700 hover:text-blue-900 transition"
+          className="mt-1 text-xs font-medium text-[#2c5f8a] hover:opacity-80 transition"
         >
           {expanded ? t("Свернуть") : t("Читать далее…")}
         </button>
@@ -146,7 +146,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
 
   if (editing) {
     return (
-      <div className="mt-3 ms-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+      <div className="mt-2.5 rounded-xl bg-stone-100 p-3">
         <textarea
           value={draft.text}
           onChange={(e) => setDraft({ ...draft, text: e.target.value })}
@@ -173,7 +173,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
           <button
             onClick={save}
             disabled={saving}
-            className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full bg-stone-800 text-white hover:bg-stone-700 transition disabled:opacity-60"
+            className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3.5 py-2 sm:px-3 sm:py-1.5 rounded-full bg-[#1d3b5c] text-white hover:bg-[#2c5f8a] transition disabled:opacity-60"
           >
             {saving ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -190,7 +190,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
   if (!note) return null;
 
   return (
-    <div {...bind} className="mt-3 ms-1 rounded-2xl bg-white/70 ring-1 ring-stone-200 p-3">
+    <div {...bind} className="mt-2.5 rounded-xl bg-stone-100 px-3 pb-1 pt-2.5">
       {menu}
       {note.text && <NoteText text={note.text} />}
       {note.link && (
@@ -202,7 +202,7 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
             e.preventDefault();
             openExternal(normalizeLink(note.link));
           }}
-          className="mt-1.5 inline-flex items-center gap-1.5 text-sm text-blue-700 hover:text-blue-900 break-all"
+          className="mt-1.5 inline-flex items-center gap-1.5 break-all text-[15px] text-[#2c5f8a]"
         >
           <Link2 className="h-4 w-4 shrink-0" />
           <span className="underline decoration-dotted underline-offset-2">
@@ -210,18 +210,19 @@ const PlanNoteBox = forwardRef(function PlanNoteBox({ itemId, dayKey }, ref) {
           </span>
         </a>
       )}
-      <div className="mt-2 flex gap-1.5">
+      {/* Quiet text actions, still in sight (the family likes them visible). */}
+      <div className="-ms-2 mt-1 flex">
         <button
           onClick={startEdit}
-          className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition"
+          className="inline-flex min-h-9 items-center rounded-full px-2 text-[15px] text-[#2c5f8a] transition hover:bg-black/5"
         >
-          <Pencil className="h-3.5 w-3.5" /> {t("Изменить")}
+          {t("Изменить")}
         </button>
         <button
           onClick={remove}
-          className="inline-flex items-center gap-1 text-[13px] sm:text-xs font-medium px-3 py-1.5 sm:px-2.5 sm:py-1 rounded-full text-red-500 hover:bg-red-50 transition"
+          className="inline-flex min-h-9 items-center rounded-full px-2 text-[15px] text-red-600 transition hover:bg-black/5"
         >
-          <Trash2 className="h-3.5 w-3.5" /> {t("Удалить")}
+          {t("Удалить")}
         </button>
       </div>
     </div>

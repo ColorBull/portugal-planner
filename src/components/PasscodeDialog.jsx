@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, Lock } from "lucide-react";
+import Sheet, { SheetButton, pinInput } from "@/components/Sheet";
 import { sha256, hashPin, isTripLocked } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
 
@@ -40,53 +40,34 @@ export default function PasscodeDialog({ title, message, trip, onConfirm, onClos
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-stone-950/60" onClick={busy ? undefined : onClose} />
-      <form
-        onSubmit={submit}
-        className="relative w-full max-w-sm rounded-3xl p-6 shadow-2xl"
-        style={{ backgroundColor: "#fbf7f0" }}
-      >
-        <div className="flex items-center gap-2 text-[#a8451f]">
-          <Lock className="h-4 w-4" />
-          <h2 className="font-display text-xl font-semibold">{title}</h2>
-        </div>
-        <p className="mt-2 text-sm text-stone-600">{message}</p>
-
-        <input
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          autoFocus
-          value={code}
-          onChange={(e) => {
-            setCode(e.target.value);
-            setError(null);
-          }}
-          placeholder={locked ? t("PIN-код поездки") : t("Код")}
-          className="mt-4 w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 outline-none transition focus:border-[#a8451f] focus:ring-2 focus:ring-[#a8451f]/20"
-        />
-        {error && <p className="mt-2 text-sm text-[#a8451f]">{error}</p>}
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            className="rounded-full px-4 py-2 text-sm font-medium text-stone-500 transition hover:text-stone-800 disabled:opacity-50"
-          >
-            {t("Отмена")}
-          </button>
-          <button
-            type="submit"
-            disabled={busy || !code}
-            className="inline-flex items-center gap-1.5 rounded-full bg-[#a8451f] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#8f3a19] disabled:opacity-50"
-          >
-            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
-            {t("Удалить навсегда")}
-          </button>
-        </div>
-      </form>
-    </div>
+    <Sheet
+      as="form"
+      onSubmit={submit}
+      onClose={onClose}
+      busy={busy}
+      title={title}
+      subtitle={message}
+      footer={
+        <SheetButton type="submit" danger busy={busy} disabled={!code}>
+          {t("Удалить навсегда")}
+        </SheetButton>
+      }
+    >
+      <input
+        type="password"
+        inputMode="numeric"
+        autoComplete="off"
+        autoFocus
+        value={code}
+        onChange={(e) => {
+          setCode(e.target.value);
+          setError(null);
+        }}
+        placeholder={locked ? t("PIN-код поездки") : t("Код")}
+        aria-label={locked ? t("PIN-код поездки") : t("Код")}
+        className={`${pinInput} placeholder:text-base placeholder:tracking-normal`}
+      />
+      {error && <p className="mt-2 px-4 text-[15px] text-[#a8451f]">{error}</p>}
+    </Sheet>
   );
 }

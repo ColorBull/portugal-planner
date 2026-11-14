@@ -1,15 +1,8 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
-import { X, Loader2, Globe2 } from "lucide-react";
 import CountrySelect from "@/components/CountrySelect";
+import Sheet, { SheetButton, SheetGroup, SheetRow, sheetInput } from "@/components/Sheet";
 import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/money";
 import { t } from "@/lib/i18n";
-
-const field =
-  "w-full rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-stone-800 " +
-  "outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20";
-
-const label = "block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1.5";
 
 const emptyTrip = {
   country: "",
@@ -69,134 +62,55 @@ export default function TripFormModal({ trip, onSave, onClose }) {
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      initial={false}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
+    <Sheet
+      as="form"
+      onSubmit={submit}
+      onClose={onClose}
+      busy={saving}
+      title={trip ? t("Изменить поездку") : t("Новая поездка")}
+      subtitle={t("Куда летим?")}
+      footer={
+        <SheetButton type="submit" busy={saving}>
+          {t("Сохранить")}
+        </SheetButton>
+      }
     >
-      <div
-        className="absolute inset-0 bg-stone-950/60 animate-in fade-in duration-200"
-        onClick={onClose}
-      />
+      <SheetGroup>
+        <SheetRow label={t("Страна")} htmlFor="trip-country">
+          <CountrySelect id="trip-country" value={form.countryCode} fallbackName={form.country} onChange={setCountry} plain />
+        </SheetRow>
+        <SheetRow label={t("Город")} htmlFor="trip-city">
+          <input id="trip-city" className={sheetInput} value={form.city} onChange={set("city")} placeholder={t("Краков")} />
+        </SheetRow>
+      </SheetGroup>
 
-      <motion.form
-        onSubmit={submit}
-        className="relative w-full max-w-md overflow-hidden rounded-3xl shadow-2xl"
-        style={{ backgroundColor: "#fbf7f0" }}
-        initial={false}
-        exit={{ scale: 0.96, y: 16, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 26 }}
-      >
-        <div
-          className="relative px-7 py-6"
-          style={{
-            background: "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-5 end-5 grid h-9 w-9 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25"
-            aria-label={t("Закрыть")}
+      <SheetGroup>
+        <SheetRow label={t("Вылет")} htmlFor="trip-start">
+          <input id="trip-start" type="date" className={sheetInput} value={form.startDate} onChange={set("startDate")} />
+        </SheetRow>
+        <SheetRow label={t("Возвращение")} htmlFor="trip-end">
+          <input id="trip-end" type="date" className={sheetInput} value={form.endDate} onChange={set("endDate")} />
+        </SheetRow>
+      </SheetGroup>
+
+      <SheetGroup>
+        <SheetRow label={t("Валюта расходов")} htmlFor="trip-currency">
+          <select
+            id="trip-currency"
+            className={sheetInput}
+            value={form.currency || DEFAULT_CURRENCY}
+            onChange={set("currency")}
           >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="flex items-center gap-2 text-white/70 text-xs font-semibold tracking-widest uppercase">
-            <Globe2 className="h-4 w-4" />
-            {trip ? t("Изменить поездку") : t("Новая поездка")}
-          </div>
-          <h2 className="mt-2 font-display text-2xl font-semibold text-white">
-            {t("Куда летим?")}
-          </h2>
-        </div>
+            {CURRENCIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+        </SheetRow>
+      </SheetGroup>
 
-        <div className="px-7 py-6 space-y-4">
-          <div>
-            <label className={label} htmlFor="trip-country">{t("Страна")}</label>
-            <CountrySelect
-              id="trip-country"
-              value={form.countryCode}
-              fallbackName={form.country}
-              onChange={setCountry}
-            />
-          </div>
-
-          <div>
-            <label className={label} htmlFor="trip-city">{t("Город")}</label>
-            <input
-              id="trip-city"
-              className={field}
-              value={form.city}
-              onChange={set("city")}
-              placeholder={t("Краков")}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={label} htmlFor="trip-start">{t("Вылет")}</label>
-              <input
-                id="trip-start"
-                type="date"
-                className={field}
-                value={form.startDate}
-                onChange={set("startDate")}
-              />
-            </div>
-            <div>
-              <label className={label} htmlFor="trip-end">{t("Возвращение")}</label>
-              <input
-                id="trip-end"
-                type="date"
-                className={field}
-                value={form.endDate}
-                onChange={set("endDate")}
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className={label} htmlFor="trip-currency">{t("Валюта расходов")}</label>
-            <select
-              id="trip-currency"
-              className={field}
-              value={form.currency || DEFAULT_CURRENCY}
-              onChange={set("currency")}
-            >
-              {CURRENCIES.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {error && <p className="text-sm text-[#a8451f]">{error}</p>}
-        </div>
-
-        <div
-          className="px-7 py-4 flex justify-end gap-2 border-t"
-          style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-xl px-4 py-2.5 text-stone-600 font-medium transition hover:bg-stone-200/60"
-          >
-            {t("Отмена")}
-          </button>
-          <button
-            type="submit"
-            disabled={saving}
-            className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 font-semibold text-white shadow-sm transition disabled:opacity-60"
-            style={{ backgroundColor: "#1d3b5c" }}
-          >
-            {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            {t("Сохранить")}
-          </button>
-        </div>
-      </motion.form>
-    </motion.div>
+      {error && <p className="px-4 text-[15px] text-[#a8451f]">{error}</p>}
+    </Sheet>
   );
 }

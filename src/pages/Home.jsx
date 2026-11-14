@@ -129,20 +129,21 @@ export default function Home() {
       <button
         type="button"
         onClick={() => navigate("/")}
-        className="fixed top-3 start-3 z-40 inline-flex items-center gap-1 rounded-full bg-white/70 px-3 py-2 text-sm text-stone-500 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800"
+        // iOS back button: accent text with a chevron, on a plate over the map.
+        className="fixed start-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 inline-flex h-10 items-center gap-0.5 rounded-full bg-white/90 pe-3.5 ps-2 text-[17px] text-[#2c5f8a] shadow-sm ring-1 ring-black/5 transition hover:bg-white"
       >
-        <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+        <ChevronLeft className="h-5 w-5 rtl:rotate-180" />
         {t("Поездки")}
       </button>
 
       {trip && !lockedOut && (
-        <div className="fixed top-3 end-3 z-40 flex gap-2">
+        <div className="fixed end-3 top-[max(0.75rem,env(safe-area-inset-top))] z-40 flex gap-2">
           {ready && (
             <button
               type="button"
               onClick={() => setExportOpen(true)}
-              className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
-                trip.export_doc_id ? "text-[#1d3b5c]" : "text-stone-400"
+              className={`grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow-sm ring-1 ring-black/5 transition hover:bg-white ${
+                trip.export_doc_id ? "text-[#2c5f8a]" : "text-stone-500"
               }`}
               aria-label={t("Выгрузить поездку в Google Drive для NotebookLM")}
               title={t("Выгрузить в Google Drive для NotebookLM")}
@@ -154,8 +155,8 @@ export default function Home() {
             <button
               type="button"
               onClick={() => setLockDialog(isTripLocked(trip) ? "manage" : "setup")}
-              className={`grid h-10 w-10 place-items-center rounded-full bg-white/70 shadow-sm ring-1 ring-stone-200 backdrop-blur transition hover:text-stone-800 ${
-                isTripLocked(trip) ? "text-[#1d3b5c]" : "text-stone-400"
+              className={`grid h-10 w-10 place-items-center rounded-full bg-white/90 shadow-sm ring-1 ring-black/5 transition hover:bg-white ${
+                isTripLocked(trip) ? "text-[#2c5f8a]" : "text-stone-500"
               }`}
               aria-label={isTripLocked(trip) ? t("Поездка закрыта PIN-кодом") : t("Закрыть поездку PIN-кодом")}
               title={isTripLocked(trip) ? t("Поездка закрыта PIN-кодом") : t("Закрыть поездку PIN-кодом")}
@@ -168,11 +169,8 @@ export default function Home() {
 
       <div className="relative z-10 w-full max-w-3xl">
         {/* Sat on a plate: the map behind it is too busy to read text off. */}
-        <div className="mx-auto mb-7 sm:mb-5 w-fit rounded-2xl bg-white/85 px-6 py-3.5 sm:py-3 text-center shadow-sm ring-1 ring-black/5">
-          <h1
-            className="font-display text-3xl sm:text-4xl font-semibold tracking-tight"
-            style={{ color: "#1d3b5c" }}
-          >
+        <div className="mx-auto mb-7 w-fit rounded-[22px] bg-white/90 px-6 py-3 text-center shadow-sm ring-1 ring-black/5 sm:mb-5">
+          <h1 className="text-[28px] font-bold leading-tight tracking-tight text-stone-900 sm:text-4xl">
             {!trip ? t("Загрузка…") : hidden ? t(PRIVATE_TRIP_LABEL) : `${trip.city} ${tripYearLabel(trip)}`}
           </h1>
           {trip && !hidden && !lockedOut && (
@@ -184,7 +182,7 @@ export default function Home() {
             />
           )}
           {trip && !hidden && (
-            <p className="mt-1 flex items-center justify-center gap-2 text-sm text-stone-500">
+            <p className="mt-1 flex items-center justify-center gap-2 text-[15px] text-stone-500">
               {country && <CountryFlag code={country.code} width={20} />}
               {countryLabel(trip)}
             </p>

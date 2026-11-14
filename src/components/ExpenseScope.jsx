@@ -6,6 +6,7 @@ import { t } from "@/lib/i18n";
 // insurance…), left out of the day and added up in the trip's summary.
 // `value` is `fixed` (true = general). Asked whenever a price is entered.
 //
+// An iOS segmented control: the chosen one a white segment on grey.
 // The buttons never take focus (mousedown is cancelled), so picking one while
 // typing a price doesn't blur the field and save it half-way.
 export default function ExpenseScope({ value, onChange, className = "" }) {
@@ -21,10 +22,9 @@ export default function ExpenseScope({ value, onChange, className = "" }) {
           e.stopPropagation();
           if (!on) onChange(fixed);
         }}
-        className={`inline-flex min-h-9 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 text-[13px] font-medium transition sm:min-h-0 sm:flex-none sm:py-1 sm:text-xs ${
-          on ? "shadow-sm" : "text-stone-500 hover:text-stone-800"
+        className={`inline-flex min-h-8 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[7px] px-3 text-[13px] font-medium transition sm:flex-none ${
+          on ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
         }`}
-        style={on ? { backgroundColor: fixed ? "#1d3b5c" : "#3a7ca5", color: "white" } : undefined}
       >
         <Icon className="h-3.5 w-3.5 shrink-0" />
         {label}
@@ -36,7 +36,7 @@ export default function ExpenseScope({ value, onChange, className = "" }) {
       role="radiogroup"
       aria-label={t("Как учитывать расход")}
       data-no-swipe
-      className={`inline-flex items-center gap-0.5 rounded-full bg-stone-200/70 p-0.5 ${className}`}
+      className={`inline-flex items-center gap-0.5 rounded-[9px] bg-stone-200 p-0.5 ${className}`}
     >
       {option(false, CalendarDays, t("Расход дня"))}
       {option(true, Receipt, t("Общий расход"))}

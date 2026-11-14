@@ -139,34 +139,33 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
       >
-        {/* Header band */}
+        {/* Large-title header on the page, as in the day view. */}
         <div
-          className="shrink-0 px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-6 sm:pt-7"
-          style={{ background: "linear-gradient(135deg, #1d3b5c 0%, #2c5f8a 55%, #3a7ca5 100%)" }}
+          className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-4 sm:pt-7"
+          style={{ backgroundColor: "#fbf7f0" }}
         >
           <div className="relative mx-auto w-full max-w-3xl">
             <button
               onClick={onClose}
-              className="absolute end-0 top-0 grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90 transition hover:bg-white/25 active:bg-white/25 sm:h-9 sm:w-9"
+              className="absolute end-0 top-0 grid h-11 w-11 place-items-center rounded-full bg-stone-200 text-stone-600 transition hover:bg-stone-300 sm:h-9 sm:w-9"
               aria-label={t("Закрыть")}
             >
               <X className="h-5 w-5" />
             </button>
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-white/70">
-              <Trophy className="h-4 w-4" />
+            <div className="flex min-h-11 items-center gap-1.5 pe-14 text-[13px] font-semibold uppercase tracking-wide text-stone-500 sm:min-h-9">
+              <Trophy className="h-4 w-4" style={{ color: "#c4623a" }} />
               {t("Итоги поездки")}
             </div>
-            <h2 className="mt-1.5 max-w-[calc(100%-3.5rem)] font-display text-2xl font-semibold leading-tight text-white sm:mt-2 sm:text-4xl">
+            <h2 className="break-words text-[32px] font-bold leading-[1.15] tracking-tight text-stone-900 sm:text-4xl">
               {trip ? `${trip.city} ${tripYearLabel(trip)}` : ""}
             </h2>
             {avg !== null && <TripRatingBadge trip={trip} size="lg" className="mt-2" />}
-            <div className="mt-1.5 flex items-center gap-1.5 text-sm text-white/75">
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[15px] text-stone-500">
               {trip?.country && (
-                <>
-                  <MapPin className="h-4 w-4" />
+                <span className="inline-flex items-center gap-1">
+                  <MapPin className="h-4 w-4 shrink-0" />
                   {countryLabel(trip)}
-                  <span className="mx-1.5 text-white/30">·</span>
-                </>
+                </span>
               )}
               <span dir="auto">{tripRangeLabel(trip)}</span>
             </div>
@@ -335,16 +334,13 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
         </div>
 
         {/* Footer */}
-        <div
-          className="shrink-0 border-t px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5"
-          style={{ borderColor: "#ece3d4", backgroundColor: "#f7f1e6" }}
-        >
+        <div className="shrink-0 border-t border-stone-200 bg-white px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-5 sm:py-2.5">
           <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-2">
             {lastDay && onNavigate ? (
               <button
                 type="button"
                 onClick={() => onNavigate(lastDay.key)}
-                className="inline-flex min-h-11 w-24 shrink-0 items-center justify-start gap-1 rounded-xl px-2 text-sm font-medium text-stone-600 transition hover:bg-stone-200/60 active:bg-stone-200/60"
+                className="inline-flex min-h-11 min-w-24 max-w-[45%] shrink-0 items-center justify-start gap-1 whitespace-nowrap rounded-xl px-2 text-[15px] text-[#2c5f8a] transition hover:bg-stone-100"
                 aria-label={t("Предыдущий день")}
               >
                 <ChevronLeft className="h-4 w-4 shrink-0 rtl:rotate-180" />
@@ -412,8 +408,7 @@ function ReceiptView({ costs, currency }) {
         {money(costs.daily)}
       </div>
       <div
-        className={`${row} mt-3 border-t-2 border-double border-stone-400 pt-3 font-display text-lg font-semibold`}
-        style={{ color: "#1d3b5c" }}
+        className={`${row} mt-3 border-t border-stone-300 pt-3 text-[17px] font-bold text-stone-900`}
       >
         <span>{t("Итого за поездку")}</span>
         {money(costs.total)}
@@ -424,12 +419,12 @@ function ReceiptView({ costs, currency }) {
 
 function StatCard({ Icon, label, children, className = "" }) {
   return (
-    <div className={`min-w-0 rounded-2xl border bg-white/70 p-4 ${className}`} style={{ borderColor: "#ece3d4" }}>
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
-        <Icon className="h-4 w-4" style={{ color: "#3a7ca5" }} />
+    <div className={`min-w-0 rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${className}`}>
+      <div className="flex items-center gap-1.5 text-[13px] text-stone-500">
+        <Icon className="h-4 w-4 text-[#2c5f8a]" />
         {label}
       </div>
-      <div className="mt-1.5 font-display text-2xl font-semibold leading-tight tabular-nums" style={{ color: "#1d3b5c" }}>
+      <div className="mt-1 text-[24px] font-bold leading-tight tabular-nums text-stone-900">
         {children}
       </div>
     </div>
@@ -439,17 +434,14 @@ function StatCard({ Icon, label, children, className = "" }) {
 function Section({ Icon, title, aside, children }) {
   return (
     <section>
-      <div className="mb-3 flex items-center gap-3">
-        <span
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-xl"
-          style={{ backgroundColor: "#e8eef5", color: "#1d3b5c" }}
-        >
-          <Icon className="h-5 w-5" />
+      <div className="mb-2 flex min-h-11 items-center gap-2.5 pe-1 ps-2">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ backgroundColor: "#2c5f8a" }}>
+          <Icon className="h-4 w-4" />
         </span>
-        <h3 className="min-w-0 flex-1 font-heading text-lg font-semibold leading-tight text-stone-800">{title}</h3>
+        <h3 className="min-w-0 flex-1 text-[20px] font-bold leading-tight tracking-tight text-stone-900">{title}</h3>
         {aside}
       </div>
-      <div className="rounded-2xl border bg-white/70 p-4" style={{ borderColor: "#ece3d4" }}>
+      <div className="rounded-2xl bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
         {children}
       </div>
     </section>
