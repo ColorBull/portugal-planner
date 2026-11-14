@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { Loader2, Trash2, FileText, FileType, File, Mic, Square, X } from "lucide-react";
+import { Loader2, Trash2, FileText, FileType, File, Mic, Square, X, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TripPhoto } from "@/api/entities";
 import {
@@ -8,6 +8,7 @@ import {
   driveImageUrl,
   driveViewUrl,
   hasDriveAccess,
+  downloadDriveFile,
 } from "@/api/drive";
 import { isOnline } from "@/api/offline";
 import { tripUploadFolder } from "@/api/tripFolders";
@@ -23,8 +24,45 @@ const LONG_PRESS_MS = 450;
 const isDocument = (p) => p.kind === "document";
 const isAudio = (p) => p.kind === "audio";
 
-// Link-shared Drive file streamed straight into <audio> (media needs no CORS).
-const driveAudioUrl = (id) => `https://drive.google.com/uc?export=download&id=${id}`;
+// Drive's download links refuse to play in an <audio> on another site. So: the
+// bytes through the API where this account may read them (its own uploads), else
+// Drive's own embeddable player (anyone with the link).
+function AudioPlayer({ fileId }) {
+  const [src, setSrc] = useState(null); // blob: URL, or "embed"
+  const [loading, setLoading] = useState(false);
+  useEffect(() => () => src?.startsWith("blob:") && URL.revokeObjectURL(src), [src]);
+  const load = async () => {
+    setLoading(true);
+    try {
+      setSrc(URL.createObjectURL(await downloadDriveFile(fileId)));
+    } catch {
+      setSrc("embed");
+    } finally {
+      setLoading(false);
+    }
+  };
+  if (src === "embed")
+    return (
+      <iframe
+        src={`https://drive.google.com/file/d/${fileId}/preview`}
+        title={t("Голосовая запись")}
+        allow="autoplay"
+        className="h-24 min-w-0 flex-1 rounded-xl ring-1 ring-stone-200"
+      />
+    );
+  if (src) return <audio controls autoPlay src={src} className="h-9 min-w-0 max-w-full flex-1" />;
+  return (
+    <button
+      type="button"
+      onClick={load}
+      disabled={loading}
+      className="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-2 text-[13px] font-medium text-stone-700 ring-1 ring-stone-200 transition hover:ring-stone-300 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+    >
+      {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5 fill-current" />}
+      {t("Слушать")}
+    </button>
+  );
+}
 
 const audioExt = (type = "") => (type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm");
 
@@ -296,7 +334,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
               >
                 <Mic className="h-4 w-4" />
               </button>
-              <audio controls preload="none" src={driveAudioUrl(a.drive_file_id)} className="h-9 min-w-0 max-w-full flex-1" />
+              <AudioPlayer fileId={a.drive_file_id} />
             </div>
           ))}
         </div>
