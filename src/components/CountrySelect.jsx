@@ -11,7 +11,8 @@ import { t } from "@/lib/i18n";
  * `value` is an alpha-2 code; `fallbackName` keeps the free text of trips saved
  * before this picker existed.
  */
-export default function CountrySelect({ id, value, fallbackName, onChange }) {
+// `plain`: no frame, for a row of a sheet (components/Sheet.jsx).
+export default function CountrySelect({ id, value, fallbackName, onChange, plain = false }) {
   const selected = useMemo(
     () => findCountry(value) || findCountry(fallbackName),
     [value, fallbackName]
@@ -84,7 +85,11 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
             placeholder={t("Начните вводить страну…")}
             autoComplete="off"
             autoFocus
-            className="w-full rounded-xl border border-stone-200 bg-white py-2.5 ps-9 pe-3.5 text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+            className={
+              plain
+                ? "w-full bg-transparent py-3 ps-9 pe-1 text-[17px] text-stone-900 outline-none"
+                : "w-full rounded-xl border border-stone-200 bg-white py-2.5 ps-9 pe-3.5 text-stone-800 outline-none transition focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+            }
           />
         </div>
       ) : (
@@ -95,7 +100,11 @@ export default function CountrySelect({ id, value, fallbackName, onChange }) {
             setQuery("");
             setOpen(true);
           }}
-          className="flex w-full items-center gap-2 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-start text-stone-800 outline-none transition hover:border-stone-300 focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+          className={
+            plain
+              ? "flex w-full items-center gap-2 py-3 text-start text-[17px] text-stone-900 outline-none"
+              : "flex w-full items-center gap-2 rounded-xl border border-stone-200 bg-white px-3.5 py-2.5 text-start text-stone-800 outline-none transition hover:border-stone-300 focus:border-[#3a7ca5] focus:ring-2 focus:ring-[#3a7ca5]/20"
+          }
         >
           {selected ? (
             <CountryFlag code={selected.code} width={22} />

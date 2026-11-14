@@ -47,7 +47,7 @@ function timeZones(...extra) {
 }
 
 const action =
-  "inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium " +
+  "inline-flex min-h-[50px] w-full items-center justify-center gap-2 rounded-2xl px-4 text-[17px] font-semibold " +
   "transition disabled:opacity-50";
 
 function describe(change) {
@@ -180,23 +180,25 @@ export default function CalendarSettings({ onBack }) {
       <button
         type="button"
         onClick={onBack}
-        className="mb-3 inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-medium text-stone-500 transition hover:text-stone-800"
+        className="mb-2 -ms-1 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[17px] text-[#2c5f8a] transition hover:bg-black/5"
       >
-        <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
+        <ArrowLeft className="h-5 w-5 rtl:rotate-180" />
         {t("Назад")}
       </button>
 
-      <h3 className="flex items-center gap-2 font-display text-lg font-semibold text-[#1d3b5c]">
-        <CalendarDays className="h-5 w-5" />
+      <h3 className="flex items-center gap-2.5 px-1 text-[20px] font-bold leading-tight tracking-tight text-stone-900">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ backgroundColor: "#2c5f8a" }}>
+          <CalendarDays className="h-4 w-4" />
+        </span>
         {t("Синхронизация с Google Calendar")}
       </h3>
-      <div className="mt-3 rounded-xl bg-white p-3 ring-1 ring-stone-200">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+      <div className="mt-4 rounded-2xl bg-white p-4">
+        <p className="text-[13px] uppercase tracking-wide text-stone-500">
           {t("Аккаунт Google для календаря")}
         </p>
         <div className="mt-1.5 flex items-center gap-2">
           <UserRound className="h-4 w-4 shrink-0 text-stone-400" />
-          <span dir="ltr" className="min-w-0 flex-1 truncate text-sm font-medium text-stone-700">
+          <span dir="ltr" className="min-w-0 flex-1 truncate text-[17px] text-stone-900">
             {account || "—"}
           </span>
           {connected && connected === account && (
@@ -210,42 +212,38 @@ export default function CalendarSettings({ onBack }) {
           type="button"
           onClick={chooseAccount}
           disabled={!!busy}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-[#1d3b5c] ring-1 ring-stone-300 transition hover:bg-stone-100 disabled:opacity-50"
+          className="-ms-2 mt-1 inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-[17px] text-[#2c5f8a] transition hover:bg-black/5 disabled:opacity-50"
         >
           {busy === "account" ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserRound className="h-4 w-4" />}
           {t("Сменить аккаунт")}
         </button>
-        <p className="mt-1.5 text-xs text-stone-400">
+        <p className="text-[13px] leading-snug text-stone-500">
           {t("Синхронизация идёт только с этим аккаунтом, даже если на устройстве их несколько.")}
         </p>
       </div>
 
-      <p className="mt-4 text-sm text-stone-500">{t("Выберите поездку")}</p>
+      <p className="mb-1.5 mt-5 px-4 text-[13px] uppercase tracking-wide text-stone-500">{t("Выберите поездку")}</p>
 
       {visible.length === 0 ? (
         <p className="mt-3 text-sm text-stone-400">{t("Нет доступных поездок.")}</p>
       ) : (
-        <div className="mt-3 space-y-2">
+        <div className="divide-y divide-stone-200 overflow-hidden rounded-2xl bg-white">
           {visible.map((x) => (
             <button
               key={x.id}
               type="button"
+              role="radio"
+              aria-checked={x.id === tripId}
               onClick={() => choose(x.id)}
-              className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3 text-start text-sm transition ${
-                x.id === tripId
-                  ? "bg-[#1d3b5c] text-white"
-                  : "bg-white text-stone-700 ring-1 ring-stone-200 hover:bg-stone-100"
-              }`}
+              className="flex min-h-[56px] w-full items-center justify-between gap-3 px-4 py-2.5 text-start transition hover:bg-stone-100"
             >
               <span className="min-w-0">
-                <span className="block truncate font-medium">
+                <span className="block truncate text-[17px] text-stone-900">
                   {x.city} {tripYearLabel(x)}
                 </span>
-                <span className={`block truncate text-xs ${x.id === tripId ? "text-white/70" : "text-stone-400"}`}>
-                  {countryLabel(x)}
-                </span>
+                <span className="block truncate text-[13px] text-stone-500">{countryLabel(x)}</span>
               </span>
-              {x.id === tripId && <Check className="h-4 w-4 shrink-0" />}
+              {x.id === tripId && <Check className="h-5 w-5 shrink-0 text-[#2c5f8a]" strokeWidth={2.5} />}
             </button>
           ))}
         </div>
@@ -297,7 +295,7 @@ export default function CalendarSettings({ onBack }) {
             type="button"
             onClick={pull}
             disabled={!!busy}
-            className={`${action} bg-white text-stone-700 ring-1 ring-stone-300 hover:bg-stone-100`}
+            className={`${action} bg-white text-[#2c5f8a] hover:bg-stone-100`}
           >
             {busy === "pull" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
             {busy === "pull" ? t("Ищу изменения…") : t("Забрать из календаря")}
@@ -306,7 +304,7 @@ export default function CalendarSettings({ onBack }) {
       )}
 
       {changes && (
-        <div className="mt-4 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
+        <div className="mt-4 rounded-2xl bg-white p-4">
           <p className="text-sm text-stone-600">
             {t("Найдено изменений: {n}. Снимите галочки с лишних и примените.", { n: changes.length })}
           </p>
@@ -350,7 +348,7 @@ export default function CalendarSettings({ onBack }) {
           href={calendarWebUrl(account)}
           target="_blank"
           rel="noreferrer"
-          className="mt-2 inline-flex items-center gap-1.5 text-sm text-blue-700 hover:text-blue-900"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm text-[#2c5f8a] hover:opacity-80"
         >
           <ExternalLink className="h-4 w-4" />
           {t("Открыть Google Calendar")}

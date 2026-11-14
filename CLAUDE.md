@@ -185,6 +185,25 @@ link-shared), not real photos. Remove the file and its call once the demo is in.
 
 ## Look and feel (Apple-like)
 
+- **Rollback**: the branch `backup/before-apple-redesign` holds `main` as it was
+  before the app-wide pass below (day view already redesigned). To go back,
+  revert that pass's merge on `main` (or open a PR from the backup branch).
+- **Dialogs** use `components/Sheet.jsx`: an iOS sheet on the beige — bold title,
+  grey ✕, `SheetGroup` (caption + white card of rows), `SheetRow` (name, then a
+  borderless control: `sheetInput`), `SheetSwitch` (iOS toggle), `pinInput`, and
+  one prominent `SheetButton` at the foot (`danger` red, `plain` accent text).
+  A bottom sheet on a phone, centred from `sm` up; no opening animation (the
+  black-frame gotcha). Trip form, settings (+ Google Calendar), PIN lock,
+  passcode, NotebookLM export. `ExpenseScope` is an iOS segmented control.
+- **Type & colour**: system font; large title 28–32px bold `text-stone-900`,
+  block/section titles 20px bold, body 17, secondary 15 / 13 `text-stone-500`.
+  `#2c5f8a` for everything tappable as text (links, back, "Изменить", ✓);
+  navy `#1d3b5c` for filled buttons; terracotta `#c4623a` only for highlights
+  (today, the map's country, the Summary trophy). Over the map, titles and
+  buttons sit on white/90 plates. The Summary and the day view share the
+  large-title header and white cards; notes are a soft grey box with quiet
+  "Изменить" / "Удалить" text buttons.
+
 - **Day view** (`DayPlanModal.jsx`) is an iOS inset grouped list on the beige `#fbf7f0` (the family wanted it back):
   a large-title header on the page itself ("ДЕНЬ 1 · date" caption, city in
   32px bold, country / where we sleep), "Изменить" as accent text and a grey ✕.

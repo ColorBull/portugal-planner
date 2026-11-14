@@ -323,7 +323,7 @@ function TimeEditor({ item, onSave, onClose }) {
           type="button"
           onClick={commit}
           disabled={busy}
-          className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+          className="inline-flex items-center gap-1 rounded-full bg-[#1d3b5c] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#2c5f8a] disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
         >
           {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
           {t("Сохранить")}
@@ -411,7 +411,7 @@ const ItemAddress = forwardRef(function ItemAddress({ item, bar, onSave }, ref) 
             type="button"
             onClick={commit}
             disabled={busy}
-            className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+            className="inline-flex items-center gap-1 rounded-full bg-[#1d3b5c] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#2c5f8a] disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
             {t("Сохранить")}
@@ -1389,7 +1389,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
               type="button"
               onClick={submit}
               disabled={busy}
-              className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+              className="inline-flex items-center gap-1 rounded-full bg-[#1d3b5c] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#2c5f8a] disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               {t("Сохранить")}
@@ -1574,7 +1574,7 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
               type="button"
               onClick={commitText}
               disabled={busy}
-              className="inline-flex items-center gap-1 rounded-full bg-stone-800 px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-stone-700 disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
+              className="inline-flex items-center gap-1 rounded-full bg-[#1d3b5c] px-3.5 py-2 text-[13px] font-medium text-white transition hover:bg-[#2c5f8a] disabled:opacity-60 sm:px-3 sm:py-1.5 sm:text-xs"
             >
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
               {t("Сохранить")}
