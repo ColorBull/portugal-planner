@@ -111,6 +111,10 @@ export default function Home() {
 
   const page = Math.min(pageIndex, pages.length - 1);
   const shownDays = pages[page];
+  // Today's tile is marked in the accent colour, as in Apple's Calendar (this
+  // device's own date); navy fill is the "Итоги" tile's.
+  const now = new Date();
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 
   const selectedIndex = tripDays.findIndex((d) => d.key === selectedKey);
   const selectedDay = tripDays[selectedIndex] || null;
@@ -218,11 +222,8 @@ export default function Home() {
                     whileHover={{ y: -5, scale: 1.03 }}
                     whileTap={{ scale: 0.97 }}
                     title={t("Итоги поездки")}
-                    className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 shadow-md sm:shadow-lg overflow-hidden group flex flex-col items-center justify-center gap-1 sm:gap-1.5 border border-white/40 backdrop-blur-md"
-                    style={{
-                      background:
-                        "linear-gradient(150deg, rgba(29,59,92,0.82) 0%, rgba(44,95,138,0.74) 60%, rgba(58,124,165,0.68) 100%)",
-                    }}
+                    className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 shadow-sm overflow-hidden group flex flex-col items-center justify-center gap-1 sm:gap-1.5"
+                    style={{ backgroundColor: "#1d3b5c" }}
                   >
                     <Trophy className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: "#e0a06f" }} />
                     <span className="max-w-full truncate text-[11px] sm:text-sm font-semibold leading-tight text-white">
@@ -237,6 +238,7 @@ export default function Home() {
               }
               const plan = days[day.key];
               const filled = !!plan?.sections?.length;
+              const today = day.key === todayKey;
               return (
                 <motion.button
                   key={day.key}
@@ -247,21 +249,26 @@ export default function Home() {
                   whileHover={{ y: -5, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   title={`${day.label} — ${plan?.city || trip.city}${filled ? "" : ` (${t("план скоро")})`}`}
-                  className="relative aspect-square rounded-2xl sm:rounded-[1.25rem] p-2 sm:p-3 text-start shadow-md sm:shadow-lg overflow-hidden group flex flex-col border border-white/40 backdrop-blur-md"
-                  style={{
-                    background:
-                      "linear-gradient(150deg, rgba(29,59,92,0.66) 0%, rgba(44,95,138,0.58) 60%, rgba(58,124,165,0.52) 100%)",
-                  }}
+                  aria-current={today ? "date" : undefined}
+                  // Light cards with dark type (as in Apple's Calendar) — white on
+                  // see-through blue was hard to read over the map. Today: accent ring.
+                  className={`relative aspect-square rounded-2xl sm:rounded-[1.25rem] bg-white/90 p-2 sm:p-3 text-start shadow-sm overflow-hidden group flex flex-col ${
+                    today ? "ring-2 ring-[#c4623a]" : "ring-1 ring-black/5"
+                  }`}
                 >
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-display text-xl sm:text-2xl font-semibold leading-none text-white">
+                    <span
+                      className={`font-display text-xl sm:text-2xl font-semibold leading-none ${today ? "text-[#c4623a]" : "text-[#1d3b5c]"}`}
+                    >
                       {day.label.split(" ")[0]}
                     </span>
-                    <span className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-white/60">
+                    <span
+                      className={`text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider ${today ? "text-[#c4623a]" : "text-stone-500"}`}
+                    >
                       {day.weekday}
                     </span>
                   </div>
-                  <div className="text-white/70 text-[10px] sm:text-xs mt-0.5 leading-tight">
+                  <div className="text-[10px] sm:text-xs mt-0.5 leading-tight text-stone-500">
                     {day.label.split(" ")[1]}
                   </div>
 
@@ -270,10 +277,10 @@ export default function Home() {
                   <div className="mt-auto flex items-center gap-1.5 overflow-hidden">
                     <span
                       className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                        filled ? "bg-[#e0a06f]" : "bg-white/25"
+                        filled ? "bg-[#e0a06f]" : "bg-stone-300"
                       }`}
                     />
-                    <span className="hidden sm:block truncate text-[11px] leading-tight text-white/75">
+                    <span className="hidden sm:block truncate text-[11px] leading-tight text-stone-500">
                       {plan?.city || trip.city}
                     </span>
                   </div>

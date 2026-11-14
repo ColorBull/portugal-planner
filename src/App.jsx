@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClientInstance } from "@/lib/query-client";
 import { HashRouter as Router, Route, Routes } from "react-router-dom";
 import { WifiOff } from "lucide-react";
+import { MotionConfig } from "framer-motion";
 import { useOnline } from "@/lib/useOnline";
 import PageNotFound from "./lib/PageNotFound";
 import { AuthProvider, useAuth } from "@/lib/AuthContext";
@@ -63,6 +64,7 @@ function Gate() {
 
 export default function App() {
   return (
+    <MotionConfig reducedMotion="user">
     <LanguageProvider>
     <AuthProvider>
       <QueryClientProvider client={queryClientInstance}>
@@ -74,5 +76,6 @@ export default function App() {
       </QueryClientProvider>
     </AuthProvider>
     </LanguageProvider>
+    </MotionConfig>
   );
 }

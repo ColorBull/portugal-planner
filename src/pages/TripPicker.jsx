@@ -22,14 +22,19 @@ import CountryFlag from "@/components/CountryFlag";
 import { tripCountry, countryLabel } from "@/lib/countries";
 import { ownerName } from "@/lib/family";
 import SettingsButton from "@/components/SettingsButton";
+import ActionMenu from "@/components/ActionMenu";
 import PinnedCorner from "@/components/PinnedCorner";
 import TripRatingBadge from "@/components/TripRatingBadge";
 import { useAuth } from "@/lib/AuthContext";
 import { canSeeTrip, useTripLockChanges, PRIVATE_TRIP_LABEL } from "@/lib/tripLock";
 import { t } from "@/lib/i18n";
 
-const iconButton =
-  "grid h-8 w-8 place-items-center rounded-lg text-stone-400 transition disabled:opacity-50";
+// While a card's action runs, its "⋯" is a spinner.
+const busySpinner = (
+  <span className="grid h-9 w-9 place-items-center text-stone-400">
+    <Loader2 className="h-4 w-4 animate-spin" />
+  </span>
+);
 
 function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
   const country = hidden ? null : tripCountry(trip);
@@ -39,7 +44,7 @@ function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
         muted ? "bg-white/55" : "bg-white/70"
       }`}
     >
-      <button type="button" onClick={onOpen} className="block w-full text-start pe-16">
+      <button type="button" onClick={onOpen} className="block w-full text-start pe-10">
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-stone-400">
           {country && <CountryFlag code={country.code} width={18} />}
           {hidden ? t("PIN-код") : countryLabel(trip)}
@@ -74,7 +79,7 @@ function TripCard({ trip, hidden, muted, onOpen, onRate, children }) {
         </div>
       </button>
 
-      <div className="absolute top-4 end-4 flex gap-1">{children}</div>
+      <div className="absolute end-2 top-3">{children}</div>
     </div>
   );
 }
@@ -119,7 +124,6 @@ export default function TripPicker() {
   const handleRestore = (trip) =>
     run(trip, () => archiveTrip(trip.id, false), t("Не удалось вернуть поездку из архива."));
 
-  const spinner = <Loader2 className="h-4 w-4 animate-spin" />;
 
   return (
     // The page scrolls inside this box, not the document, so a phone's own
@@ -191,26 +195,17 @@ export default function TripPicker() {
                     onOpen={() => navigate(`/trip/${trip.id}`)}
                     onRate={() => navigate(`/trip/${trip.id}?view=summary`)}
                   >
-                    <button
-                      type="button"
-                      onClick={() => handleRestore(trip)}
-                      disabled={busyId === trip.id}
-                      className={`${iconButton} hover:bg-stone-100 hover:text-[#1d3b5c]`}
-                      aria-label={t("Вернуть из архива")}
-                      title={t("Вернуть из архива")}
-                    >
-                      {busyId === trip.id ? spinner : <ArchiveRestore className="h-4 w-4" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeleting(trip)}
-                      disabled={busyId === trip.id}
-                      className={`${iconButton} hover:bg-[#f7e9e3] hover:text-[#a8451f]`}
-                      aria-label={t("Удалить навсегда")}
-                      title={t("Удалить навсегда")}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {busyId === trip.id ? (
+                      busySpinner
+                    ) : (
+                      <ActionMenu
+                      corner="page"
+                        actions={[
+                          { key: "restore", icon: ArchiveRestore, label: t("Вернуть из архива"), run: () => handleRestore(trip) },
+                          { key: "delete", icon: Trash2, danger: true, label: t("Удалить навсегда"), run: () => setDeleting(trip) },
+                        ]}
+                      />
+                    )}
                   </TripCard>
                 ))}
               </div>
@@ -229,44 +224,38 @@ export default function TripPicker() {
                   onOpen={() => navigate(`/trip/${trip.id}`)}
                   onRate={() => navigate(`/trip/${trip.id}?view=summary`)}
                 >
-                  {/* The edit form would show what the lock hides. */}
-                  {!isHidden(trip) && (
-                    <button
-                      type="button"
-                      onClick={() => setFormFor({ trip })}
-                      className={`${iconButton} hover:bg-stone-100 hover:text-stone-700`}
-                      aria-label={t("Изменить поездку")}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </button>
+                  {busyId === trip.id ? (
+                    busySpinner
+                  ) : (
+                    <ActionMenu
+                      corner="page"
+                      actions={[
+                        // The edit form would show what the lock hides.
+                        ...(isHidden(trip)
+                          ? []
+                          : [{ key: "edit", icon: Pencil, label: t("Изменить поездку"), run: () => setFormFor({ trip }) }]),
+                        { key: "archive", icon: Archive, label: t("В архив"), run: () => handleArchive(trip) },
+                      ]}
+                    />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => handleArchive(trip)}
-                    disabled={busyId === trip.id}
-                    className={`${iconButton} hover:bg-stone-100 hover:text-[#1d3b5c]`}
-                    aria-label={t("В архив")}
-                    title={t("В архив")}
-                  >
-                    {busyId === trip.id ? spinner : <Archive className="h-4 w-4" />}
-                  </button>
                 </TripCard>
               ))}
 
-              <button
-                type="button"
-                onClick={() => setFormFor({ trip: null })}
-                className="rounded-2xl border-2 border-dashed border-stone-300 p-5 text-stone-500 transition hover:border-[#1d3b5c] hover:text-[#1d3b5c] min-h-[120px] flex flex-col items-center justify-center gap-2"
-              >
-                <Plus className="h-6 w-6" />
-                <span className="font-medium">{t("Добавить поездку")}</span>
-              </button>
             </div>
 
             <button
               type="button"
+              onClick={() => setFormFor({ trip: null })}
+              className="mt-4 flex min-h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#1d3b5c] px-5 text-[17px] font-semibold text-white shadow-sm transition hover:bg-[#2c5f8a]"
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.5} />
+              {t("Добавить поездку")}
+            </button>
+
+            <button
+              type="button"
               onClick={() => setShowArchive(true)}
-              className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-white/60 p-4 text-stone-500 shadow-sm ring-1 ring-black/5 transition hover:bg-white hover:text-[#1d3b5c]"
+              className="mx-auto mt-2 flex min-h-[44px] items-center justify-center gap-2 rounded-full bg-white/70 px-5 text-[15px] font-medium text-stone-600 shadow-sm ring-1 ring-black/5 transition hover:bg-white hover:text-[#1d3b5c]"
             >
               <Archive className="h-5 w-5" />
               <span className="font-medium">{t("Архив")}</span>
