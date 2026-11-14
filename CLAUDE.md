@@ -346,8 +346,11 @@ Each device keeps its own copy, so a trip opens with no signal.
   an event starts the next one below. Blank events and blocks with neither name
   nor events are dropped on save.
 - The "⋯" menu (`ActionMenu`) is an iOS action sheet on a phone: its actions,
-  the red removals as a group of their own, then "Отмена"; at most 85dvh tall and
-  scrolling, so the dimmed strip above always closes it. A popover from `sm` up.
+  then the red removals as a group of their own; no Cancel button — it closes with
+  an ✕ on the dimmed strip at the very spot of the day's own ✕, or a tap on that
+  strip (the sheet is capped at 100dvh − 6rem and scrolls). A popover from `sm` up.
+  Every "⋯" sits on one vertical line: the insurance / SIM card's reaches through
+  the card's padding (`-me-[17px]`).
 - Dragging (edit mode only) uses `@hello-pangea/dnd`: the ≡ grip of each event and
   block; events move between blocks too; on a phone, hold the grip a moment. The
   grips carry `data-no-swipe` so a drag never turns the day. It positions the dragged clone with

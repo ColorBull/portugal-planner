@@ -1459,12 +1459,25 @@ function ActionMenu({ actions }) {
             onClick={() => setOpen(false)}
           >
             {phone ? (
-              // iOS action sheet: the actions, the removals in their own group, then
-              // "Отмена" on its own; never taller than the screen, so the dimmed
-              // strip above always stays to tap away.
+              // iOS action sheet: the actions, then the removals in their own group.
+              // It closes with the ✕ (the very spot of the day's own ✕) or a tap
+              // on the dimmed strip, which the height cap always leaves free.
+              <>
+              <div className="pointer-events-none absolute inset-x-0 top-0 px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+                <div className="mx-auto flex w-full max-w-3xl justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-white/15 text-white/90"
+                    aria-label={t("Закрыть")}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
               <div
                 onClick={(e) => e.stopPropagation()}
-                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-2 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
+                className="absolute inset-x-0 bottom-0 flex max-h-[calc(100dvh-6rem)] flex-col gap-2 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
               >
                 {[plain, danger].map(
                   (group, gi) =>
@@ -1476,14 +1489,8 @@ function ActionMenu({ actions }) {
                       </div>
                     )
                 )}
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-2xl bg-white py-4 text-[17px] font-semibold text-stone-800 active:bg-stone-100"
-                >
-                  {t("Отмена")}
-                </button>
               </div>
+              </>
             ) : (
               <div
                 onClick={(e) => e.stopPropagation()}
@@ -1683,7 +1690,8 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
           <Icon className="h-4 w-4" />
         </span>
         <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{t(title)}</span>
-        <span className="ms-auto flex items-center">
+        {/* -me-[17px]: through the card's padding and border, so this ⋯ lines up with the events' ⋯ */}
+        <span className="-me-[17px] ms-auto flex items-center">
           <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} />
           <ActionMenu actions={actions} />
         </span>
