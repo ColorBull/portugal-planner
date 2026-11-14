@@ -425,7 +425,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
       )}
 
       {images.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 mb-2.5">
+        <div className="grid grid-cols-2 gap-2 mb-2.5">
           {images.map((p) => (
             <div key={p.id} className="relative aspect-square select-none">
               <div className="relative h-full w-full rounded-xl overflow-hidden ring-1 ring-stone-200">
@@ -459,11 +459,11 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                 <button
                   type="button"
                   onClick={() => handleDelete(p)}
-                  className="absolute end-1 top-1 grid h-8 w-8 place-items-center rounded-full bg-black/45 text-white transition hover:bg-red-600"
+                  className="absolute end-1.5 top-1.5 grid h-6 w-6 place-items-center rounded-full bg-black/45 text-white transition hover:bg-red-600"
                   aria-label={t("Удалить")}
                   title={t("Удалить")}
                 >
-                  <Trash2 className="h-4 w-4" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>
