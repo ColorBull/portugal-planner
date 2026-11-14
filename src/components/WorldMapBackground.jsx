@@ -15,7 +15,13 @@ import { useLang } from "@/lib/i18n";
 // A flat vector sketch of the world: continent silhouettes, no borders, no
 // labels, no grid. The outlines are projected ahead of time (see
 // scripts/gen-worldmap.mjs), so a continent view is the same drawing panned and
-// scaled — and CSS animates between the two.
+// scaled — and CSS animates between the two. The pan/zoom is a transform on an
+// HTML layer around the <svg>, not on an SVG group: Chrome runs an HTML
+// transform on the GPU, while a transformed SVG group is re-painted on the CPU
+// every frame (the whole world outline), which flickered and stuttered on the
+// way back to the trip list. While it moves the layer is `will-change`; once it
+// rests it is re-drawn sharp at the new scale. Line widths and dashes are
+// divided by the zoom, since an HTML scale ignores `non-scaling-stroke`.
 
 const EASE = "transform 900ms cubic-bezier(0.45, 0, 0.25, 1), opacity 900ms ease";
 
@@ -198,13 +204,18 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
 
   // Borders and labels only appear once the zoom has come to rest: drawing
   // them on every frame of the move is what made it lag.
-  const [settled, setSettled] = useState(false);
+  const [resting, setResting] = useState(true);
+  const first = useRef(true);
   useEffect(() => {
-    setSettled(false);
-    if (!continent) return undefined;
-    const t = setTimeout(() => setSettled(true), 950);
+    if (first.current) {
+      first.current = false;
+      return undefined;
+    }
+    setResting(false);
+    const t = setTimeout(() => setResting(true), 950);
     return () => clearTimeout(t);
   }, [continent, width, height, held]);
+  const settled = resting && !!continent;
 
   if (!width || !height) return <div ref={hostRef} className="absolute inset-0" />;
 
@@ -224,14 +235,24 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
 
   return (
     <div ref={hostRef} className="pointer-events-none absolute inset-0 overflow-hidden">
-      <svg
-        width={width}
-        height={height}
-        viewBox={`0 0 ${width} ${height}`}
-        aria-hidden="true"
+      <div
         className="absolute left-0 top-0"
+        style={{
+          width: MAP_WIDTH,
+          height: MAP_HEIGHT,
+          transformOrigin: "0 0",
+          transform: `translate3d(${x}px, ${y}px, 0) scale(${k})`,
+          transition: EASE,
+          willChange: resting ? "auto" : "transform",
+        }}
       >
-        <g style={{ transform: `translate(${x}px, ${y}px) scale(${k})`, transition: EASE }}>
+        <svg
+          width={MAP_WIDTH}
+          height={MAP_HEIGHT}
+          viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
+          aria-hidden="true"
+          className="block overflow-visible"
+        >
           <path className="map-land" d={LAND_PATH} fill="#1d3b5c" fillOpacity={0.12} />
           {settled && (
             <path
@@ -239,9 +260,8 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
               fill="none"
               stroke="#1d3b5c"
               strokeOpacity={0.35}
-              strokeWidth={1}
-              strokeDasharray="4 3"
-              vectorEffect="non-scaling-stroke"
+              strokeWidth={1 / k}
+              strokeDasharray={`${4 / k} ${3 / k}`}
               className="map-fade-in map-border"
             />
           )}
@@ -252,12 +272,19 @@ export default function WorldMapBackground({ continent = null, highlightCcn3 = n
               fillOpacity={continent ? 0.28 : 0}
               stroke="#a8451f"
               strokeOpacity={continent ? 0.5 : 0}
-              strokeWidth={1.5}
-              vectorEffect="non-scaling-stroke"
-              style={{ transition: EASE }}
+              strokeWidth={1.5 / k}
+              style={{ transition: "fill-opacity 900ms ease, stroke-opacity 900ms ease" }}
             />
           )}
-        </g>
+        </svg>
+      </div>
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+        className="absolute left-0 top-0"
+      >
         {pin && (
           // Outside the zoomed group, so the pin keeps its size on screen.
           <g

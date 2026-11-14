@@ -519,4 +519,8 @@ export default {
   "Перед поездкой": "Before the trip",
   "Карта": "Map",
   "Цена, фото, документ": "Price, photo, document",
+  "Снять отметку: {name}": "Unmark: {name}",
+  "Отметить выполненным: {name}": "Mark as done: {name}",
+  "Снять отметку": "Unmark",
+  "Отметить выполненным": "Mark as done",
 };
