@@ -532,6 +532,12 @@ export default function DayPlanModal({
       })),
     });
 
+  // Its photos and notes stay in Firestore / Drive, as when the editor deletes one.
+  const deleteItem = (itemId) =>
+    onSave({
+      sections: sections.map((s) => ({ ...s, items: (s.items || []).filter((it) => it.id !== itemId) })),
+    });
+
   const saveExtraCost = (key, cost) =>
     onSave({ [key]: { company: plan?.[key]?.company || "", cost } });
 
@@ -759,6 +765,7 @@ export default function DayPlanModal({
                                   saveItemCost(item.id, cost, fixedNow, isFixedItem(item, section))
                                 }
                                 onSavePatch={(patch) => saveItemPatch(item.id, patch)}
+                                onDelete={() => deleteItem(item.id)}
                               />
                             </li>
                           ))}
@@ -1142,9 +1149,9 @@ function ActionMenu({ actions }) {
                   key={a.key}
                   type="button"
                   onClick={() => choose(a)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-start text-[15px] text-stone-700 transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm"
+                  className={`flex w-full items-center gap-3 rounded-xl px-3.5 py-3.5 text-start text-[15px] transition hover:bg-stone-100 active:bg-stone-100 sm:py-2.5 sm:text-sm ${a.danger ? "text-red-600" : "text-stone-700"}`}
                 >
-                  <a.icon className="h-5 w-5 shrink-0 text-stone-400 sm:h-4 sm:w-4" />
+                  <a.icon className={`h-5 w-5 shrink-0 sm:h-4 sm:w-4 ${a.danger ? "text-red-500" : "text-stone-400"}`} />
                   {a.label}
                 </button>
               ))}
@@ -1157,7 +1164,7 @@ function ActionMenu({ actions }) {
 }
 
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch }) {
+function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1188,6 +1195,11 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     } finally {
       setBusy(false);
     }
+  };
+
+  const failed = (err) => {
+    console.error(err);
+    alert(t("Не удалось сохранить."));
   };
 
   const actions = [
@@ -1222,6 +1234,16 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
     { key: "audio", icon: Mic, label: t("Записать голос"), run: () => gridRef.current?.startRecording() },
     { key: "note", icon: StickyNote, label: t("Заметка / ссылка"), run: () => noteRef.current?.open() },
+    ...(hasCost ? [{ key: "delcost", icon: Trash2, danger: true, label: t("Удалить цену"), run: () => onSaveCost(null).catch(failed) }] : []),
+    ...(item.time ? [{ key: "deltime", icon: Trash2, danger: true, label: t("Удалить время"), run: () => onSavePatch({ time: "", end_time: "" }).catch(failed) }] : []),
+    ...(hasAddress ? [{ key: "deladdr", icon: Trash2, danger: true, label: t("Удалить адрес"), run: () => onSavePatch({ address: "", mapUrl: "" }).catch(failed) }] : []),
+    {
+      key: "delitem",
+      icon: Trash2,
+      danger: true,
+      label: t("Удалить событие"),
+      run: () => confirm(t("Удалить «{name}» из плана?", { name: item.text })) && onDelete().catch(failed),
+    },
   ];
 
   return (
@@ -1313,6 +1335,9 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
     { key: "cost", icon: Wallet, label: parseCost(extra.cost) !== null ? t("Изменить цену") : t("Добавить цену"), run: () => costRef.current?.start() },
     { key: "photo", icon: ImagePlus, label: t("Добавить фото"), run: () => gridRef.current?.pickPhoto() },
     { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
+    ...(parseCost(extra.cost) !== null
+      ? [{ key: "delcost", icon: Trash2, danger: true, label: t("Удалить цену"), run: () => onSaveCost(null) }]
+      : []),
   ];
   return (
     <>

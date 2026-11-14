@@ -498,4 +498,8 @@ export default {
   "открыть": "open",
   "Этот браузер не умеет записывать звук.": "This browser can’t record audio.",
   "Нет доступа к микрофону. Разрешите его в настройках браузера.": "No access to the microphone. Allow it in the browser settings.",
+  "Слушать": "Listen",
+  "Удалить событие": "Delete event",
+  "Удалить «{name}» из плана?": "Delete “{name}” from the plan?",
+  "Удалить этот файл?": "Delete this file?",
 };

@@ -363,6 +363,13 @@ export function driveImageUrl(fileId, size = 1200) {
   return `https://lh3.googleusercontent.com/d/${fileId}=w${size}`;
 }
 
+// A file's bytes, with the token this device already has (never opens a Google
+// window). drive.file reaches only files this account uploaded through the app.
+export async function downloadDriveFile(fileId) {
+  const res = await quietFetch(`${FILES}/${fileId}?alt=media`);
+  return res.blob();
+}
+
 export function driveViewUrl(fileId) {
   return `https://drive.google.com/file/d/${fileId}/view`;
 }

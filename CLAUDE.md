@@ -239,11 +239,18 @@ may exist only once per card. Address suggestions are in the flow on phones (a
 scrolling list inside the scrolling sheet fights for every swipe) and float from
 `sm` up. In the reading view each plan item has one "⋯" menu (`ActionMenu` in
 `DayPlanModal.jsx`, a bottom sheet on phones) instead of add-buttons: price,
-address, photo, document, note. The menu drives the children through refs
+address, photo, document, voice recording, note. A voice recording (`MediaRecorder`,
+webm on Android / m4a on iPhone) is uploaded like a document, as a `TripPhoto` with
+`kind: "audio"`. "Слушать" fetches its bytes through the Drive API
+(`downloadDriveFile`; drive.file = only this account's own uploads) into an
+`<audio>`, else shows Drive's `/preview` iframe — Drive's `uc?export=download` link
+does not play in an `<audio>` on our origin. The menu drives the children through refs
 (`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument/startRecording`,
 `PlanNoteBox.open`). Press-and-hold (right-click on a computer) on a price
 badge, an address link or a note opens a change / delete menu (`useHoldMenu`,
-same gesture as photos); tapping an item's title edits it in place. What is already set (price badge, address link, photos,
+same gesture as photos); tapping an item's title edits it in place. Deleting is also visible: a trash button on
+every photo, document and recording (with a confirm), and red "Удалить …" entries at
+the end of the "⋯" menu for what is set (price, time, address) plus the item itself. What is already set (price badge, address link, photos,
 note) still shows. `formatMoney` joins amount and currency with a non-breaking space so
 they never wrap apart.
 
