@@ -88,6 +88,9 @@
 
   body {
     @apply bg-background text-foreground font-body;
+    /* A long URL or word wraps instead of running out of its box, anywhere in the app. */
+    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
   }
 }
 
