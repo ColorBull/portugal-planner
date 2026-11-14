@@ -510,4 +510,10 @@ export default {
   "Ночуем в…": "Staying in…",
   "Переместить": "Move",
   "Переместить событие": "Move event",
+  "Отменить": "Cancel",
+  "Готово": "Done",
+  "Компания": "Company",
+  "Событие": "Event",
+  "Не указано": "Not set",
+  "Перетащите ≡, чтобы поменять порядок. Цены, адреса, фото и заметки — в меню «⋯» каждого события.": "Drag ≡ to reorder. Prices, addresses, photos and notes are in each event’s “⋯” menu.",
 };

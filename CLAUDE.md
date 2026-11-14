@@ -3,8 +3,9 @@
 A private family trip planner. It started as one hard-coded Portugal itinerary
 (30 Oct – 6 Nov 2026) and is now **multi-trip**: the welcome screen lists trips
 (country / city / year), you pick one, confirm, and land on that trip's
-dashboard. Every day plan is edited right in the day view (there is no separate
-edit screen) — add / rename / delete blocks and items, and drag them to reorder. Behind everything sits one vector world
+dashboard. Every day plan is edited right in the day view, in an iOS-style edit
+mode ("Изменить" / "Готово") — add / rename / delete blocks and items, and drag
+them to reorder. Behind everything sits one vector world
 map: the trip list shows the whole world, opening a trip zooms into that
 country's continent and tints the country.
 Originally a Base44 app; now a plain **Vite + React** app with its own backend.
@@ -115,7 +116,7 @@ opens `TripSummaryModal` — not a day: no date, not counted. The last day's
 "next" button / swipe leads to it (`selectedKey === "summary"`); it counts as a
 tile in the 30-per-page pagination. Computed from the days: length (days /
 nights), cities by **where the family sleeps** (`overnightCity()` in
-`lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" under the day's date in the header —
+`lib/tripSummary.js`: the day's optional `stay` — "Ночуем в" in edit mode —
 else read from its city: "A → B" is B, "A — B" / "A, B" is A; names compared
 case-insensitively), so a transfer day is never a city of its own; each day but
 the last gives a night and its spend to that city, the last day's spend goes to
@@ -243,7 +244,7 @@ does not play in an `<audio>` on our origin. The menu drives the children throug
 (`InlineCost`, `ItemAddress`, `PlanPhotoGrid.pickPhoto/pickDocument/startRecording`,
 `PlanNoteBox.open`). Press-and-hold (right-click on a computer) on a price
 badge, an address link or a note opens a change / delete menu (`useHoldMenu`,
-same gesture as photos); tapping an item's title edits it in place. Deleting is also visible: a trash button on
+same gesture as photos); an item's title is changed from its "⋯" menu ("Изменить название") or in edit mode. Deleting is also visible: a trash button on
 every photo, document and recording (with a confirm), and red "Удалить …" entries at
 the end of the "⋯" menu for what is set (price, time, address) plus the item itself. What is already set (price badge, address link, photos,
 note) still shows. `formatMoney` joins amount and currency with a non-breaking space so
@@ -333,15 +334,21 @@ Each device keeps its own copy, so a trip opens with no signal.
 - Day docs are keyed by date (`days/2026-10-30`), and item ids are preserved
   when seeding, so existing notes & photos (which key off `day_key` +
   `item_id`) still line up with the migrated plans.
-- **Editing the day in place** (`DayPlanModal.jsx`): `InlineText` — tap the text,
-  Enter / tap away saves, Esc cancels — for the day's city, "Ночуем в", block
-  titles and the insurance / SIM company; "+ Добавить событие" under each block
-  (Enter adds and keeps the field open; a pasted list = one event per line) and
-  "+ Добавить блок" at the end; a block's "⋯" changes its icon or deletes it
-  (tapping the icon chip opens the picker too). Every change saves at once with
-  `onSave({ sections })`, built from the `latest` ref so quick edits in a row
-  don't start from the same old list.
-- Dragging uses `@hello-pangea/dnd`: a grip (`DragHandle`) on each event and
+- **Editing the day** (`DayEditor` in `DayPlanModal.jsx`), modelled on Apple's
+  Reminders / Contacts: the reading view is read-only (tapping text does nothing;
+  the "⋯" menus add price, photo, note…). "Изменить" in the header switches the
+  same page to edit mode on a **copy** (`draft`): "Готово" saves it with one
+  `onSave`, "Отменить" drops it; no swipe or day buttons meanwhile. City and
+  "Ночуем в" become fields in the header, the insurance / SIM companies a card,
+  each block an inset card of rows: red ⊖ in front (tap → a red "Удалить" takes
+  the grip's place), the text, the ≡ grip at the end — same spot on every row.
+  Tap a block's icon to change it; green ⊕ rows add an event / a block; Enter in
+  an event starts the next one below. Blank events and blocks with neither name
+  nor events are dropped on save.
+- The "⋯" menu (`ActionMenu`) is an iOS action sheet on a phone: its actions,
+  the red removals as a group of their own, then "Отмена"; at most 85dvh tall and
+  scrolling, so the dimmed strip above always closes it. A popover from `sm` up.
+- Dragging (edit mode only) uses `@hello-pangea/dnd`: the ≡ grip of each event and
   block; events move between blocks too; on a phone, hold the grip a moment. The
   grips carry `data-no-swipe` so a drag never turns the day. It positions the dragged clone with
   `position: fixed`, which breaks if an ancestor has a CSS transform. The modal
