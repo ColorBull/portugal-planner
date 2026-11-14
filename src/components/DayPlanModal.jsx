@@ -60,9 +60,10 @@ const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 // by hairlines that start where the text does.
 const groupCard = "overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
 
+// ps-2 + the 28px square = its centre 22px in: right over the cards' timeline rule.
 function SectionHeader({ icon: Icon, color, title, subtitle, trailing, done = false }) {
   return (
-    <div className="mb-2 flex min-h-11 items-center gap-2.5 px-1">
+    <div className="mb-2 flex min-h-11 items-center gap-2.5 pe-1 ps-2">
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ backgroundColor: color }}>
         <Icon className="h-4 w-4" />
       </span>
