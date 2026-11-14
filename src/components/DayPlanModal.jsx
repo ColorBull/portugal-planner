@@ -60,18 +60,47 @@ const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
 // by hairlines that start where the text does.
 const groupCard = "overflow-hidden rounded-2xl bg-white shadow-[0_1px_2px_rgba(0,0,0,0.05)]";
 
-function SectionHeader({ icon: Icon, color, title, subtitle, trailing }) {
+function SectionHeader({ icon: Icon, color, title, subtitle, trailing, done = false }) {
   return (
     <div className="mb-2 flex min-h-11 items-center gap-2.5 px-1">
       <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-white" style={{ backgroundColor: color }}>
         <Icon className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <h3 className="break-words text-[20px] font-bold leading-tight tracking-tight text-stone-900">{title}</h3>
+        <h3
+          className={`break-words text-[20px] font-bold leading-tight tracking-tight ${
+            done ? "text-stone-400 line-through decoration-2" : "text-stone-900"
+          }`}
+        >
+          {title}
+        </h3>
         {subtitle && <p className="text-[13px] leading-snug text-stone-500">{subtitle}</p>}
       </div>
       {trailing}
     </div>
+  );
+}
+
+// The round check of an event or a block, as in Apple's Reminders: an empty ring
+// in the block's colour, filled with a ✓ once done. `size` is the ring's.
+function DoneCheck({ done, color, onToggle, label, size = 22 }) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={done}
+      onClick={onToggle}
+      aria-label={done ? t("Снять отметку: {name}", { name: label }) : t("Отметить выполненным: {name}", { name: label })}
+      title={done ? t("Снять отметку") : t("Отметить выполненным")}
+      className="grid h-11 w-11 shrink-0 place-items-center"
+    >
+      <span
+        className={`grid place-items-center rounded-full border-2 transition-colors ${done ? "" : "bg-white"}`}
+        style={{ width: size, height: size, borderColor: color, backgroundColor: done ? color : undefined }}
+      >
+        {done && <Check className="h-3 w-3 text-white" strokeWidth={3.5} />}
+      </span>
+    </button>
   );
 }
 
@@ -201,8 +230,8 @@ const timeLabel = (item) =>
 
 // The leading column of a timed row, as in Apple's Calendar: the start in bold,
 // the end under it. Tap to change, hold (right-click) to change or delete; an
-// event without a time has its block's dot here instead.
-function TimeColumn({ item, bar, onEdit, onClear, onAlarm }) {
+// event without a time leaves the column empty.
+function TimeColumn({ item, onEdit, onClear, onAlarm }) {
   const { bind, menu } = useHoldMenu([
     { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
     { key: "alarm", label: t("Поставить будильник"), icon: AlarmClock, run: onAlarm },
@@ -210,9 +239,7 @@ function TimeColumn({ item, bar, onEdit, onClear, onAlarm }) {
   ]);
   if (!TIME_RE.test(item.time || "")) {
     return (
-      <span className="w-[72px] shrink-0 ps-4 pt-[10px]">
-        <span className="block h-2 w-2 rounded-full" style={{ backgroundColor: bar }} />
-      </span>
+      <span className="w-14 shrink-0" />
     );
   }
   return (
@@ -224,9 +251,11 @@ function TimeColumn({ item, bar, onEdit, onClear, onAlarm }) {
         {...bind}
         onClick={onEdit}
         title={t("Изменить время")}
-        className="w-[72px] shrink-0 ps-4 pe-2 text-start tabular-nums"
+        className="w-14 shrink-0 self-start pe-2 pt-2.5 text-start tabular-nums"
       >
-        <span className="block text-[15px] font-semibold leading-[23px] text-stone-900">{item.time}</span>
+        <span className={`block text-[15px] font-semibold leading-[23px] ${item.done ? "text-stone-400" : "text-stone-900"}`}>
+          {item.time}
+        </span>
         {TIME_RE.test(item.end_time || "") && (
           <span className="block text-[13px] leading-tight text-stone-500">{item.end_time}</span>
         )}
@@ -543,6 +572,12 @@ export default function DayPlanModal({
   const saveItemPatch = (itemId, patch) =>
     mapItems((items) => items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)));
 
+  const toggleSection = (id) =>
+    setSections(latest.current.map((s) => (s.id === id ? { ...s, done: !s.done } : s))).catch((err) => {
+      console.error(err);
+      alert(t("Не удалось сохранить."));
+    });
+
   // Its photos and notes stay in Firestore / Drive.
   const deleteItem = (itemId) => mapItems((items) => items.filter((it) => it.id !== itemId));
 
@@ -752,8 +787,10 @@ export default function DayPlanModal({
                           icon={iconFor(section.icon)}
                           color={style.bar}
                           title={section.title}
+                          done={section.done === true}
                           trailing={
-                            section.mapUrl && (
+                            <>
+                            {section.mapUrl && (
                               <a
                                 href={section.mapUrl}
                                 target="_blank"
@@ -767,16 +804,25 @@ export default function DayPlanModal({
                                 <MapPin className="h-4 w-4" />
                                 {t("Карта")}
                               </a>
-                            )
+                            )}
+                            <DoneCheck
+                              done={section.done === true}
+                              color={style.bar}
+                              onToggle={() => toggleSection(section.id)}
+                              label={section.title}
+                            />
+                            </>
                           }
                         />
                         {items.length > 0 && (
-                          <div className={groupCard}>
+                          <div className={`${groupCard} transition-opacity ${section.done ? "opacity-60" : ""}`}>
                             {items.map((item, iIndex) => (
-                              <Row key={item.id} divided={iIndex > 0} inset={timed ? 72 : 36}>
+                              <Row key={item.id} divided={iIndex > 0} inset={timed ? 100 : 44}>
                                 <ItemBlock
                                   item={item}
                                   timed={timed}
+                                  first={iIndex === 0}
+                                  last={iIndex === items.length - 1}
                                   fixed={isFixedItem(item, section)}
                                   dayKey={dayInfo.key}
                                   currency={currency}
@@ -1358,7 +1404,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
+function ItemBlock({ item, timed, first, last, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1370,6 +1416,7 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
   const hasCost = parseCost(item.cost) !== null;
   const hasAddress = !!(item.address || item.mapUrl);
   const wakeAt = alarmTime(item);
+  const done = item.done === true;
   const alarm = () => setAlarm({ dayKey, time: wakeAt, title: item.text });
 
   const startText = () => {
@@ -1442,20 +1489,39 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
 
   return (
     <>
-      <div className="flex items-start py-2.5 pe-1.5">
-        {timed ? (
+      <div className="flex items-stretch pe-1.5">
+        {/* The timeline: a rule in the block's colour through every row, with
+            the event's round check on it (tap = done: grey, struck through). */}
+        <div className="relative w-11 shrink-0">
+          {!first && <span className="absolute start-[21px] top-0 h-[22px] w-0.5" style={{ backgroundColor: bar }} />}
+          {!last && <span className="absolute bottom-0 start-[21px] top-[22px] w-0.5" style={{ backgroundColor: bar }} />}
+          <div className="relative">
+            <DoneCheck
+              done={done}
+              color={bar}
+              size={20}
+              label={item.text}
+              onToggle={() => onSavePatch({ done: !done }).catch(failed)}
+            />
+          </div>
+        </div>
+        {timed && (
           <TimeColumn
             item={item}
-            bar={bar}
             onAlarm={alarm}
             onEdit={() => setEditingTime(true)}
             onClear={() => onSavePatch({ time: "", end_time: "" }).catch(failed)}
           />
-        ) : (
-          <span className="ms-4 me-3 mt-[10px] h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: bar }} />
         )}
-        <div className="min-w-0 flex-1 pt-0.5">
-          <div className="break-words text-[17px] leading-[23px] text-stone-900">{item.text}</div>
+        <div className="min-w-0 flex-1 py-2.5">
+          <div
+            className={`break-words text-[17px] leading-[23px] ${
+              done ? "text-stone-400 line-through decoration-stone-400" : "text-stone-900"
+            }`}
+          >
+            {item.text}
+          </div>
+          <div className={done ? "opacity-60" : undefined}>
           {/* Price, calendar mark and alarm under the title; empty → no line. */}
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
             <InlineCost ref={costRef} cost={item.cost} currency={currency} onSave={onSaveCost} fixed={fixed} scope large />
@@ -1516,8 +1582,9 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
       <ItemAddress ref={addressRef} item={item} bar={bar} onSave={onSavePatch} />
       <PlanPhotoGrid ref={gridRef} itemId={item.id} dayKey={dayKey} photos={photos} onChanged={onChanged} />
       <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
+          </div>
         </div>
-        <div className="-mt-1.5 shrink-0">
+        <div className="shrink-0 pt-1">
           <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
         </div>
       </div>

@@ -177,10 +177,11 @@ needs folder access — files are link-shared and shown by link.
 
 `src/lib/demoTrip.js`, called once per session from `TripContext` after the trip
 list loads: a trip whose city reads "TECT Drive" / "ТЕСТ Drive" (Cyrillic or
-Latin) in 2027 and has no `demo_seeded` flag gets a full 8-day Italy road trip
-written into its days (replacing them), 8 notes, and the flag — so it runs once,
-on the first device that opens the app. No photos. Remove the file and its call
-once the demo is in.
+Latin) in 2027 with `demo_version` below the file's `DEMO_VERSION` gets a full
+Italy road trip written into its days (replacing them), notes, photo records and
+the version — so each version runs once, on the first device that opens the app.
+The photos are illustrated postcards (`demo-*.jpg` in the shared Drive folder,
+link-shared), not real photos. Remove the file and its call once the demo is in.
 
 ## Look and feel (Apple-like)
 
@@ -194,8 +195,13 @@ once the demo is in.
   calendar mark, alarm), then address / photos / note, and the "⋯" at the end —
   the same spot on every row. Day 1's insurance / SIM are a "Перед поездкой"
   card of the same rows; "Мелкие расходы" and "Итого за день" are cards too.
-  No timeline rule any more. The accent `text-[#2c5f8a]` has a lighter dark-theme
-  value in `index.css`.
+  The **timeline** runs down the start of each card: a 2px rule in the block's
+  colour through every row, with the event's round check (`DoneCheck`, as in
+  Apple's Reminders) on it. Tap = `item.done` (title grey and struck through, the
+  rest dimmed); a block has its own check at the end of its heading
+  (`section.done`: title struck through, its card dimmed). Both are plain fields
+  on the day doc, kept by edit mode. The accent `text-[#2c5f8a]` has a lighter
+  dark-theme value in `index.css`.
 
 - Trip list: one "⋯" per card (edit / archive; restore / delete in the archive),
   a navy "Добавить поездку" button and an "Архив" pill under the cards.
@@ -417,6 +423,11 @@ Each device keeps its own copy, so a trip opens with no signal.
   has no fade either. Both are
   gone from the modals: the scrims are plain translucent black and the panels
   appear at once (closing still animates). Don't reintroduce either.
+- The map's pan / zoom is a transform on an HTML layer around the `<svg>`
+  (`WorldMapBackground.jsx`), `will-change` only while it moves. A transform on
+  an SVG `<g>` is re-painted on the CPU every frame and flickered on the way back
+  to the trip list. An HTML scale ignores `non-scaling-stroke`, so stroke widths
+  and dashes are divided by `k` by hand.
 - The map must never move on its own. Two mobile traps: a phone hides its
   address bar on scroll, which resizes the viewport — so the backdrop is sized
   with `100lvh` (`.viewport-tall`), the `<svg>` is pinned to a pixel size rather

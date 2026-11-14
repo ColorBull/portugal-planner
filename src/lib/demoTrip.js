@@ -2,10 +2,10 @@
 // to see what a fully filled-in trip looks like. TripContext calls
 // seedDemoTrips() once the trip list is loaded: each matching trip that has no
 // `demo_seeded` flag gets every day's plan (replacing what was there), a few
-// notes, and the flag — so it runs once, on whichever device opens the app first.
-// Ids are fixed, so two devices racing write the same thing.
-// shortcut: no photos (they need a Drive upload); remove this file and its call
-// in TripContext once the demo has been seeded.
+// notes, photos (illustrated postcards already in the shared Drive folder,
+// link-shared), and `demo_version` — so each version runs once, on whichever
+// device opens the app first. Ids are fixed, so two devices racing write the
+// same thing. Remove this file and its call in TripContext once it has run.
 
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { auth, db } from "@/api/firebase";
@@ -22,16 +22,28 @@ const norm = (s) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const DEMO_VERSION = 2;
+
+// Illustrated postcards (made for the demo) in the shared Drive folder.
+const PHOTO = {
+  duomo: "1Fsuk4gqZ0mCFg2DFZpfdT7Pp7xTqqwHi",
+  como: "1s4lrC-T7RzB9fiuuIgGtH9_GQhP3zT3r",
+  arena: "1OBDp2cOx0SGnXn1Kr37yoSvx0ZjxYDob",
+  venezia: "1A-m4XHelqgbgBPGHf8lhBkpUHP1R_FmH",
+  firenze: "1-cixqyR-iLhxhEumZk6sIrhoWJw4YvKC",
+  toscana: "1W57vXrTC0I7AKylGgRhSxqNuOjhNWUYO",
+};
+
 export function isDemoTarget(trip) {
   return (
-    !trip?.demo_seeded &&
+    (trip?.demo_version || 0) < DEMO_VERSION &&
     /^TE[CS]T DRIVE$/.test(norm(trip.city)) &&
     String(trip.startDate || trip.year || "").startsWith("2027")
   );
 }
 
 const item = (text, extra = {}) => ({ text, address: "", mapUrl: "", cost: null, time: "", end_time: "", ...extra });
-const block = (title, icon, items) => ({ title, icon, mapUrl: "", items });
+const block = (title, icon, items, extra = {}) => ({ title, icon, mapUrl: "", items, ...extra });
 
 const FIRST = {
   city: "Milan",
@@ -42,13 +54,13 @@ const FIRST = {
   sections: [
     block("Flight", "Plane", [
       item("Flight Tel Aviv → Milan Malpensa (LY 381), seats 23A–C", {
-        time: "06:15", end_time: "09:40", cost: 780, address: "Milano Malpensa Airport", gcal: true,
+        time: "06:15", end_time: "09:40", cost: 780, address: "Milano Malpensa Airport", gcal: true, done: true,
         note: { text: "Check-in opens 24 h before. One checked bag each.", link: "https://www.elal.com" },
       }),
     ]),
     block("Car", "Car", [
       item("Pick up the rental car — Hertz, Terminal 1 (Fiat 500X, automatic)", {
-        time: "10:30", cost: 420, fixed: true, address: "Aeroporto di Milano Malpensa, Terminal 1",
+        time: "10:30", cost: 420, fixed: true, address: "Aeroporto di Milano Malpensa, Terminal 1", done: true,
         note: { text: "Booking HZ-77310. Full-to-full fuel. Photo the car before leaving.", link: "" },
       }),
     ]),
@@ -71,14 +83,14 @@ const MIDDLE = [
     sections: [
       block("Morning", "Church", [
         item("Duomo di Milano — cathedral and rooftop terraces", {
-          time: "09:00", end_time: "11:00", cost: 60, address: "Piazza del Duomo, Milano",
+          time: "09:00", end_time: "11:00", cost: 60, address: "Piazza del Duomo, Milano", photo: PHOTO.duomo,
           note: { text: "Shoulders and knees covered. Lift ticket for the roof.", link: "https://www.duomomilano.it" },
         }),
         item("Coffee in the Galleria Vittorio Emanuele II", { time: "11:15", cost: 12, address: "Galleria Vittorio Emanuele II, Milano" }),
-      ]),
+      ], { done: true }),
       block("Afternoon", "Building2", [
         item("The Last Supper — Santa Maria delle Grazie", {
-          time: "15:15", end_time: "15:30", cost: 70, address: "Piazza di Santa Maria delle Grazie 2, Milano", gcal: true,
+          time: "15:15", end_time: "15:30", cost: 70, address: "Piazza di Santa Maria delle Grazie 2, Milano", gcal: true, done: true,
           note: { text: "Tickets booked 3 months ahead — be there 20 min early.", link: "https://cenacolovinciano.org" },
         }),
       ]),
@@ -95,7 +107,7 @@ const MIDDLE = [
       block("Drive", "Car", [item("Drive to Como (about 1 h)", { time: "09:00", end_time: "10:00" })]),
       block("On the lake", "Ship", [
         item("Ferry Como → Bellagio", { time: "11:30", end_time: "13:30", cost: 32, address: "Pontile Navigazione Laghi, Como" }),
-        item("Villa Melzi gardens", { time: "14:00", cost: 30, address: "Lungolario Manzoni, Bellagio" }),
+        item("Villa Melzi gardens", { time: "14:00", cost: 30, address: "Lungolario Manzoni, Bellagio", photo: PHOTO.como }),
       ]),
       block("Hotel", "BedDouble", [
         item("Check-in Hotel Florence, lake view", { time: "17:00", cost: 310, fixed: true, address: "Piazza Mazzini 46, Bellagio" }),
@@ -109,7 +121,7 @@ const MIDDLE = [
     sections: [
       block("Drive", "Car", [item("Drive to Verona (about 2 h 30)", { time: "09:30", end_time: "12:00" })]),
       block("Sights", "Landmark", [
-        item("Arena di Verona — Roman amphitheatre", { time: "13:30", cost: 24, address: "Piazza Bra 1, Verona" }),
+        item("Arena di Verona — Roman amphitheatre", { time: "13:30", cost: 24, address: "Piazza Bra 1, Verona", photo: PHOTO.arena }),
         item("Juliet's House and balcony", { time: "15:00", cost: 18, address: "Via Cappello 23, Verona" }),
       ]),
       block("Evening", "UtensilsCrossed", [
@@ -129,7 +141,7 @@ const MIDDLE = [
       block("Venice", "Ship", [
         item("Vaporetto day pass, line 1 along the Grand Canal", { cost: 50 }),
         item("St Mark's Basilica", { time: "11:00", cost: 6, address: "Piazza San Marco, Venezia" }),
-        item("Rialto Bridge at sunset", { time: "18:30", address: "Ponte di Rialto, Venezia" }),
+        item("Rialto Bridge at sunset", { time: "18:30", address: "Ponte di Rialto, Venezia", photo: PHOTO.venezia }),
       ]),
       block("Back", "Train", [item("Train back to Verona", { time: "21:05", end_time: "22:20", cost: 48 })]),
     ],
@@ -147,7 +159,7 @@ const MIDDLE = [
         }),
       ]),
       block("Evening", "Camera", [
-        item("Sunset at Piazzale Michelangelo", { time: "19:15", address: "Piazzale Michelangelo, Firenze" }),
+        item("Sunset at Piazzale Michelangelo", { time: "19:15", address: "Piazzale Michelangelo, Firenze", photo: PHOTO.firenze }),
         item("Hotel Brunelleschi (2 nights)", { cost: 520, fixed: true, address: "Piazza Santa Elisabetta 3, Firenze" }),
       ]),
     ],
@@ -158,7 +170,7 @@ const MIDDLE = [
     expenses: [{ text: "Panforte to bring home", cost: 16 }],
     sections: [
       block("Chianti", "Wine", [
-        item("Wine tasting at Castello di Ama", { time: "11:00", end_time: "12:30", cost: 120, address: "Località Ama, Gaiole in Chianti" }),
+        item("Wine tasting at Castello di Ama", { time: "11:00", end_time: "12:30", cost: 120, address: "Località Ama, Gaiole in Chianti", photo: PHOTO.toscana }),
       ]),
       block("Siena", "Landmark", [
         item("Piazza del Campo and the Torre del Mangia", { time: "15:00", cost: 30, address: "Piazza del Campo, Siena" }),
@@ -183,11 +195,12 @@ const LAST = {
   ],
 };
 
-// Each day's plan (day key → plan) and the notes, with fixed ids.
+// Each day's plan (day key → plan), the notes and the photo records, with fixed ids.
 export function demoContent(trip) {
   const days = buildDays(trip.startDate, trip.endDate);
   const plans = {};
   const notes = [];
+  const photos = [];
   days.forEach((day, d) => {
     const tpl = d === 0 ? FIRST : d === days.length - 1 && days.length > 1 ? LAST : MIDDLE[(d - 1) % MIDDLE.length];
     const { sections, expenses = [], ...rest } = tpl;
@@ -198,30 +211,25 @@ export function demoContent(trip) {
       sections: sections.map((s, si) => ({
         ...s,
         id: `demo-sec-${d}-${si}`,
-        items: s.items.map(({ note, ...it }, ii) => {
+        items: s.items.map(({ note, photo, ...it }, ii) => {
           const id = `demo-item-${d}-${si}-${ii}`;
           if (note) notes.push({ id: `demo-note-${d}-${si}-${ii}`, day_key: day.key, item_id: id, ...note });
+          if (photo) photos.push({ id: `demo-photo-${d}-${si}-${ii}`, day_key: day.key, item_id: id, drive_file_id: photo, kind: "photo" });
           return { ...it, id };
         }),
       })),
     };
   });
-  return { plans, notes };
+  return { plans, notes, photos };
 }
 
 async function seedTrip(trip) {
-  const { plans, notes } = demoContent(trip);
+  const { plans, notes, photos } = demoContent(trip);
   for (const [key, plan] of Object.entries(plans)) await saveDay(trip.id, key, plan);
-  for (const { id, ...n } of notes) {
-    await write(
-      setDoc(doc(db, "trips", trip.id, "notes", id), {
-        ...n,
-        created_by: auth.currentUser?.email || null,
-        created_date: serverTimestamp(),
-      })
-    );
-  }
-  await updateTrip(trip.id, { demo_seeded: true });
+  const stamp = { created_by: auth.currentUser?.email || null, created_date: serverTimestamp() };
+  for (const { id, ...n } of notes) await write(setDoc(doc(db, "trips", trip.id, "notes", id), { ...n, ...stamp }));
+  for (const { id, ...ph } of photos) await write(setDoc(doc(db, "trips", trip.id, "photos", id), { ...ph, ...stamp }));
+  await updateTrip(trip.id, { demo_version: DEMO_VERSION });
 }
 
 // Returns true when something was written (the caller reloads).
