@@ -825,8 +825,6 @@ export default function DayPlanModal({
                                 <ItemBlock
                                   item={item}
                                   timed={timed}
-                                  first={iIndex === 0}
-                                  last={iIndex === items.length - 1}
                                   fixed={isFixedItem(item, section)}
                                   dayKey={dayInfo.key}
                                   currency={currency}
@@ -1408,7 +1406,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, timed, first, last, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
+function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1497,8 +1495,9 @@ function ItemBlock({ item, timed, first, last, fixed, dayKey, currency, bar, pho
         {/* The timeline: a rule in the block's colour through every row, with
             the event's round check on it (tap = done: grey, struck through). */}
         <div className="relative w-11 shrink-0">
-          {!first && <span className="absolute start-[21px] top-0 h-[22px] w-0.5" style={{ backgroundColor: bar }} />}
-          {!last && <span className="absolute bottom-0 start-[21px] top-[22px] w-0.5" style={{ backgroundColor: bar }} />}
+          {/* Full height of every row, so the rule runs the whole card — a block
+              with one event still shows its timeline. */}
+          <span className="absolute bottom-0 start-[21px] top-0 w-0.5" style={{ backgroundColor: bar }} />
           <div className="relative">
             <DoneCheck
               done={done}
@@ -1642,7 +1641,7 @@ function DayNavButton({ day, dir, onNavigate }) {
     <button
       type="button"
       onClick={() => onNavigate(day.key)}
-      className={`inline-flex min-h-11 w-24 shrink-0 items-center gap-1 rounded-xl px-2 text-[15px] text-[#2c5f8a] transition hover:bg-stone-100 ${
+      className={`inline-flex min-h-11 min-w-24 max-w-[45%] shrink-0 items-center whitespace-nowrap gap-1 rounded-xl px-2 text-[15px] text-[#2c5f8a] transition hover:bg-stone-100 ${
         dir === "prev" ? "justify-start" : "justify-end"
       }`}
       aria-label={dir === "prev" ? t("Предыдущий день") : t("Следующий день")}

@@ -196,7 +196,7 @@ link-shared), not real photos. Remove the file and its call once the demo is in.
   the same spot on every row. Day 1's insurance / SIM are a "Перед поездкой"
   card of the same rows; "Мелкие расходы" and "Итого за день" are cards too.
   The **timeline** runs down the start of each card: a 2px rule in the block's
-  colour through every row, with the event's round check (`DoneCheck`, as in
+  colour the card's full height (one event or many), with the event's round check (`DoneCheck`, as in
   Apple's Reminders) on it. Tap = `item.done` (title grey and struck through, the
   rest dimmed); a block has its own check at the end of its heading
   (`section.done`: title struck through, its card dimmed). Both are plain fields
