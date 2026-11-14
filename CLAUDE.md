@@ -175,6 +175,19 @@ needs folder access — files are link-shared and shown by link.
 
 ## Look and feel (Apple-like)
 
+- **Day view** (`DayPlanModal.jsx`) is an iOS inset grouped list on `bg-stone-100`:
+  a large-title header on the page itself ("ДЕНЬ 1 · date" caption, city in
+  32px bold, country / where we sleep), "Изменить" as accent text and a grey ✕.
+  Each block = `SectionHeader` (a solid square in the block's `bar` colour with a
+  white glyph, bold title) + a white `groupCard` of `Row`s with inset hairlines.
+  An event row: `TimeColumn` (start bold, end under it; only in blocks where some
+  event has a time, else the block's dot), title 17px, a meta line (price pill,
+  calendar mark, alarm), then address / photos / note, and the "⋯" at the end —
+  the same spot on every row. Day 1's insurance / SIM are a "Перед поездкой"
+  card of the same rows; "Мелкие расходы" and "Итого за день" are cards too.
+  No timeline rule any more. The accent `text-[#2c5f8a]` has a lighter dark-theme
+  value in `index.css`.
+
 - Trip list: one "⋯" per card (edit / archive; restore / delete in the archive),
   a navy "Добавить поездку" button and an "Архив" pill under the cards.
 - Trip dashboard: day tiles are light cards with navy type (white on see-through
