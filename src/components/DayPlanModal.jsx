@@ -28,6 +28,7 @@ import {
   CalendarCheck,
   CalendarPlus,
   CalendarX,
+  Mic,
 } from "lucide-react";
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
@@ -1219,6 +1220,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
     { key: "address", icon: MapPin, label: hasAddress ? t("Изменить адрес") : t("Добавить адрес"), run: () => addressRef.current?.start() },
     { key: "photo", icon: ImagePlus, label: t("Добавить фото"), run: () => gridRef.current?.pickPhoto() },
     { key: "doc", icon: FileText, label: t("Добавить документ"), run: () => gridRef.current?.pickDocument() },
+    { key: "audio", icon: Mic, label: t("Записать голос"), run: () => gridRef.current?.startRecording() },
     { key: "note", icon: StickyNote, label: t("Заметка / ссылка"), run: () => noteRef.current?.open() },
   ];
 

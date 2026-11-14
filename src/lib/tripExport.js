@@ -40,6 +40,8 @@ const noteHtml = (n) =>
 const fileHtml = (p) =>
   p.kind === "document"
     ? `<li><i>${t("Документ")}:</i> ${link(driveViewUrl(p.drive_file_id), p.file_name || t("документ"))}</li>`
+    : p.kind === "audio"
+    ? `<li><i>${t("Голосовая запись")}:</i> ${link(driveViewUrl(p.drive_file_id), p.file_name || t("открыть"))}</li>`
     : `<li><i>${t("Фото")}:</i> ${link(driveViewUrl(p.drive_file_id), t("открыть фото"))}</li>`;
 
 // The summary page (components/TripSummaryModal.jsx), after the last day.

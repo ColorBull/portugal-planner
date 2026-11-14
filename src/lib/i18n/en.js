@@ -491,4 +491,11 @@ export default {
     "Goes to Google Calendar",
   "В Google Calendar":
     "In Google Calendar",
+  "Записать голос": "Record voice",
+  "Голосовая запись": "Voice recording",
+  "Запись": "Recording",
+  "Стоп и сохранить": "Stop & save",
+  "открыть": "open",
+  "Этот браузер не умеет записывать звук.": "This browser can’t record audio.",
+  "Нет доступа к микрофону. Разрешите его в настройках браузера.": "No access to the microphone. Allow it in the browser settings.",
 };
