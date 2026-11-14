@@ -104,7 +104,7 @@ picked with `TimeSelect.jsx` (hour + minute `<select>`s), never `<input type="ti
 Chrome's Android clock dialog clips its "Set" button with a large system font. An
 item with a time (or an "8:00" in its text) has an alarm-clock button / menu entry
 (`lib/alarm.js`): Android → clock app `SET_ALARM` intent, falling back to a Google
-Calendar event where Chrome refuses it; iPhone → an .ics with an alert at that time. In the day view an item's time chip and price badge share one row above its title, at the same size. Prices can also be set or changed
+Calendar event where Chrome refuses it; iPhone → an .ics with an alert at that time. In the day view an item's time is the line above its title; its price badge is under the title. Prices can also be set or changed
 straight from the day view (`InlineCost` in `DayPlanModal.jsx`: tap the badge
 or "+ цена"), which saves only that field. Moving a trip's start date leaves the
 insurance/SIM on the old first date.
@@ -211,8 +211,8 @@ link-shared), not real photos. Remove the file and its call once the demo is in.
   32px bold, country / where we sleep), "Изменить" as accent text and a grey ✕.
   Each block = `SectionHeader` (a solid square in the block's `bar` colour with a
   white glyph, bold title) + a white `groupCard` of `Row`s with inset hairlines.
-  An event row: `TimeColumn` (start bold, end under it; only in blocks where some
-  event has a time, else the block's dot), title 17px, a meta line (price pill,
+  An event row: `TimeColumn` — the first line, "20:30 – 22:00", start bold, only
+  when the event has a time (a side column wasted a phone's width) — title 17px, a meta line (price pill,
   calendar mark, alarm), then address / photos / note, and the "⋯" at the end —
   the same spot on every row. Day 1's insurance / SIM are a "Перед поездкой"
   card of the same rows; "Мелкие расходы" and "Итого за день" are cards too.

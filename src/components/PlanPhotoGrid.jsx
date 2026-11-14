@@ -377,7 +377,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
           {docs.map((d) => {
             const Icon = docIconFor(d.file_name);
             return (
-              <div key={d.id} className="relative flex items-center select-none">
+              <div key={d.id} className="relative flex min-w-0 max-w-full items-center select-none">
                 <button
                   type="button"
                   onTouchStart={(e) => startPress(e, d)}
@@ -395,7 +395,7 @@ const PlanPhotoGrid = forwardRef(function PlanPhotoGrid(
                     }
                     openDocument(d);
                   }}
-                  className="no-long-press flex items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-start touch-pan-y"
+                  className="no-long-press flex min-w-0 items-center gap-2 max-w-[230px] px-3 py-2 rounded-xl bg-white ring-1 ring-stone-200 hover:ring-stone-300 transition text-start touch-pan-y"
                 >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-600 shrink-0">
                     <Icon className="h-4 w-4" />

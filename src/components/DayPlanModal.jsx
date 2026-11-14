@@ -224,25 +224,17 @@ const InlineCost = forwardRef(function InlineCost(
 // instead of an all-day one (api/gcal.js). An end earlier than the start means
 // the next day (a night flight).
 const TIME_RE = /^\d{2}:\d{2}$/;
-const timeLabel = (item) =>
-  TIME_RE.test(item.time || "")
-    ? `${item.time}${TIME_RE.test(item.end_time || "") ? `–${item.end_time}` : ""}`
-    : "";
 
-// The leading column of a timed row, as in Apple's Calendar: the start in bold,
-// the end under it. Tap to change, hold (right-click) to change or delete; an
-// event without a time leaves the column empty.
+// The first line of a timed row: "20:30 – 22:00", start in bold, above the title
+// (a side column ate a phone's width). Tap to change, hold (right-click) to change
+// or delete; an event without a time has no line.
 function TimeColumn({ item, onEdit, onClear, onAlarm }) {
   const { bind, menu } = useHoldMenu([
     { key: "edit", label: t("Изменить время"), icon: Pencil, run: onEdit },
     { key: "alarm", label: t("Поставить будильник"), icon: AlarmClock, run: onAlarm },
     { key: "del", label: t("Удалить время"), icon: Trash2, danger: true, run: onClear },
   ]);
-  if (!TIME_RE.test(item.time || "")) {
-    return (
-      <span className="w-14 shrink-0" />
-    );
-  }
+  if (!TIME_RE.test(item.time || "")) return null;
   return (
     <>
       {menu}
@@ -252,14 +244,10 @@ function TimeColumn({ item, onEdit, onClear, onAlarm }) {
         {...bind}
         onClick={onEdit}
         title={t("Изменить время")}
-        className="w-14 shrink-0 self-start pe-2 pt-2.5 text-start tabular-nums"
+        className="mb-0.5 block text-start text-[15px] leading-[23px] tabular-nums"
       >
-        <span className={`block text-[15px] font-semibold leading-[23px] ${item.done ? "text-stone-400" : "text-stone-900"}`}>
-          {item.time}
-        </span>
-        {TIME_RE.test(item.end_time || "") && (
-          <span className="block text-[13px] leading-tight text-stone-500">{item.end_time}</span>
-        )}
+        <span className={`font-semibold ${item.done ? "text-stone-400" : "text-stone-900"}`}>{item.time}</span>
+        {TIME_RE.test(item.end_time || "") && <span className="text-stone-500"> – {item.end_time}</span>}
       </button>
     </>
   );
@@ -783,9 +771,6 @@ export default function DayPlanModal({
                   {sections.map((section, i) => {
                     const style = styleFor(section.icon);
                     const items = section.items || [];
-                    // A time column only where some event has a time, so titles
-                    // line up under each other within the block.
-                    const timed = items.some((it) => timeLabel(it));
                     return (
                       <section key={section.id || section.title || i}>
                         <SectionHeader
@@ -822,10 +807,9 @@ export default function DayPlanModal({
                         {items.length > 0 && (
                           <div className={`${groupCard} transition-opacity ${section.done ? "opacity-60" : ""}`}>
                             {items.map((item, iIndex) => (
-                              <Row key={item.id} divided={iIndex > 0} inset={timed ? 100 : 44}>
+                              <Row key={item.id} divided={iIndex > 0} inset={44}>
                                 <ItemBlock
                                   item={item}
-                                  timed={timed}
                                   fixed={isFixedItem(item, section)}
                                   dayKey={dayInfo.key}
                                   currency={currency}
@@ -1408,7 +1392,7 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
 // Everything of one plan item in the reading view; its add-actions share one menu.
-function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
+function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
   const [textDraft, setTextDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1510,15 +1494,13 @@ function ItemBlock({ item, timed, fixed, dayKey, currency, bar, photos, onChange
             />
           </div>
         </div>
-        {timed && (
+        <div className="min-w-0 flex-1 py-2.5">
           <TimeColumn
             item={item}
             onAlarm={alarm}
             onEdit={() => setEditingTime(true)}
             onClear={() => onSavePatch({ time: "", end_time: "" }).catch(failed)}
           />
-        )}
-        <div className="min-w-0 flex-1 py-2.5">
           {editingText ? (
             // Edited where it stands, like the price: Enter / tap away saves, Esc cancels.
             <div data-no-swipe className="-mx-2 rounded-lg bg-stone-100 px-2 ring-2 ring-inset ring-[#3a7ca5]">
