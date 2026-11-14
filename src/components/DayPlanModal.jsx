@@ -648,7 +648,8 @@ export default function DayPlanModal({
       />
 
       <motion.div
-        className="relative flex h-dvh w-full flex-col overflow-hidden bg-stone-100"
+        className="relative flex h-dvh w-full flex-col overflow-hidden"
+        style={{ backgroundColor: "#fbf7f0" }}
         initial={false}
         exit={{ scale: 0.96, y: 16, opacity: 0 }}
         transition={{ type: "spring", stiffness: 260, damping: 26 }}
@@ -656,7 +657,10 @@ export default function DayPlanModal({
         {/* Header band */}
         {/* iOS large-title header on the page itself; the buttons keep the spot
             the action sheet's ✕ is matched to (components/ActionMenu.jsx). */}
-        <div className="shrink-0 bg-stone-100 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-4 sm:pt-7">
+        <div
+          className="shrink-0 px-4 pb-3 pt-[max(1rem,env(safe-area-inset-top))] sm:px-7 sm:pb-4 sm:pt-7"
+          style={{ backgroundColor: "#fbf7f0" }}
+        >
           <div className="relative mx-auto w-full max-w-3xl">
           <div className="absolute end-0 top-0 flex gap-2">
             {editing ? (

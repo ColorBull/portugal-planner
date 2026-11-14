@@ -185,7 +185,7 @@ link-shared), not real photos. Remove the file and its call once the demo is in.
 
 ## Look and feel (Apple-like)
 
-- **Day view** (`DayPlanModal.jsx`) is an iOS inset grouped list on `bg-stone-100`:
+- **Day view** (`DayPlanModal.jsx`) is an iOS inset grouped list on the beige `#fbf7f0` (the family wanted it back):
   a large-title header on the page itself ("ДЕНЬ 1 · date" caption, city in
   32px bold, country / where we sleep), "Изменить" as accent text and a grey ✕.
   Each block = `SectionHeader` (a solid square in the block's `bar` colour with a
