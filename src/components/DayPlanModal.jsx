@@ -36,6 +36,7 @@ import {
 import { TripPhoto } from "@/api/entities";
 import PlanPhotoGrid from "@/components/PlanPhotoGrid";
 import PlanNoteBox from "@/components/PlanNoteBox";
+import ActionMenu from "@/components/ActionMenu";
 import AddressInput from "@/components/AddressInput";
 import TimeSelect from "@/components/TimeSelect";
 import ExpenseScope from "@/components/ExpenseScope";
@@ -1389,123 +1390,6 @@ function DayExpenses({ expenses, all, currency, onSave }) {
 // One "⋯" button instead of a row of add-buttons. On a phone the actions come up
 // as a bottom sheet with big rows; from `sm` up as a small popover. Portalled, so
 // no transformed ancestor can displace it. No fade: see CLAUDE.md (black frame).
-function MenuRow({ action: a, onClick, divided = false, compact = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex w-full items-center gap-3 text-start transition hover:bg-stone-100 active:bg-stone-100 ${
-        compact ? "rounded-xl px-3 py-2.5 text-sm" : "px-4 py-3.5 text-[16px]"
-      } ${divided ? "border-t border-stone-200" : ""} ${a.danger ? "text-red-600" : "text-stone-800"}`}
-    >
-      <a.icon className={`h-5 w-5 shrink-0 ${compact ? "sm:h-4 sm:w-4" : ""} ${a.danger ? "text-red-500" : "text-stone-400"}`} />
-      {a.label}
-    </button>
-  );
-}
-
-function ActionMenu({ actions }) {
-  const phone = useIsPhone();
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ left: 0, top: 0 });
-  const btnRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e) => e.key === "Escape" && setOpen(false);
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [open]);
-
-  const toggle = () => {
-    if (!open && btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      const w = 248;
-      const h = Math.min(actions.length * 40 + 24, window.innerHeight - 16);
-      setPos({
-        left: Math.min(Math.max(r.right - w, 8), window.innerWidth - w - 8),
-        top: r.bottom + h + 8 > window.innerHeight ? Math.max(r.top - h - 4, 8) : r.bottom + 4,
-      });
-    }
-    setOpen((o) => !o);
-  };
-
-  const plain = actions.filter((a) => !a.danger);
-  const danger = actions.filter((a) => a.danger);
-
-  // Run inside the tap itself: a file picker only opens from a user gesture.
-  const choose = (action) => {
-    setOpen(false);
-    action.run();
-  };
-
-  return (
-    <>
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={toggle}
-        className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-stone-400 transition hover:bg-stone-200/60 hover:text-stone-700 active:bg-stone-200/60"
-        aria-label={t("Действия")}
-        title={t("Цена, адрес, фото, документ, заметка")}
-      >
-        <MoreHorizontal className="h-5 w-5" />
-      </button>
-      {open &&
-        createPortal(
-          <div
-            data-no-swipe
-            className={`fixed inset-0 z-[70] ${phone ? "bg-stone-950/40" : ""}`}
-            onClick={() => setOpen(false)}
-          >
-            {phone ? (
-              // iOS action sheet: the actions, the removals in their own group, then
-              // "Отмена" on its own; never taller than the screen, so the dimmed
-              // strip above always stays to tap away.
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute inset-x-0 bottom-0 flex max-h-[85dvh] flex-col gap-2 overflow-y-auto px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-              >
-                {[plain, danger].map(
-                  (group, gi) =>
-                    group.length > 0 && (
-                      <div key={gi} className="shrink-0 overflow-hidden rounded-2xl bg-white">
-                        {group.map((a, i) => (
-                          <MenuRow key={a.key} action={a} onClick={() => choose(a)} divided={i > 0} />
-                        ))}
-                      </div>
-                    )
-                )}
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="shrink-0 rounded-2xl bg-white py-4 text-[17px] font-semibold text-stone-800 active:bg-stone-100"
-                >
-                  {t("Отмена")}
-                </button>
-              </div>
-            ) : (
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="absolute w-[248px] overflow-y-auto rounded-2xl bg-white p-1.5 shadow-2xl ring-1 ring-stone-200"
-                style={{ left: pos.left, top: pos.top, maxHeight: "calc(100dvh - 16px)" }}
-              >
-                {plain.map((a) => (
-                  <MenuRow key={a.key} action={a} onClick={() => choose(a)} compact />
-                ))}
-                {danger.length > 0 && <div className="my-1 border-t border-stone-200" />}
-                {danger.map((a) => (
-                  <MenuRow key={a.key} action={a} onClick={() => choose(a)} compact />
-                ))}
-              </div>
-            )}
-          </div>,
-          document.body
-        )}
-    </>
-  );
-}
-
 // Everything of one plan item in the reading view; its add-actions share one menu.
 function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSaveCost, onSavePatch, onDelete }) {
   const [editingText, setEditingText] = useState(false);
@@ -1621,7 +1505,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
           </div>
           <div className="break-words leading-relaxed text-stone-700">{item.text}</div>
         </div>
-        <ActionMenu actions={actions} />
+        <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
       </div>
       {editingText && (
         <div data-no-swipe className="mt-2 rounded-2xl bg-white/70 p-3 ring-1 ring-stone-200">
@@ -1683,9 +1567,10 @@ function ExtraTools({ itemKey, title, Icon, extra, dayKey, currency, photos, onC
           <Icon className="h-4 w-4" />
         </span>
         <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400">{t(title)}</span>
-        <span className="ms-auto flex items-center">
+        {/* -me-[17px]: through the card's padding and border, so this ⋯ lines up with the events' ⋯ */}
+        <span className="-me-[17px] ms-auto flex items-center">
           <InlineCost ref={costRef} cost={extra.cost} currency={currency} onSave={onSaveCost} />
-          <ActionMenu actions={actions} />
+          <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
         </span>
       </div>
       <div className="mt-2 break-words font-medium text-stone-700">

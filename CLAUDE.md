@@ -173,6 +173,17 @@ photo record; files Drive refuses are remembered in `pp_drive_unmovable` and
 left alone (e.g. the Base44-era uploads stay in the root). The app itself never
 needs folder access — files are link-shared and shown by link.
 
+## Look and feel (Apple-like)
+
+- Trip list: one "⋯" per card (edit / archive; restore / delete in the archive),
+  a navy "Добавить поездку" button and an "Архив" pill under the cards.
+- Trip dashboard: day tiles are light cards with navy type (white on see-through
+  blue was hard to read over the map); today has an accent ring
+  (`aria-current="date"`, this device's date); "Итоги" is the navy tile.
+- App-wide (end of `index.css`): no tap flash, a pressed button dims (opacity
+  0.6), keyboard focus gets an outline (`:focus-visible` only), and the system's
+  "reduce motion" is honoured — CSS and framer-motion (`MotionConfig` in `App.jsx`).
+
 ## Settings, theme, Google Calendar
 
 The gear at the top left of the trip list / sign-in (`SettingsButton.jsx`) opens
@@ -345,9 +356,13 @@ Each device keeps its own copy, so a trip opens with no signal.
   Tap a block's icon to change it; green ⊕ rows add an event / a block; Enter in
   an event starts the next one below. Blank events and blocks with neither name
   nor events are dropped on save.
-- The "⋯" menu (`ActionMenu`) is an iOS action sheet on a phone: its actions,
-  the red removals as a group of their own, then "Отмена"; at most 85dvh tall and
-  scrolling, so the dimmed strip above always closes it. A popover from `sm` up.
+- The "⋯" menu (`components/ActionMenu.jsx`, also on the trip cards) is an iOS action sheet on a phone: its actions,
+  then the red removals as a group of their own; no Cancel button — it closes with
+  an ✕ on the dimmed strip at the very spot of the day's own ✕, or a tap on that
+  strip (the sheet is capped at 100dvh − 6rem and scrolls). A popover from `sm` up.
+  On the trip list (`corner="page"`) its ✕ covers the sign-out button exactly instead.
+  Every "⋯" sits on one vertical line: the insurance / SIM card's reaches through
+  the card's padding (`-me-[17px]`).
 - Dragging (edit mode only) uses `@hello-pangea/dnd`: the ≡ grip of each event and
   block; events move between blocks too; on a phone, hold the grip a moment. The
   grips carry `data-no-swipe` so a drag never turns the day. It positions the dragged clone with

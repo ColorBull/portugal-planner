@@ -327,3 +327,35 @@ html.dark input::placeholder,
 html.dark textarea::placeholder {
   color: #6c7d92;
 }
+
+/* ---------------------------------------------------------------------------
+   Native feel and accessibility (app-wide).
+   - No grey/blue flash on tap (Android); a pressed button dims, as on iOS.
+   - A clear outline for keyboard focus only (never on a tap).
+   - "Reduce motion" in the system settings is honoured (framer-motion too:
+     MotionConfig reducedMotion="user" in App.jsx).
+   --------------------------------------------------------------------------- */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+button:not(:disabled):active,
+[role="button"]:active {
+  opacity: 0.6;
+}
+:is(button, a, [role="button"], [tabindex]):focus-visible {
+  outline: 2px solid #3a7ca5;
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
