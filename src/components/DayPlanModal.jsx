@@ -780,7 +780,7 @@ export default function DayPlanModal({
                           done={section.done === true}
                           trailing={
                             <>
-                            {section.mapUrl && (
+                            {section.mapUrl && section.done !== true && (
                               <a
                                 href={section.mapUrl}
                                 target="_blank"
@@ -805,7 +805,10 @@ export default function DayPlanModal({
                           }
                         />
                         {items.length > 0 && (
-                          <div className={`${groupCard} transition-opacity ${section.done ? "opacity-60" : ""}`}>
+                          <div
+                            className={`${groupCard} transition-opacity ${section.done ? "opacity-60" : ""}`}
+                            inert={section.done === true ? "" : undefined}
+                          >
                             {items.map((item, iIndex) => (
                               <Row key={item.id} divided={iIndex > 0} inset={44}>
                                 <ItemBlock
@@ -1494,7 +1497,9 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
             />
           </div>
         </div>
-        <div className="min-w-0 flex-1 py-2.5">
+        {/* Done = locked: nothing in it opens (photos, files, links, address) until
+            the check is cleared; `inert` also keeps it out of the keyboard. */}
+        <div className="min-w-0 flex-1 py-2.5" inert={done ? "" : undefined}>
           <TimeColumn
             item={item}
             onAlarm={alarm}
@@ -1563,7 +1568,7 @@ function ItemBlock({ item, fixed, dayKey, currency, bar, photos, onChanged, onSa
       <PlanNoteBox ref={noteRef} itemId={item.id} dayKey={dayKey} />
           </div>
         </div>
-        <div className="shrink-0 pt-1">
+        <div className="shrink-0 pt-1" inert={done ? "" : undefined}>
           <ActionMenu actions={actions} label={t("Цена, адрес, фото, документ, заметка")} />
         </div>
       </div>

@@ -221,7 +221,9 @@ link-shared), not real photos. Remove the file and its call once the demo is in.
   Apple's Reminders) on it. Tap = `item.done` (title grey and struck through, the
   rest dimmed); a block has its own check at the end of its heading
   (`section.done`: title struck through, its card dimmed). Both are plain fields
-  on the day doc, kept by edit mode. The accent `text-[#2c5f8a]` has a lighter
+  on the day doc, kept by edit mode. Done = locked: the event's content and "⋯"
+  (or a block's whole card and its "Карта" link) are `inert` — no photo, file,
+  link or map opens — until the check is cleared. The accent `text-[#2c5f8a]` has a lighter
   dark-theme value in `index.css`.
 
 - Trip list: one "⋯" per card (edit / archive; restore / delete in the archive),
