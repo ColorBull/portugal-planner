@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CountrySelect from "@/components/CountrySelect";
-import Sheet, { SheetButton, SheetGroup, SheetRow, sheetInput } from "@/components/Sheet";
-import { CURRENCIES, DEFAULT_CURRENCY } from "@/lib/money";
+import Sheet, { SheetButton, SheetGroup, SheetRow, SheetSwitch, sheetInput } from "@/components/Sheet";
+import { CURRENCIES, DEFAULT_CURRENCY, EXTRAS, tripExtras } from "@/lib/money";
 import { t } from "@/lib/i18n";
 
 const emptyTrip = {
@@ -13,8 +13,11 @@ const emptyTrip = {
   currency: DEFAULT_CURRENCY,
 };
 
+// { insurance: true, sim: false } — which first-day extras the trip uses.
+const extrasOf = (trip) => Object.fromEntries(EXTRAS.map(({ key }) => [key, tripExtras(trip).some((x) => x.key === key)]));
+
 export default function TripFormModal({ trip, onSave, onClose }) {
-  const [form, setForm] = useState({ ...emptyTrip, ...(trip || {}) });
+  const [form, setForm] = useState({ ...emptyTrip, ...(trip || {}), extras: extrasOf(trip) });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
@@ -52,6 +55,8 @@ export default function TripFormModal({ trip, onSave, onClose }) {
         startDate: form.startDate,
         endDate: form.endDate,
         currency: form.currency || DEFAULT_CURRENCY,
+        // Switching one off only hides it; what was entered stays on day 1.
+        extras: form.extras,
       });
       onClose();
     } catch (err) {
@@ -108,6 +113,17 @@ export default function TripFormModal({ trip, onSave, onClose }) {
             ))}
           </select>
         </SheetRow>
+      </SheetGroup>
+
+      <SheetGroup label={t("Перед поездкой")}>
+        {EXTRAS.map(({ key, title }) => (
+          <SheetSwitch
+            key={key}
+            label={t(title)}
+            checked={form.extras[key]}
+            onChange={(on) => setForm((prev) => ({ ...prev, extras: { ...prev.extras, [key]: on } }))}
+          />
+        ))}
       </SheetGroup>
 
       {error && <p className="px-4 text-[15px] text-[#a8451f]">{error}</p>}

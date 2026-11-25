@@ -24,7 +24,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { personName } from "@/lib/family";
 import { tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
 import { countryLabel } from "@/lib/countries";
-import { formatMoney, tripCurrency } from "@/lib/money";
+import { formatMoney, tripCurrency, tripExtras } from "@/lib/money";
 import {
   RATING_QUESTIONS,
   cityStats,
@@ -58,7 +58,7 @@ export default function TripSummaryModal({ trip, tripDays, days, onSave, onClose
   const summary = trip?.summary || {};
   const currency = tripCurrency(trip);
   const cities = useMemo(() => cityStats(tripDays, days, trip), [tripDays, days, trip]);
-  const costs = useMemo(() => costStats(tripDays, days), [tripDays, days]);
+  const costs = useMemo(() => costStats(tripDays, days, tripExtras(trip)), [tripDays, days, trip]);
   const swipeRef = useRef(null);
 
   // Hold the page still behind the sheet (see DayPlanModal for why only overflow).

@@ -47,6 +47,10 @@ export const EXTRAS = [
   { key: "sim", title: "SIM-карта", placeholder: "Оператор SIM-карты" },
 ];
 
+// The extras this trip uses: each can be switched off in the trip form
+// (`trip.extras.<key> === false`); missing = on, as for trips made before.
+export const tripExtras = (trip) => EXTRAS.filter(({ key }) => trip?.extras?.[key] !== false);
+
 // Kinds of fixed spending, in receipt order. Russian titles are i18n keys.
 export const FIXED_KINDS = [
   { key: "flights", title: "Перелёты" },
@@ -79,9 +83,9 @@ export const dayExpenses = (plan) =>
   (Array.isArray(plan?.expenses) ? plan.expenses : []).filter((e) => parseCost(e?.cost) !== null);
 
 // The fixed spending of one day: [{ kind, text, cost }] (only what has a price).
-export function fixedItems(plan) {
+export function fixedItems(plan, extras = EXTRAS) {
   const out = [];
-  EXTRAS.forEach(({ key }) => {
+  extras.forEach(({ key }) => {
     const cost = parseCost(plan?.[key]?.cost);
     if (cost !== null) out.push({ kind: key, text: plan[key].company || "", cost });
   });
@@ -98,7 +102,7 @@ export function fixedItems(plan) {
   return out;
 }
 
-export const fixedTotal = (plan) => round(fixedItems(plan).reduce((sum, x) => sum + x.cost, 0));
+export const fixedTotal = (plan, extras) => round(fixedItems(plan, extras).reduce((sum, x) => sum + x.cost, 0));
 
 // What was spent on the day itself — fixed spending is left out.
 export function dayTotal(plan) {
@@ -116,10 +120,10 @@ export function dayTotal(plan) {
 
 // The trip's fixed spending as a receipt: { lines: [{ kind, title, total,
 // items: [{ text, cost }] }], total } — one line per kind that has any.
-export function fixedReceipt(plans) {
+export function fixedReceipt(plans, extras) {
   const byKind = new Map();
   plans.forEach((plan) =>
-    fixedItems(plan).forEach((x) => {
+    fixedItems(plan, extras).forEach((x) => {
       const line = byKind.get(x.kind) || { kind: x.kind, total: 0, items: [] };
       line.total += x.cost;
       line.items.push({ text: x.text, cost: x.cost });

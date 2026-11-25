@@ -84,7 +84,9 @@ guard against accidents, not security — `firestore.rules` is the real gate.
 Every plan item has an optional `cost` (a number, in the trip's `currency`,
 chosen in the trip form; default €). Day 1 also carries `insurance` and `sim`
 (`{ company, cost }`) on its day doc; their documents are ordinary uploads with
-`item_id` `"insurance"` / `"sim"`. Spending is **fixed** — shown as "Общий расход"
+`item_id` `"insurance"` / `"sim"`. Each is optional per trip: switches under "Перед поездкой" in the
+trip form set `trip.extras.<key>` (missing = on); `tripExtras(trip)` in `money.js` is
+the list in use — an off one is hidden and left out of the totals, its data kept. Spending is **fixed** — shown as "Общий расход"
 (general: flights, hotels, car rental, insurance, SIM, preparations) — or
 **daily** ("Расход дня"); `ExpenseScope.jsx` asks which whenever a price is
 entered (the inline price, the small-expense form). Insurance / SIM are always fixed; a

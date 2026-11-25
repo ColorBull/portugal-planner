@@ -50,7 +50,7 @@ import { tripYearLabel } from "@/lib/tripDays";
 import { useIsPhone } from "@/lib/useIsPhone";
 import { useHoldMenu } from "@/lib/useHoldMenu";
 import { countryLabel } from "@/lib/countries";
-import { EXTRAS, dayExpenses, dayTotal, fixedTotal, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
+import { dayExpenses, dayTotal, fixedTotal, formatMoney, isFixedItem, parseCost, tripCurrency, tripExtras } from "@/lib/money";
 import { t, getLang } from "@/lib/i18n";
 
 const EXTRA_ICONS = { insurance: ShieldCheck, sim: Smartphone };
@@ -457,12 +457,14 @@ export default function DayPlanModal({
 }) {
   const sections = useMemo(() => plan?.sections || [], [plan]);
   const hasPlan = sections.length > 0;
-  // The first day also carries the trip's insurance and SIM card.
-  const firstDay = dayInfo?.dayNumber === 1;
+  // The first day also carries the trip's insurance and SIM card — those the
+  // trip uses (switched in the trip form); none = no "Перед поездкой" card.
+  const extras = tripExtras(trip);
+  const firstDay = dayInfo?.dayNumber === 1 && extras.length > 0;
   const currency = tripCurrency(trip);
   // The day's own spending; flights, insurance, SIM… are the trip's (lib/money.js).
   const total = dayTotal(plan);
-  const fixed = fixedTotal(plan);
+  const fixed = fixedTotal(plan, extras);
 
   const bodyRef = useRef(null);
   const swipeRef = useRef(null);
@@ -577,7 +579,7 @@ export default function DayPlanModal({
     setDraft({
       city: plan?.city || "",
       stay: plan?.stay || "",
-      companies: Object.fromEntries(EXTRAS.map(({ key }) => [key, plan?.[key]?.company || ""])),
+      companies: Object.fromEntries(extras.map(({ key }) => [key, plan?.[key]?.company || ""])),
       sections:
         seed && !hasPlan
           ? [{ ...newSection(), items: [newItem()] }]
@@ -592,7 +594,7 @@ export default function DayPlanModal({
         stay: draft.stay.trim(),
         ...(firstDay
           ? Object.fromEntries(
-              EXTRAS.map(({ key }) => [key, { company: draft.companies[key].trim(), cost: parseCost(plan?.[key]?.cost) }])
+              extras.map(({ key }) => [key, { company: draft.companies[key].trim(), cost: parseCost(plan?.[key]?.cost) }])
             )
           : {}),
         // Blank rows go; a block stays if it has a name or anything in it.
@@ -741,14 +743,14 @@ export default function DayPlanModal({
         >
           <div className="mx-auto w-full max-w-3xl">
           {editing ? (
-            <DayEditor draft={draft} setDraft={setDraft} firstDay={firstDay} />
+            <DayEditor draft={draft} setDraft={setDraft} firstDay={firstDay} extras={extras} />
           ) : (
             <>
               {firstDay && (
                 <section className="mb-7">
                   <SectionHeader icon={ShieldCheck} color="#1d3b5c" title={t("Перед поездкой")} />
                   <div className={groupCard}>
-                    {EXTRAS.map(({ key, title }, i) => (
+                    {extras.map(({ key, title }, i) => (
                       <Row key={key} divided={i > 0} inset={60}>
                         <ExtraTools
                           title={title}
@@ -979,7 +981,7 @@ function EditRow({ armed, onArm, onDelete, handle, children, className = "" }) {
 // Edit mode of the day: each block an inset card — its name, then its events,
 // then "Добавить событие"; drag by ≡ (events also between blocks, on a phone
 // after a short hold); Enter in an event starts the next one below it.
-function DayEditor({ draft, setDraft, firstDay }) {
+function DayEditor({ draft, setDraft, firstDay, extras }) {
   const [armed, setArmed] = useState(null); // id of the row showing "Удалить"
   const [focusId, setFocusId] = useState(null); // new row to put the cursor in
   const [pickingIcon, setPickingIcon] = useState(null); // section id
@@ -1037,7 +1039,7 @@ function DayEditor({ draft, setDraft, firstDay }) {
     <div data-no-swipe>
       {firstDay && (
         <div className={`${card} mb-6`}>
-          {EXTRAS.map(({ key, title }, i) => {
+          {extras.map(({ key, title }, i) => {
             const Icon = EXTRA_ICONS[key];
             return (
               <label key={key} className={`flex min-h-[52px] items-center gap-3 px-3 ${i ? divider : ""}`}>

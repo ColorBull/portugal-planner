@@ -81,7 +81,7 @@ export function cityStats(tripDays, days, trip) {
 //   daily  — the days' own spending (perDay and the top day come from it)
 //   fixed  — flights, insurance, SIM… as a receipt (money.js → fixedReceipt)
 //   total  — both together: what the trip cost
-export function costStats(tripDays, days) {
+export function costStats(tripDays, days, extras) {
   let daily = 0;
   let top = null;
   tripDays.forEach((d) => {
@@ -90,7 +90,7 @@ export function costStats(tripDays, days) {
     if (sum > 0 && (!top || sum > top.total)) top = { day: d, total: sum };
   });
   daily = Math.round(daily * 100) / 100;
-  const fixed = fixedReceipt(tripDays.map((d) => days[d.key]));
+  const fixed = fixedReceipt(tripDays.map((d) => days[d.key]), extras);
   return {
     total: Math.round((daily + fixed.total) * 100) / 100,
     daily,

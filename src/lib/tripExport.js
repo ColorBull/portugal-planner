@@ -3,7 +3,7 @@
 // NotebookLM reads and keeps in sync (see api/drive.js → saveGoogleDoc).
 
 import { buildDays, tripRangeLabel, tripYearLabel } from "@/lib/tripDays";
-import { EXTRAS, dayExpenses, dayTotal, fixedReceipt, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
+import { tripExtras, dayExpenses, dayTotal, fixedReceipt, formatMoney, isFixedItem, parseCost, tripCurrency } from "@/lib/money";
 import { driveViewUrl } from "@/api/drive";
 import { t, getLang, isRtl, localeTag } from "@/lib/i18n";
 import { countryLabel } from "@/lib/countries";
@@ -56,7 +56,7 @@ function summaryHtml(trip, list, days, currency, tripTotal) {
     `<p>${t("Длительность")}: ${list.length}. ${t("Всего потрачено")}: ${esc(formatMoney(tripTotal, currency))}.</p>`,
     `<h3>${t("Города")} (${t("по месту ночёвки")})</h3><ul>${cities}</ul>`
   );
-  const fixed = fixedReceipt(list.map((d) => days[d.key]));
+  const fixed = fixedReceipt(list.map((d) => days[d.key]), tripExtras(trip));
   const daily = Math.round((tripTotal - fixed.total) * 100) / 100;
   if (tripTotal) {
     const lines = fixed.lines
@@ -110,6 +110,7 @@ export function tripDocName(trip) {
 
 export function buildTripHtml({ trip, days, notes, photos }) {
   const currency = tripCurrency(trip);
+  const extras = tripExtras(trip);
   const notesBy = group(notes);
   const filesBy = group(photos);
   const list = buildDays(trip.startDate, trip.endDate);
@@ -123,7 +124,7 @@ export function buildTripHtml({ trip, days, notes, photos }) {
     const dayFiles = filesBy[day.key] || {};
     const used = new Set();
     const sections = plan?.sections || [];
-    const hasExtras = day.dayNumber === 1 && EXTRAS.some(({ key }) => plan?.[key]?.company || plan?.[key]?.cost);
+    const hasExtras = day.dayNumber === 1 && extras.some(({ key }) => plan?.[key]?.company || plan?.[key]?.cost);
     const expenses = dayExpenses(plan);
     if (!sections.length && !hasExtras && !expenses.length && !Object.keys(dayNotes).length) return;
 
@@ -133,7 +134,7 @@ export function buildTripHtml({ trip, days, notes, photos }) {
 
     if (hasExtras) {
       body.push(`<h3>${t("Страховка и SIM-карта")}</h3><ul>`);
-      EXTRAS.forEach(({ key, title }) => {
+      extras.forEach(({ key, title }) => {
         const x = plan?.[key];
         if (!x?.company && !x?.cost) return;
         const cost = parseCost(x.cost);
@@ -192,7 +193,7 @@ export function buildTripHtml({ trip, days, notes, photos }) {
 
     // The day's total leaves out flights, insurance, SIM…; the trip's has them.
     const total = dayTotal(plan);
-    tripTotal += total + fixedReceipt([plan]).total;
+    tripTotal += total + fixedReceipt([plan], extras).total;
     if (total) body.push(`<p><b>${t("Итого за день")}: ${esc(formatMoney(total, currency))}</b></p>`);
   });
 
